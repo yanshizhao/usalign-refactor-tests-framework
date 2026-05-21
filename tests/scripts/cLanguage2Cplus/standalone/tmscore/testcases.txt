@@ -1,0 +1,11 @@
+# TMscore standalone program test cases
+# 来源于 TMscore.cpp print_help() 中的 6 个 Example usages
+# 格式: <name> <working_dir> <arguments...>
+# <working_dir> 相对于 data/ 目录
+
+tmscore_basic          help  model.pdb native.pdb -outfmt -1
+tmscore_complex        help  modelComplex.pdb nativeComplex.pdb -c -outfmt -1
+tmscore_d0             help  model.pdb native.pdb -d 5 -outfmt -1
+tmscore_len            help  model.pdb native.pdb -l 120 -outfmt -1
+tmscore_super          help  model.pdb native.pdb -o TM_sup -outfmt -1
+tmscore_seq            help  model.pdb native.pdb -seq -outfmt -1

@@ -1,0 +1,10 @@
+# HwRMSD standalone program test cases
+# 来源于 HwRMSD.cpp print_help() 中的 5 个 Example usages
+# 格式: <name> <working_dir> <arguments...>
+# <working_dir> 相对于 data/ 目录
+
+hwrmsd_basic           help  model.pdb native.pdb -outfmt -1
+hwrmsd_ulen            help  model.pdb native.pdb -u 100 -d 5.0 -outfmt -1
+hwrmsd_alen            help  model.pdb native.pdb -a T -o PDB1.sup -outfmt -1
+hwrmsd_align           help  model.pdb native.pdb -i align.txt -outfmt -1
+hwrmsd_matrix          help  model.pdb native.pdb -m matrix.txt -outfmt -1

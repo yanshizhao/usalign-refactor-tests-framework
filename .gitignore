@@ -1,0 +1,12 @@
+*.exe
+*.o
+__pycache__/
+*.pyc
+tests/scripts/cLanguage2Cplus/baseline/
+tests/scripts/cLanguage2Cplus/current/
+tests/scripts/cLanguage2Cplus/diffs/
+tests/scripts/cLanguage2Cplus/perf_current/
+tests/scripts/cLanguage2Cplus/standalone/*/baseline/
+tests/scripts/cLanguage2Cplus/standalone/*/current/
+tests/scripts/cLanguage2Cplus/standalone/*/diffs/
+USalign/

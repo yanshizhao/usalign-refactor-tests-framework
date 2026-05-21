@@ -1,0 +1,4 @@
+>model.pdb
+AGCNAGQLT
+>native.pdb
+AGCNAGQLT

@@ -1,0 +1,7 @@
+# pdb2ss standalone program test cases
+# 来源于 pdb2ss.cpp print_help() 中的用法: pdb2ss pdb.pdb > seq.ss
+# 格式: <name> <working_dir> <arguments...>
+# <working_dir> 相对于 data/ 目录
+
+pdb2ss_model           help  model.pdb
+pdb2ss_101m            .     101m.pdb
