@@ -1,0 +1,30 @@
+
+Name of Structure_1: US7351924051.pdb:1,A (to be superimposed onto Structure_2)
+Name of Structure_2: US7351924052.pdb:1,B
+Length of Structure_1: 98 residues
+Length of Structure_2: 97 residues
+
+Aligned length= 75, RMSD=   2.96, Seq_ID=n_identical/n_aligned= 0.507
+TM-score= 0.50577 (normalized by length of Structure_1: L=98, d0=3.42)
+TM-score= 0.50839 (normalized by length of Structure_2: L=97, d0=3.39)
+(You should use TM-score normalized by length of the reference structure)
+
+(":" denotes residue pairs of d < 5.0 Angstrom, "." denotes other aligned residues)
+gggagagguuggccggcuggugccgccccgggacuuc----------------------aaaucccgugggaggucccgcaagggagcuccggaggguucgauucccucccucucccgcc
+ ::::::::::: ::::::::::: ::::::::::..                      :::::::.::.                    ::::::::::::::::::::::::::::::
+-gcggaaguagu-ucagugguaga-acacccgacagacgaagcgcuaaaacgugggauucugucgggggg--------------------ucgcggguucgagucccgucuuccgcucca
+
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0      19.7242084658   0.0391187885  -0.9952451684   0.0892007574
+1     -64.9950489718  -0.9379554277  -0.0057926553   0.3467074571
+2     458.9370513867  -0.3445422123  -0.0972291102  -0.9337222092
+
+Code for rotating Structure 1 from (x,y,z) to (X,Y,Z):
+for(i=0; i<L; i++)
+{
+   X[i] = t[0] + u[0][0]*x[i] + u[0][1]*y[i] + u[0][2]*z[i];
+   Y[i] = t[1] + u[1][0]*x[i] + u[1][1]*y[i] + u[1][2]*z[i];
+   Z[i] = t[2] + u[2][0]*x[i] + u[2][1]*y[i] + u[2][2]*z[i];
+}
+#Total CPU time is  0.01 seconds

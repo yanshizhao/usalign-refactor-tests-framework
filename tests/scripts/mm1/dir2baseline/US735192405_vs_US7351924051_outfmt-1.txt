@@ -1,0 +1,30 @@
+
+Name of Structure_1: US735192405.pdb:1,A:1,B:1,C:1,D:1,E:1,F:1,G:1,H:1,I:1,J (to be superimposed onto Structure_2)
+Name of Structure_2: US7351924051.pdb:1,A:::::::::
+Length of Structure_1: 884 residues
+Length of Structure_2: 98 residues
+
+Aligned length= 98, RMSD=   0.00, Seq_ID=n_identical/n_aligned= 1.000
+TM-score= 0.11086 (normalized by length of Structure_1: L=884, d0=15.33)
+TM-score= 1.00000 (normalized by length of Structure_2: L=98, d0=3.42)
+(You should use TM-score normalized by length of the reference structure)
+
+(":" denotes residue pairs of d < 5.0 Angstrom, "." denotes other aligned residues)
+gggagagguuggccggcuggugccgccccgggacuucaaaucccgugggaggucccgcaagggagcuccggaggguucgauucccucccucucccgcc*gcggaaguaguucagugguagaacacccgacagacgaagcgcuaaaacgugggauucugucggggggucgcggguucgagucccgucuuccgcucca*gcggggguugccgagccuggucaaaggcgggggacucaagauccccucccguagggguuccgggguucgaauccccgcccccgcacca*gccgaggugguggaauugguagacacgcuaccuugaggugguagugcccaauagggcuuacggguucaagucccguccucgguacca*ggccagguagcucaguugguagagcacuggauaugggcacccccuaaguccaggugucggcgguucgauuccgccccuggccacca*ggugggguucccgagcggccaaagggagcagacuguaaucugccgucaucgacuucgaagguucgaauccuucccccaccacca*ggcgcgggguaccgggcuugguagcccggggcuucggccgagggcgagagcccucgggguucgauucccccccugcgccgc*ggaagaucgucgucuccgggaggcggcuggacuucaauccaguuggggccgccagcggucccgggcaggcgacuccugugaucuuccgcca*agaagcggauuuagcucaguugggagagcgccagacugaagaucuggagguccuguguucgauccacagaauucgcauuu*ggccgccgccaccggggugguccccgggccggacuucagauccggcgcgccccgaguggggcgcgggguucaauuccccgcggcggccgcca*
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*                                                                                                 *                                                                                        *                                                                                       *                                                                                      *                                                                                    *                                                                                 *                                                                                           *                                                                                *                                                                                            *
+gggagagguuggccggcuggugccgccccgggacuucaaaucccgugggaggucccgcaagggagcuccggaggguucgauucccucccucucccgcc*-------------------------------------------------------------------------------------------------*----------------------------------------------------------------------------------------*---------------------------------------------------------------------------------------*--------------------------------------------------------------------------------------*------------------------------------------------------------------------------------*---------------------------------------------------------------------------------*-------------------------------------------------------------------------------------------*--------------------------------------------------------------------------------*--------------------------------------------------------------------------------------------*
+
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0       0.0000000000   1.0000000000   0.0000000000  -0.0000000000
+1      -0.0000000000  -0.0000000000   1.0000000000   0.0000000000
+2      -0.0000000000   0.0000000000  -0.0000000000   1.0000000000
+
+Code for rotating Structure 1 from (x,y,z) to (X,Y,Z):
+for(i=0; i<L; i++)
+{
+   X[i] = t[0] + u[0][0]*x[i] + u[0][1]*y[i] + u[0][2]*z[i];
+   Y[i] = t[1] + u[1][0]*x[i] + u[1][1]*y[i] + u[1][2]*z[i];
+   Z[i] = t[2] + u[2][0]*x[i] + u[2][1]*y[i] + u[2][2]*z[i];
+}
+#Total CPU time is  0.09 seconds

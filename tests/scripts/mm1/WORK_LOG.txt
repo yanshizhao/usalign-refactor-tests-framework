@@ -1,0 +1,134 @@
+US-align -mm 1 与 -dir/-dir1/-dir2 适配 — 工作日志
+=========================================================
+
+日期：2026-05-18
+
+
+一、今日完成的工作
+-------------------
+
+1. Git 仓库搭建
+   - 确认 Git 仓库位于 D:\qlab\USalign-master\USalign
+   - 从 master 创建 Usalign-beta 分支
+   - 将 D:\qlab\Usalign-beta 中的 Phase 1 修改搬入该分支并提交
+   - 远程 origin: https://github.com/pylelab/USalign.git（未 push）
+
+2. 第一阶段（-dir1 + -mm 1）测试基础设施
+   - 建立基线数据：test/baseline_dir1_mm1/ 目录
+     10 对 × 2 种输出格式（outfmt2 + outfmt-1）= 20 个基线文件
+     命名规则：{name}_vs_US735192405_{format}.txt
+   - 创建测试脚本：test/dir1_mm1_test.py
+     功能：自动切换分支→编译→跑单对测试→跑 -dir1 批量测试→diff→汇总
+   - 执行测试：20/20 PASS
+     修复了 Unicode 编码问题（✓→OK, ✗→ERROR）
+     修复了 list.txt CRLF 导致的文件名错误
+     修复了 CPU 时间行导致的误判（过滤 "Total CPU time" 行）
+
+3. 第二阶段（-dir2 + -mm 1）编码
+   - 修改 USalign.cpp 两处：
+     位置 3489：-chainmap 互斥检查从 dir1_opt 扩展为 (dir1_opt||dir2_opt)
+     位置 3554：新增 -dir2 循环分支（遍历 chain2_list）
+   - 编译通过，已提交到 Usalign-beta 分支
+
+4. 方案审核与关键讨论
+   - 深入分析了 MMalign 函数的设计意图（复合物 vs 复合物比对）
+   - 讨论了 parse_chain_list 的合并行为
+   - 确认原始 IMPLEMENTATION_PLAN.txt 方案正确，无需修正
+
+
+5. Phase 3 编码（2026-05-19）
+   - USalign.cpp:3459 — 解除 -dir + -mm 1 拦截，仅保留 -mm 2 拦截
+   - USalign.cpp:3489 — -chainmap 互斥检查扩展为 dir_opt||dir1_opt||dir2_opt
+   - USalign.cpp:3536 — 新增 -dir 上三角二重循环（ii < jj），于 -dir1/-dir2 之前
+   - 编译通过，已提交（42cc64f）
+
+6. Phase 3 测试（2026-05-19）
+   - 创建测试脚本：test/dir_mm1_test.py
+   - 建立基线数据：test/baseline_dir_mm1/（90 个文件，master 分支生成，45 对 × 2 格式）
+   - 测试执行：
+     a. 单对回归（前 10 对）：20/20 PASS
+     b. -dir 批量（45 对上三角）：outfmt2 45/45 + outfmt-1 45/45 = 90/90 PASS
+   - 总计：110/110 PASS
+   - 结果目录：test/dir_mm1_result/
+   - 差分目录：test/dir_mm1_diff/
+
+
+二、当前进度
+-----------
+
+   [✓] Phase 1 编码 + 编译 + 测试 + 提交
+   [✓] Phase 2 编码 + 编译 + 测试 + 提交
+   [✓] Phase 3 编码 + 编译 + 测试 + 提交
+
+   Git 提交历史（Usalign-beta 分支）：
+   42cc64f Phase 3: -dir + -mm 1 support for oligomeric all-vs-all alignment
+   ef648bf Phase 2: -dir2 + -mm 1 support for oligomeric batch alignment
+   3e5d73d Phase 1: -dir1 + -mm 1 support for oligomeric batch alignment
+   aa9c9aa add citation to license  ← master
+
+
+三、关键文件清单
+---------------
+
+   文件                                             用途
+   D:\qlab\USalign-master\USalign\USalign.cpp         主程序（已修改，Usalign-beta 分支）
+   D:\qlab\USalign-master\test\baseline\               Phase 1 基线数据（20 个文件）
+   D:\qlab\USalign-master\test\dir1_mm1_test.py       Phase 1 测试脚本
+   D:\qlab\USalign-master\test\dir2_mm1_test.py         Phase 2 测试脚本
+   D:\qlab\USalign-master\test\baseline_dir2_mm1\       Phase 2 基线数据（20 个文件）
+   D:\qlab\USalign-master\test\dir_mm1_test.py          Phase 3 测试脚本
+   D:\qlab\USalign-master\test\baseline_dir_mm1\        Phase 3 基线数据（90 个文件）
+   D:\qlab\USalign-master\IMPLEMENTATION_PLAN.txt       实施方案
+
+
+四、下一步
+---------
+
+  1. 手动 push Usalign-beta 分支到远程仓库
+     git push origin Usalign-beta
+  2. （可选）在 Linux/Mac 上编译并运行完整回归测试
+
+
+五、Usalign-beta 分支功能提交总结（2026-05-23）
+---------------------------------------------
+
+Usalign-beta 分支共 3 个提交，全部修改 USalign.cpp，总计 63 行新增、4 行删除。
+
+提交列表：
+
+1. 3e5d73d Phase 1: -dir1 + -mm 1 support for oligomeric batch alignment
+   - 支持 -dir1 与 -mm 1 组合使用
+   - 实现“目录中每个复合物 vs 指定目标”的寡聚体批量比对
+   - 通过遍历 chain1_list，逐个构造单元素输入列表并调用 MMalign()
+
+2. ef648bf Phase 2: -dir2 + -mm 1 support for oligomeric batch alignment
+   - 支持 -dir2 与 -mm 1 组合使用
+   - 实现“指定查询 vs 目录中每个复合物”的寡聚体批量比对
+   - 通过遍历 chain2_list，逐个构造单元素输入列表并调用 MMalign()
+
+3. 42cc64f Phase 3: -dir + -mm 1 support for oligomeric all-vs-all alignment
+   - 支持 -dir 与 -mm 1 组合使用
+   - 实现目录内寡聚体全对全比对
+   - 使用上三角二重循环 ii < jj，避免重复比对和自比对
+
+核心功能变化：
+
+1. 解除 -mm 1 与 -dir/-dir1/-dir2 的不兼容限制
+   - 原版会禁止 -mm 1 或 -mm 2 与 -dir 同时使用
+   - beta 分支改为仅禁止 -mm 2 与 -dir 同时使用
+   - -mm 1 寡聚体比对现在可以进入批量处理逻辑
+
+2. 新增 -mm 1 批量模式调度逻辑
+   - -dir1：目录查询集逐个比对到固定目标
+   - -dir2：固定查询逐个比对到目录目标集
+   - -dir：目录内结构两两全对全比对
+   - 每个批量组合最终仍复用既有 MMalign() 主逻辑
+
+3. 新增 -chainmap 互斥检查
+   - -chainmap 仍只允许与 -mm 1 使用
+   - beta 分支进一步禁止 -chainmap 与 -dir、-dir1、-dir2 同时使用
+   - 原因是批量模式下每一对复合物可能需要不同链映射，单个 chainmap 文件不适合全局复用
+
+总体结论：
+
+Usalign-beta 分支的主要功能是让寡聚体比对模式（-mm 1）支持批量输入，包括 -dir1、-dir2 和 -dir 三类目录模式。实现方式较保守，没有改动 MMalign() 核心算法，而是在 main() 的调度层增加循环，将批量任务拆成多个单对寡聚体比对执行。
