@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-TMscore 基线创建脚本
-从 master 分支提取原始源码编译原始版 TMscore，运行全部用例，输出保存到 baseline/。
+MMalign 基线创建脚本
+从 master 分支提取原始源码编译原始版 MMalign，运行全部用例，输出保存到 baseline/。
 """
 import subprocess, os, shutil, sys, tempfile
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
-USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / "USalign"
+USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / ".." / "USalign"
 DATA_DIR     = SCRIPT_DIR / ".." / ".." / "data"
 BASELINE_DIR = SCRIPT_DIR / "baseline"
-SRC_MAIN     = "TMscore.cpp"
-EXE_NAME     = "TMscore_orig.exe"
+SRC_MAIN     = "MMalign.cpp"
+EXE_NAME     = "MMalign_orig.exe"
 
 
 def extract_master_sources(tmpdir: str):
@@ -40,7 +40,7 @@ def extract_master_sources(tmpdir: str):
 
 
 def compile_orig(exe_path: str, tmpdir: str):
-    print("Compiling original TMscore from master ...")
+    print("Compiling original MMalign from master ...")
     src = os.path.join(tmpdir, SRC_MAIN)
     r = subprocess.run(
         ["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", exe_path, src],
@@ -77,23 +77,25 @@ def run_baseline(exe_path: str):
             out_file = BASELINE_DIR / f"{name}.out"
             out_file.write_text(content, encoding="utf-8")
 
-            # TMscore -o TM_sup 会生成 TM_sup.pdb 和 TM_sup.pml
-            sup_pdb = workdir / "TM_sup.pdb"
-            if sup_pdb.exists():
-                shutil.move(str(sup_pdb), str(BASELINE_DIR / f"{name}.pdb"))
-            sup_pdb1 = workdir / "TM_sup.pdb1"
-            if sup_pdb1.exists():
-                shutil.move(str(sup_pdb1), str(BASELINE_DIR / f"{name}.pdb1"))
+            # MMalign -o complex1.sup 会生成 complex1.sup 和 complex1.sup.pml
+            sup_file = workdir / "complex1.sup"
+            if sup_file.exists():
+                shutil.move(str(sup_file), str(BASELINE_DIR / f"{name}.sup"))
+
+            # MMalign -m matrix.txt 会生成矩阵文件
+            matrix_file = workdir / "matrix.txt"
+            if matrix_file.exists():
+                shutil.move(str(matrix_file), str(BASELINE_DIR / f"{name}.matrix.txt"))
 
             # 清理 .pml 文件（不参与比对）
             for pml in workdir.glob("*.pml"):
                 pml.unlink()
 
-    print("\nTMscore baseline created.")
+    print("\nMMalign baseline created.")
 
 
 if __name__ == "__main__":
-    tmpdir = tempfile.mkdtemp(prefix="tmscore_orig_")
+    tmpdir = tempfile.mkdtemp(prefix="mmalign_orig_")
     try:
         extract_master_sources(tmpdir)
         exe = str(SCRIPT_DIR / EXE_NAME)

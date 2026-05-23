@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-MMalign 基线创建脚本
-从 master 分支提取原始源码编译原始版 MMalign，运行全部用例，输出保存到 baseline/。
+HwRMSD 基线创建脚本
+从 master 分支提取原始源码编译原始版 HwRMSD，运行全部用例，输出保存到 baseline/。
 """
 import subprocess, os, shutil, sys, tempfile
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
-USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / "USalign"
+USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / ".." / "USalign"
 DATA_DIR     = SCRIPT_DIR / ".." / ".." / "data"
 BASELINE_DIR = SCRIPT_DIR / "baseline"
-SRC_MAIN     = "MMalign.cpp"
-EXE_NAME     = "MMalign_orig.exe"
+SRC_MAIN     = "HwRMSD.cpp"
+EXE_NAME     = "HwRMSD_orig.exe"
 
 
 def extract_master_sources(tmpdir: str):
@@ -40,7 +40,7 @@ def extract_master_sources(tmpdir: str):
 
 
 def compile_orig(exe_path: str, tmpdir: str):
-    print("Compiling original MMalign from master ...")
+    print("Compiling original HwRMSD from master ...")
     src = os.path.join(tmpdir, SRC_MAIN)
     r = subprocess.run(
         ["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", exe_path, src],
@@ -77,12 +77,12 @@ def run_baseline(exe_path: str):
             out_file = BASELINE_DIR / f"{name}.out"
             out_file.write_text(content, encoding="utf-8")
 
-            # MMalign -o complex1.sup 会生成 complex1.sup 和 complex1.sup.pml
-            sup_file = workdir / "complex1.sup"
+            # HwRMSD -o PDB1.sup 会生成 PDB1.sup 和 PDB1.sup.pml
+            sup_file = workdir / "PDB1.sup"
             if sup_file.exists():
                 shutil.move(str(sup_file), str(BASELINE_DIR / f"{name}.sup"))
 
-            # MMalign -m matrix.txt 会生成矩阵文件
+            # HwRMSD -m matrix.txt 会生成矩阵文件
             matrix_file = workdir / "matrix.txt"
             if matrix_file.exists():
                 shutil.move(str(matrix_file), str(BASELINE_DIR / f"{name}.matrix.txt"))
@@ -91,11 +91,11 @@ def run_baseline(exe_path: str):
             for pml in workdir.glob("*.pml"):
                 pml.unlink()
 
-    print("\nMMalign baseline created.")
+    print("\nHwRMSD baseline created.")
 
 
 if __name__ == "__main__":
-    tmpdir = tempfile.mkdtemp(prefix="mmalign_orig_")
+    tmpdir = tempfile.mkdtemp(prefix="hwrmsd_orig_")
     try:
         extract_master_sources(tmpdir)
         exe = str(SCRIPT_DIR / EXE_NAME)

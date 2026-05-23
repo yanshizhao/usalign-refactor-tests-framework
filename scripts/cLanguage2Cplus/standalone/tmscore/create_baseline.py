@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """
-pdb2ss 基线创建脚本
-从 master 分支提取原始源码编译原始版 pdb2ss，运行全部用例，输出保存到 baseline/。
-pdb2ss 无 -outfmt 选项，无生成文件，仅比对 stdout。
+TMscore 基线创建脚本
+从 master 分支提取原始源码编译原始版 TMscore，运行全部用例，输出保存到 baseline/。
 """
 import subprocess, os, shutil, sys, tempfile
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
-USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / "USalign"
+USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / ".." / "USalign"
 DATA_DIR     = SCRIPT_DIR / ".." / ".." / "data"
 BASELINE_DIR = SCRIPT_DIR / "baseline"
-SRC_MAIN     = "pdb2ss.cpp"
-EXE_NAME     = "pdb2ss_orig.exe"
+SRC_MAIN     = "TMscore.cpp"
+EXE_NAME     = "TMscore_orig.exe"
 
 
 def extract_master_sources(tmpdir: str):
@@ -41,7 +40,7 @@ def extract_master_sources(tmpdir: str):
 
 
 def compile_orig(exe_path: str, tmpdir: str):
-    print("Compiling original pdb2ss from master ...")
+    print("Compiling original TMscore from master ...")
     src = os.path.join(tmpdir, SRC_MAIN)
     r = subprocess.run(
         ["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", exe_path, src],
@@ -78,11 +77,23 @@ def run_baseline(exe_path: str):
             out_file = BASELINE_DIR / f"{name}.out"
             out_file.write_text(content, encoding="utf-8")
 
-    print("\npdb2ss baseline created.")
+            # TMscore -o TM_sup 会生成 TM_sup.pdb 和 TM_sup.pml
+            sup_pdb = workdir / "TM_sup.pdb"
+            if sup_pdb.exists():
+                shutil.move(str(sup_pdb), str(BASELINE_DIR / f"{name}.pdb"))
+            sup_pdb1 = workdir / "TM_sup.pdb1"
+            if sup_pdb1.exists():
+                shutil.move(str(sup_pdb1), str(BASELINE_DIR / f"{name}.pdb1"))
+
+            # 清理 .pml 文件（不参与比对）
+            for pml in workdir.glob("*.pml"):
+                pml.unlink()
+
+    print("\nTMscore baseline created.")
 
 
 if __name__ == "__main__":
-    tmpdir = tempfile.mkdtemp(prefix="pdb2ss_orig_")
+    tmpdir = tempfile.mkdtemp(prefix="tmscore_orig_")
     try:
         extract_master_sources(tmpdir)
         exe = str(SCRIPT_DIR / EXE_NAME)

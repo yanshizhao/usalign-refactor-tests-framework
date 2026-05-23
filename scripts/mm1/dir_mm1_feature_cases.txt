@@ -1,0 +1,41 @@
+# dir + -mm 1 feature test cases
+# GUARD_: parameter constraint validation (expect error exit + substring match)
+# BATCH_: batch mode cross-validation (parse output, compare vs single-pair baseline)
+#
+# Format:
+# GUARD_name dir command # EXPECT:substring
+# BATCH_name dir command
+
+# ============================================================
+# Guard cases: verify parameter dependency & mutual exclusion
+# ============================================================
+
+# Guard 1: -mm 2 still blocked with -dir
+GUARD_dir_mm2	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt -mm 2
+# EXPECT:-mm 2 cannot be used with -dir
+
+# Guard 2: -chainmap cannot be combined with -dir
+GUARD_dir_chainmap	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt -suffix .pdb -mm 1 -ter 0 -chainmap map.txt
+# EXPECT:-chainmap cannot be used with -dir
+
+# Guard 3: -dir cannot be combined with -dir1 (mutual exclusion)
+GUARD_dir_dir1_excl	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt -dir1 usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt usalign-refactor-tests-framework/scripts/mm1/data/US735192405.pdb -suffix .pdb -mm 1 -ter 0
+# EXPECT:-dir cannot be set with -dir1
+
+# Guard 4: -mm 1 requires -ter 0 or -ter 1
+GUARD_dir_ter	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt -suffix .pdb -mm 1 -ter 2
+# EXPECT:-mm 1 or 2 must be used with -ter 0 or -ter 1
+
+# Guard 5: -o cannot be used with -dir
+GUARD_dir_o	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt -suffix .pdb -mm 1 -ter 0 -o sup
+# EXPECT:-o cannot be set with -dir
+
+# ============================================================
+# Batch cases: verify -dir output matches single-pair results
+# ============================================================
+
+# Batch outfmt 2: tabular output, cross-check each row vs single-pair baseline
+BATCH_dir_outfmt2	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt -suffix .pdb -mm 1 -ter 0 -outfmt 2
+
+# Batch outfmt -1: detailed output with superposition, cross-check vs single-pair baseline
+BATCH_dir_outfmt_m1	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt -suffix .pdb -mm 1 -ter 0 -outfmt -1 -m -

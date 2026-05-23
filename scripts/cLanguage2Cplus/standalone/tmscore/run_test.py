@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-MMalign 回归测试脚本
-编译当前源码（USalign-beta）的 MMalign，运行全部用例，与 baseline/ 逐字节比对。
-生成文件: -o complex1.sup 会产生 complex1.sup / *.pml; -m matrix.txt 会产生 matrix.txt
+TMscore 回归测试脚本
+编译当前源码（USalign-beta）的 TMscore，运行全部用例，与 baseline/ 逐字节比对。
+生成文件: -o TM_sup 会产生 TM_sup.pdb / TM_sup.pdb1 / *.pml（pml 不比对）
 """
 import subprocess, shutil, sys, difflib, re
 from pathlib import Path
@@ -13,17 +13,17 @@ def strip_cpu_time(text: str) -> str:
     return re.sub(r'^#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
-USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / "USalign"
+USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / ".." / "USalign"
 DATA_DIR     = SCRIPT_DIR / ".." / ".." / "data"
 BASELINE_DIR = SCRIPT_DIR / "baseline"
 CURRENT_DIR  = SCRIPT_DIR / "current"
 DIFFS_DIR    = SCRIPT_DIR / "diffs"
-SRC_MAIN     = USALIGN_DIR / "MMalign.cpp"
-EXE_NAME     = "MMalign_mod.exe"
+SRC_MAIN     = USALIGN_DIR / "TMscore.cpp"
+EXE_NAME     = "TMscore_mod.exe"
 
 
 def compile_mod(exe_path: str):
-    print("Compiling modified MMalign ...")
+    print("Compiling modified TMscore ...")
     r = subprocess.run(
         ["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", exe_path, str(SRC_MAIN)],
         capture_output=True, text=True
@@ -70,8 +70,10 @@ def run_tests(exe_path: str):
                 continue
 
             base_content = base_file.read_text(encoding="utf-8")
+
             content = strip_cpu_time(content)
             base_content = strip_cpu_time(base_content)
+
             if content == base_content:
                 print("PASS")
                 total_pass += 1
@@ -86,37 +88,23 @@ def run_tests(exe_path: str):
                         fromfile=f"baseline/{name}.out",
                         tofile=f"current/{name}.out"))
 
-            # 比对 -o complex1.sup 生成的叠合文件
-            sup_path = workdir / "complex1.sup"
-            base_sup = BASELINE_DIR / f"{name}.sup"
-            if sup_path.exists():
-                shutil.copy2(str(sup_path), str(CURRENT_DIR / f"{name}.sup"))
-            if sup_path.exists() and base_sup.exists():
-                if sup_path.read_bytes() == base_sup.read_bytes():
-                    print(f"  complex1.sup: PASS")
-                    total_pass += 1
-                else:
-                    print(f"  complex1.sup: FAIL")
-                    total_fail += 1
-                sup_path.unlink()
-            elif sup_path.exists():
-                sup_path.unlink()
-
-            # 比对 -m matrix.txt 生成的矩阵文件
-            matrix_path = workdir / "matrix.txt"
-            base_matrix = BASELINE_DIR / f"{name}.matrix.txt"
-            if matrix_path.exists():
-                shutil.copy2(str(matrix_path), str(CURRENT_DIR / f"{name}.matrix.txt"))
-            if matrix_path.exists() and base_matrix.exists():
-                if matrix_path.read_bytes() == base_matrix.read_bytes():
-                    print(f"  matrix.txt: PASS")
-                    total_pass += 1
-                else:
-                    print(f"  matrix.txt: FAIL")
-                    total_fail += 1
-                matrix_path.unlink()
-            elif matrix_path.exists():
-                matrix_path.unlink()
+            # 比对 -o TM_sup 生成的叠合结构文件
+            for suffix in [".pdb", ".pdb1"]:
+                gen_name = f"TM_sup{suffix}"
+                gen_path = workdir / gen_name
+                base_gen = BASELINE_DIR / f"{name}{suffix}"
+                if gen_path.exists():
+                    shutil.copy2(str(gen_path), str(CURRENT_DIR / f"{name}{suffix}"))
+                if gen_path.exists() and base_gen.exists():
+                    if gen_path.read_bytes() == base_gen.read_bytes():
+                        print(f"  {gen_name}: PASS")
+                        total_pass += 1
+                    else:
+                        print(f"  {gen_name}: FAIL")
+                        total_fail += 1
+                    gen_path.unlink()
+                elif gen_path.exists():
+                    gen_path.unlink()
 
             # 清理 pml
             for pml in workdir.glob("*.pml"):

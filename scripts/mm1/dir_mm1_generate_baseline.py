@@ -15,8 +15,8 @@ import re
 
 # --- paths ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-TEST_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
-PROJECT_DIR = os.path.dirname(TEST_DIR)
+TEST_FRAMEWORK_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
+PROJECT_DIR = os.path.dirname(TEST_FRAMEWORK_DIR)
 USALIGN_DIR = os.path.join(PROJECT_DIR, "USalign")
 
 USALIGN_EXE = os.path.join(USALIGN_DIR, "USalign_dir_mm1.exe" if sys.platform == "win32" else "USalign_dir_mm1")

@@ -13,7 +13,7 @@ def strip_cpu_time(text: str) -> str:
     return re.sub(r'^#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
-USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / "USalign"
+USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / ".." / "USalign"
 DATA_DIR     = SCRIPT_DIR / ".." / ".." / "data"
 BASELINE_DIR = SCRIPT_DIR / "baseline"
 CURRENT_DIR  = SCRIPT_DIR / "current"

@@ -1,9 +1,9 @@
 """
 Windows 环境下从 I-TASSER 模板库随机抽取 PDB 文件构建 smallDB
 用法：
-    1. 将本脚本放在 tests/scripts/ 目录下
+    1. 将本脚本放在 scripts/cLanguage2Cplus/ 目录下
     2. 修改下方 SOURCE_DIR 为您的 I-TASSER 库解压路径
-    3. 在命令行执行: python build_smallDB.py
+    3. 在命令行执行: python build_Small_DB.py
 """
 
 import os
@@ -21,10 +21,9 @@ NUM_STRUCTURES = 100
 
 
 def main():
-    # 1. 自动确定项目 tests 根目录
-    script_dir = os.path.dirname(os.path.abspath(__file__))     # scripts/
-    tests_dir = os.path.dirname(script_dir)                    # tests/
-    target_dir = os.path.join(tests_dir, "data", "smallDB")
+    # 1. 自动确定 cLanguage2Cplus 测试目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    target_dir = os.path.join(script_dir, "data", "smallDB")
 
     print(f"脚本位置: {script_dir}")
     print(f"目标目录: {target_dir}")

@@ -1,29 +1,24 @@
 #!/usr/bin/env python3
 """
-TMscore 回归测试脚本
-编译当前源码（USalign-beta）的 TMscore，运行全部用例，与 baseline/ 逐字节比对。
-生成文件: -o TM_sup 会产生 TM_sup.pdb / TM_sup.pdb1 / *.pml（pml 不比对）
+pdb2ss 回归测试脚本
+编译当前源码（USalign-beta）的 pdb2ss，运行全部用例，与 baseline/ 逐字节比对。
+pdb2ss 仅输出 FASTA 格式二级结构序列到 stdout，无生成文件，无 -outfmt 选项。
 """
-import subprocess, shutil, sys, difflib, re
+import subprocess, shutil, sys, difflib
 from pathlib import Path
 
-
-def strip_cpu_time(text: str) -> str:
-    """移除 #Total CPU time 行 — CPU 时间自然波动，不作为回归判定依据"""
-    return re.sub(r'^#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
-
 SCRIPT_DIR = Path(__file__).parent.resolve()
-USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / "USalign"
+USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / ".." / "USalign"
 DATA_DIR     = SCRIPT_DIR / ".." / ".." / "data"
 BASELINE_DIR = SCRIPT_DIR / "baseline"
 CURRENT_DIR  = SCRIPT_DIR / "current"
 DIFFS_DIR    = SCRIPT_DIR / "diffs"
-SRC_MAIN     = USALIGN_DIR / "TMscore.cpp"
-EXE_NAME     = "TMscore_mod.exe"
+SRC_MAIN     = USALIGN_DIR / "pdb2ss.cpp"
+EXE_NAME     = "pdb2ss_mod.exe"
 
 
 def compile_mod(exe_path: str):
-    print("Compiling modified TMscore ...")
+    print("Compiling modified pdb2ss ...")
     r = subprocess.run(
         ["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", exe_path, str(SRC_MAIN)],
         capture_output=True, text=True
@@ -69,12 +64,7 @@ def run_tests(exe_path: str):
                 total_fail += 1
                 continue
 
-            base_content = base_file.read_text(encoding="utf-8")
-
-            content = strip_cpu_time(content)
-            base_content = strip_cpu_time(base_content)
-
-            if content == base_content:
+            if content == base_file.read_text(encoding="utf-8"):
                 print("PASS")
                 total_pass += 1
             else:
@@ -83,32 +73,10 @@ def run_tests(exe_path: str):
                 diff_file = DIFFS_DIR / f"{name}.diff"
                 with open(diff_file, "w", encoding="utf-8") as df:
                     df.writelines(difflib.unified_diff(
-                        base_content.splitlines(keepends=True),
+                        base_file.read_text(encoding="utf-8").splitlines(keepends=True),
                         content.splitlines(keepends=True),
                         fromfile=f"baseline/{name}.out",
                         tofile=f"current/{name}.out"))
-
-            # 比对 -o TM_sup 生成的叠合结构文件
-            for suffix in [".pdb", ".pdb1"]:
-                gen_name = f"TM_sup{suffix}"
-                gen_path = workdir / gen_name
-                base_gen = BASELINE_DIR / f"{name}{suffix}"
-                if gen_path.exists():
-                    shutil.copy2(str(gen_path), str(CURRENT_DIR / f"{name}{suffix}"))
-                if gen_path.exists() and base_gen.exists():
-                    if gen_path.read_bytes() == base_gen.read_bytes():
-                        print(f"  {gen_name}: PASS")
-                        total_pass += 1
-                    else:
-                        print(f"  {gen_name}: FAIL")
-                        total_fail += 1
-                    gen_path.unlink()
-                elif gen_path.exists():
-                    gen_path.unlink()
-
-            # 清理 pml
-            for pml in workdir.glob("*.pml"):
-                pml.unlink()
 
     print(f"\nResults: {total_pass} PASS, {total_fail} FAIL")
     return total_fail == 0

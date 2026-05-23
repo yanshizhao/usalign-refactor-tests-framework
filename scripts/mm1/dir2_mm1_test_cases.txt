@@ -1,0 +1,6 @@
+# dir2 + -mm 1 regression test cases
+# Format: test_name dir(相对项目�? command(相对于dir的路�?
+# dir列是USalign的工作目�?cwd)，使输出路径最�?
+US735192405_vs_US7351924051	usalign-refactor-tests-framework/scripts/mm1/data	US735192405.pdb MSTATest/US7351924051.pdb -mm 1 -ter 0
+US735192405_vs_US7351924052	usalign-refactor-tests-framework/scripts/mm1/data	US735192405.pdb MSTATest/US7351924052.pdb -mm 1 -ter 0
+US735192405_vs_US7351924053	usalign-refactor-tests-framework/scripts/mm1/data	US735192405.pdb MSTATest/US7351924053.pdb -mm 1 -ter 0

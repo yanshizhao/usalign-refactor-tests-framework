@@ -19,8 +19,8 @@ import difflib
 
 # --- paths ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-TEST_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
-PROJECT_DIR = os.path.dirname(TEST_DIR)
+TEST_FRAMEWORK_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
+PROJECT_DIR = os.path.dirname(TEST_FRAMEWORK_DIR)
 USALIGN_DIR = os.path.join(PROJECT_DIR, "USalign")
 
 USALIGN_EXE = os.path.join(USALIGN_DIR, "USalign_dir_mm1.exe" if sys.platform == "win32" else "USalign_dir_mm1")
@@ -373,9 +373,9 @@ def run_batch_tests(batches, regression_cases):
     print("-" * 50)
     case_lookup = build_case_lookup(regression_cases)
     
-    # 统计维度1：BATCH 用例级别
+    # 缁熻�＄淮搴�1锛欱ATCH 鐢ㄤ緥绾у埆
     batch_passed, batch_failed = 0, 0
-    # 统计维度2：拆分对级别
+    # 缁熻�＄淮搴�2锛氭媶鍒嗗�圭骇鍒�
     total_split_pass, total_split_warn, total_split_fail = 0, 0, 0
 
     for batch in batches:
@@ -409,12 +409,12 @@ def run_batch_tests(batches, regression_cases):
         else:
             errs.append(f"Unsupported outfmt={outfmt} for batch cross-validation")
 
-        # 累加拆分对级别的统计
+        # 绱�鍔犳媶鍒嗗�圭骇鍒�鐨勭粺璁�
         total_split_fail += len(errs)
         total_split_warn += len(warns)
         total_split_pass += len(passes)
 
-        # 打印当前 BATCH 用例结果并累加 BATCH 级别统计
+        # 鎵撳嵃褰撳墠 BATCH 鐢ㄤ緥缁撴灉骞剁疮鍔?BATCH 绾у埆缁熻��
         if errs:
             print(f"FAIL ({len(errs)} business mismatch(es))")
             for err in errs: print(f"    {err}")
@@ -486,13 +486,13 @@ def main():
     print(f"  Total:      {total_pass} test suites passed, {total_warn} sub-tests warned, {total_fail} failed")
 
     if total_fail > 0:
-        print(f"\n❌ TESTS FAILED")
+        print(f"\n鉂?TESTS FAILED")
         sys.exit(1)
     elif total_warn > 0:
-        print(f"\n⚠️ TESTS PASSED WITH WARNINGS (Non-business content mismatches detected)")
+        print(f"\n鈿狅笍 TESTS PASSED WITH WARNINGS (Non-business content mismatches detected)")
         sys.exit(0)
     else:
-        print(f"\n✅ ALL TESTS PASSED STRICTLY")
+        print(f"\n鉁?ALL TESTS PASSED STRICTLY")
         sys.exit(0)
 
 if __name__ == "__main__":

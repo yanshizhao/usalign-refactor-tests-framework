@@ -15,8 +15,8 @@ import difflib
 
 # --- paths ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-TEST_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
-PROJECT_DIR = os.path.dirname(TEST_DIR)
+TEST_FRAMEWORK_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
+PROJECT_DIR = os.path.dirname(TEST_FRAMEWORK_DIR)
 USALIGN_DIR = os.path.join(PROJECT_DIR, "USalign")
 USALIGN_EXE = os.path.join(USALIGN_DIR, "USalign_dir1_mm1.exe" if sys.platform == "win32" else "USalign_dir1_mm1")
 
@@ -184,7 +184,7 @@ def run_usalign(work_dir, command, timeout=120):
 # ============================================================
 def run_regression_tests(cases):
     """Each format comparison counted separately. Returns (passed, warned, failed)."""
-    print(f"\n[Step 2] Regression tests: {len(cases)} cases × 2 formats")
+    print(f"\n[Step 2] Regression tests: {len(cases)} cases 脳 2 formats")
     print("-" * 60)
     passed, warned, failed = 0, 0, 0
     for case in cases:
@@ -415,12 +415,12 @@ def main():
     print(f"  Regression: {reg_pass} passed, {reg_warn} warned, {reg_fail} failed")
     print(f"  Guard:      {guard_pass} passed, {guard_warn} warned, {guard_fail} failed")
     print(f"  Batch:      {batch_pass} passed, {batch_warn} warned, {batch_fail} failed")
-    print(f"  ─────────────────────────────────────")
+    print(f"  鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�鈹�")
     print(f"  Total:      {total_pass} passed, {total_warn} warned, {total_fail} failed")
 
-    if total_fail > 0: print("\n❌ TESTS FAILED"); sys.exit(1)
-    elif total_warn > 0: print("\n⚠️ TESTS PASSED WITH WARNINGS"); sys.exit(0)
-    else: print("\n✅ ALL TESTS STRICTLY PASSED"); sys.exit(0)
+    if total_fail > 0: print("\n鉂?TESTS FAILED"); sys.exit(1)
+    elif total_warn > 0: print("\n鈿狅笍 TESTS PASSED WITH WARNINGS"); sys.exit(0)
+    else: print("\n鉁?ALL TESTS STRICTLY PASSED"); sys.exit(0)
 
 if __name__ == "__main__":
     main()

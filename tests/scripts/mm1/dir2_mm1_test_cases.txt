@@ -1,6 +1,0 @@
-# dir2 + -mm 1 regression test cases
-# Format: test_name dir(相对项目根) command(相对于dir的路径)
-# dir列是USalign的工作目录(cwd)，使输出路径最短
-US735192405_vs_US7351924051	test/scripts/mm1/data	US735192405.pdb MSTATest/US7351924051.pdb -mm 1 -ter 0
-US735192405_vs_US7351924052	test/scripts/mm1/data	US735192405.pdb MSTATest/US7351924052.pdb -mm 1 -ter 0
-US735192405_vs_US7351924053	test/scripts/mm1/data	US735192405.pdb MSTATest/US7351924053.pdb -mm 1 -ter 0
