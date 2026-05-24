@@ -22,6 +22,19 @@ SRC_MAIN     = USALIGN_DIR / "TMscore.cpp"
 EXE_NAME     = "TMscore_mod.exe"
 
 
+def current_branch():
+    result = subprocess.run(["git", "branch", "--show-current"], cwd=str(USALIGN_DIR), capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to get current branch:\n{result.stderr}"); sys.exit(1)
+    return result.stdout.strip()
+
+
+def checkout(branch):
+    result = subprocess.run(["git", "checkout", branch], cwd=str(USALIGN_DIR), capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to checkout {branch}:\n{result.stderr}"); sys.exit(1)
+
+
 def compile_mod(exe_path: str):
     print("Compiling modified TMscore ...")
     r = subprocess.run(
@@ -115,7 +128,16 @@ def run_tests(exe_path: str):
 
 
 if __name__ == "__main__":
-    exe = str(SCRIPT_DIR / EXE_NAME)
-    compile_mod(exe)
-    ok = run_tests(exe)
+    original_branch = current_branch()
+    try:
+        if original_branch != "Usalign-beta":
+            print(f"Switching USalign from {original_branch} to Usalign-beta for TMscore regression...")
+            checkout("Usalign-beta")
+        exe = str(SCRIPT_DIR / EXE_NAME)
+        compile_mod(exe)
+        ok = run_tests(exe)
+    finally:
+        if original_branch and original_branch != "Usalign-beta":
+            print(f"Restoring USalign branch to {original_branch}...")
+            checkout(original_branch)
     sys.exit(0 if ok else 1)

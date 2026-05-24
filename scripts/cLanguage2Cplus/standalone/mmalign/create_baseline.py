@@ -14,6 +14,19 @@ SRC_MAIN     = "MMalign.cpp"
 EXE_NAME     = "MMalign_orig.exe"
 
 
+def current_branch():
+    result = subprocess.run(["git", "branch", "--show-current"], cwd=str(USALIGN_DIR), capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to get current branch:\n{result.stderr}"); sys.exit(1)
+    return result.stdout.strip()
+
+
+def checkout(branch):
+    result = subprocess.run(["git", "checkout", branch], cwd=str(USALIGN_DIR), capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to checkout {branch}:\n{result.stderr}"); sys.exit(1)
+
+
 def extract_master_sources(tmpdir: str):
     """从 master 分支提取所有 .cpp .h 源码到临时目录"""
     result = subprocess.run(
@@ -95,11 +108,18 @@ def run_baseline(exe_path: str):
 
 
 if __name__ == "__main__":
+    original_branch = current_branch()
     tmpdir = tempfile.mkdtemp(prefix="mmalign_orig_")
     try:
+        if original_branch != "master":
+            print(f"Switching USalign from {original_branch} to master for MMalign baseline...")
+            checkout("master")
         extract_master_sources(tmpdir)
         exe = str(SCRIPT_DIR / EXE_NAME)
         compile_orig(exe, tmpdir)
         run_baseline(exe)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
+        if original_branch and original_branch != "master":
+            print(f"Restoring USalign branch to {original_branch}...")
+            checkout(original_branch)
