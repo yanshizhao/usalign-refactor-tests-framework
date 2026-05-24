@@ -154,10 +154,16 @@ def build_regression_map(cases):
 # ============================================================
 # Build & branch
 # ============================================================
+def current_branch():
+    result = subprocess.run(["git", "-C", USALIGN_DIR, "branch", "--show-current"], capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"[ERROR] Failed to get current branch!")
+        sys.exit(1)
+    return result.stdout.strip()
+
+
 def git_checkout(branch):
-    result = subprocess.run(["git", "-C", USALIGN_DIR, "branch", "--show-current"],
-                            capture_output=True, text=True)
-    current = result.stdout.strip()
+    current = current_branch()
     if current != branch:
         print(f"  Switching from '{current}' to '{branch}'...")
         result = subprocess.run(["git", "-C", USALIGN_DIR, "checkout", branch],
@@ -373,7 +379,7 @@ def run_batch_tests(batches, reg_map):
 # ============================================================
 def main():
     parser = argparse.ArgumentParser(description="Test runner for -dir2 + -mm 1 (V7.1)")
-    parser.add_argument("--branch", default="Usalign-beta", help="Target branch to test")
+    parser.add_argument("--branch", default="USalign-beta", help="Target branch to test")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -396,13 +402,20 @@ def main():
     print(f"\n[Step 0] Cleaning historical results & diffs")
     clean_result_dirs()
 
-    print(f"\n[Step 1] Checkout '{args.branch}' & compile")
-    git_checkout(args.branch)
-    compile_usalign()
+    original_branch = current_branch()
+    try:
+        print(f"\n[Step 1] Checkout '{args.branch}' & compile")
+        git_checkout(args.branch)
+        compile_usalign()
 
-    reg_pass, reg_warn, reg_fail = run_regression_tests(regression_cases)
-    guard_pass, guard_warn, guard_fail = run_guard_tests(guards)
-    batch_pass, batch_warn, batch_fail = run_batch_tests(batches, reg_map)
+        reg_pass, reg_warn, reg_fail = run_regression_tests(regression_cases)
+        guard_pass, guard_warn, guard_fail = run_guard_tests(guards)
+        batch_pass, batch_warn, batch_fail = run_batch_tests(batches, reg_map)
+
+    finally:
+        if original_branch and original_branch != current_branch():
+            print(f"[Restore] Switching USalign back to '{original_branch}'")
+            git_checkout(original_branch)
 
     # V7.1: All per-comparison, numbers add up directly
     total_pass = reg_pass + guard_pass + batch_pass

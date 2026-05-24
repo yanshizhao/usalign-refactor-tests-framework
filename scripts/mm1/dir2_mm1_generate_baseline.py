@@ -63,9 +63,16 @@ def read_test_cases():
 # ============================================================
 # Build & branch
 # ============================================================
-def git_checkout(branch):
+def current_branch():
     result = subprocess.run(["git", "-C", USALIGN_DIR, "branch", "--show-current"], capture_output=True, text=True)
-    current = result.stdout.strip()
+    if result.returncode != 0:
+        print(f"[ERROR] Failed to get current branch!")
+        sys.exit(1)
+    return result.stdout.strip()
+
+
+def git_checkout(branch):
+    current = current_branch()
     if current != branch:
         print(f"  Switching from '{current}' to '{branch}'...")
         result = subprocess.run(["git", "-C", USALIGN_DIR, "checkout", branch], capture_output=True, text=True)
@@ -106,35 +113,42 @@ def main():
     for name, _, cmd in cases:
         print(f"  {name}: {' '.join(cmd)}")
 
-    print(f"\n[Step 1] Checkout master & compile")
-    git_checkout("master")
-    compile_usalign()
-    os.makedirs(BASELINE_DIR, exist_ok=True)
+    original_branch = current_branch()
+    try:
+        print(f"\n[Step 1] Checkout master & compile")
+        git_checkout("master")
+        compile_usalign()
+        os.makedirs(BASELINE_DIR, exist_ok=True)
 
-    print(f"\n[Step 2] Generating single-pair baselines (outfmt 2 & -1)")
-    for name, work_dir, command in cases:
-        for outfmt in [2, -1]:
-            fmt_str = "outfmt-1" if outfmt == -1 else f"outfmt{outfmt}"
-            baseline_file = os.path.join(BASELINE_DIR, f"{name}_{fmt_str}.txt")
-            print(f"  {name} [{fmt_str}] ... ", end="", flush=True)
-            output, ok = run_single_pair(work_dir, command, outfmt)
-            if not ok: print("FAILED"); sys.exit(1)
-            write_normalized(baseline_file, output)
-            print("OK")
+        print(f"\n[Step 2] Generating single-pair baselines (outfmt 2 & -1)")
+        for name, work_dir, command in cases:
+            for outfmt in [2, -1]:
+                fmt_str = "outfmt-1" if outfmt == -1 else f"outfmt{outfmt}"
+                baseline_file = os.path.join(BASELINE_DIR, f"{name}_{fmt_str}.txt")
+                print(f"  {name} [{fmt_str}] ... ", end="", flush=True)
+                output, ok = run_single_pair(work_dir, command, outfmt)
+                if not ok: print("FAILED"); sys.exit(1)
+                write_normalized(baseline_file, output)
+                print("OK")
 
-    print(f"\n[Step 3] Verifying baseline files (checking for residual directory prefixes)")
-    bad = 0
-    for fname in sorted(os.listdir(BASELINE_DIR)):
-        if not fname.endswith(".txt"): continue
-        with open(os.path.join(BASELINE_DIR, fname), "r", encoding="utf-8", errors="replace") as f:
-            for line in f:
-                if re.search(r'[/\\][\w.\-]+\.\w+:', line) or re.search(r'[A-Za-z]:[/\\]', line):
-                    print(f"  WARNING: {fname} still has directory prefix!"); bad += 1; break
-    if bad == 0: print("  All clean!")
-    else: print(f"  {bad} file(s) still have directory prefixes!")
+        print(f"\n[Step 3] Verifying baseline files (checking for residual directory prefixes)")
+        bad = 0
+        for fname in sorted(os.listdir(BASELINE_DIR)):
+            if not fname.endswith(".txt"): continue
+            with open(os.path.join(BASELINE_DIR, fname), "r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    if re.search(r'[/\\][\w.\-]+\.\w+:', line) or re.search(r'[A-Za-z]:[/\\]', line):
+                        print(f"  WARNING: {fname} still has directory prefix!"); bad += 1; break
+        if bad == 0: print("  All clean!")
+        else: print(f"  {bad} file(s) still have directory prefixes!")
 
-    print(f"\n[DONE] Single-pair baselines saved to: {BASELINE_DIR}")
-    print("[NOTE] No batch baselines needed. Batch tests use split cross-validation.")
+        print(f"\n[DONE] Single-pair baselines saved to: {BASELINE_DIR}")
+        print("[NOTE] No batch baselines needed. Batch tests use split cross-validation.")
+
+    finally:
+        if original_branch and original_branch != current_branch():
+            print(f"[Restore] Switching USalign back to '{original_branch}'")
+            git_checkout(original_branch)
 
 if __name__ == "__main__":
     main()

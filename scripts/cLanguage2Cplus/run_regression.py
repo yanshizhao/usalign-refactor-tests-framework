@@ -6,7 +6,7 @@ from pathlib import Path
 """
 回归测试执行脚本（Regression Runner）
 功能：
-  1. 切换到 Usalign-beta 分支，编译包含需求修改的 US-align 可执行文件 (USalign_mod.exe)
+  1. 切换到 USalign-beta 分支，编译包含需求修改的 US-align 可执行文件 (USalign_mod.exe)
   2. 每次运行前自动清空 current/ 和 diffs/ 目录，避免旧数据干扰
   3. 从 testcases_functional.txt 读取所有功能测试用例
   4. 逐条运行用例，将输出保存到 current/ 目录（文件名添加 _mod 后缀）
@@ -42,7 +42,7 @@ def checkout(branch):
 
 
 def compile():
-    print("Compiling modified US-align from Usalign-beta...")
+    print("Compiling modified US-align from USalign-beta...")
     if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-o", str(EXE), str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
@@ -145,14 +145,14 @@ def _diff_files(base_filename, mod_filename, tag, extra_note=""):
 if __name__ == "__main__":
     original_branch = current_branch()
     try:
-        if original_branch != "Usalign-beta":
-            print(f"Switching USalign from {original_branch} to Usalign-beta for functional regression...")
-            checkout("Usalign-beta")
+        if original_branch != "USalign-beta":
+            print(f"Switching USalign from {original_branch} to USalign-beta for functional regression...")
+            checkout("USalign-beta")
         compile()
         run_tests()
     finally:
         if EXE.exists():
             EXE.unlink()
-        if original_branch and original_branch != "Usalign-beta":
+        if original_branch and original_branch != "USalign-beta":
             print(f"Restoring USalign branch to {original_branch}...")
             checkout(original_branch)

@@ -5,7 +5,7 @@ from pathlib import Path
 """
 性能回归测试脚本（Performance Regression Runner）
 功能：
-  1. 切换到 Usalign-beta 分支，编译包含需求修改的 US-align 可执行文件
+  1. 切换到 USalign-beta 分支，编译包含需求修改的 US-align 可执行文件
   2. 从 testcases_performance.txt 读取所有性能测试用例
   3. 对每个用例重复运行若干次（默认 5 次），提取平均 CPU 时间
   4. 将结果保存到 perf_current/ 目录下的 performance.csv 中
@@ -42,7 +42,7 @@ def checkout(branch):
 
 
 def compile():
-    print("Compiling modified US-align from Usalign-beta...")
+    print("Compiling modified US-align from USalign-beta...")
     if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-o", str(EXE), str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
@@ -98,15 +98,15 @@ def compare():
 if __name__ == "__main__":
     original_branch = current_branch()
     try:
-        if original_branch != "Usalign-beta":
-            print(f"Switching USalign from {original_branch} to Usalign-beta for performance test...")
-            checkout("Usalign-beta")
+        if original_branch != "USalign-beta":
+            print(f"Switching USalign from {original_branch} to USalign-beta for performance test...")
+            checkout("USalign-beta")
         compile()
         run_benchmarks()
         compare()
     finally:
         if EXE.exists():
             EXE.unlink()
-        if original_branch and original_branch != "Usalign-beta":
+        if original_branch and original_branch != "USalign-beta":
             print(f"Restoring USalign branch to {original_branch}...")
             checkout(original_branch)

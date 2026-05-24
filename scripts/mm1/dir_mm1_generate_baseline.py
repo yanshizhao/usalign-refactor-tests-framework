@@ -65,13 +65,16 @@ def read_test_cases():
             cases.append((name, work_dir, command))
     return cases
 
+def current_branch():
+    result = subprocess.run(["git", "-C", USALIGN_DIR, "branch", "--show-current"], capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"[ERROR] Failed to get current branch!")
+        sys.exit(1)
+    return result.stdout.strip()
+
+
 def git_checkout(branch):
-    """Checkout the specified branch in USalign source directory."""
-    result = subprocess.run(
-        ["git", "-C", USALIGN_DIR, "branch", "--show-current"],
-        capture_output=True, text=True
-    )
-    current = result.stdout.strip()
+    current = current_branch()
     if current != branch:
         print(f"  Switching from '{current}' to '{branch}'...")
         result = subprocess.run(
@@ -116,46 +119,53 @@ def main():
     for name, _, cmd in cases:
         print(f"  {name}: {' '.join(cmd)}")
 
-    # Step 1: Checkout master & compile
-    print(f"\n[Step 1] Checkout master & compile")
-    git_checkout("master")
-    compile_usalign()
+    original_branch = current_branch()
+    try:
+        # Step 1: Checkout master & compile
+        print(f"\n[Step 1] Checkout master & compile")
+        git_checkout("master")
+        compile_usalign()
 
-    os.makedirs(BASELINE_DIR, exist_ok=True)
+        os.makedirs(BASELINE_DIR, exist_ok=True)
 
-    # Step 2: Generate single-pair baselines (always overwrite)
-    print(f"\n[Step 2] Generating single-pair baselines")
-    for name, work_dir, command in cases:
-        for outfmt in [2, -1]:
-            fmt_str = "outfmt-1" if outfmt == -1 else f"outfmt{outfmt}"
-            baseline_file = os.path.join(BASELINE_DIR, f"{name}_{fmt_str}.txt")
-            print(f"  {name} [{fmt_str}] ... ", end="", flush=True)
-            output, ok = run_single_pair(work_dir, command, outfmt)
-            if not ok:
-                print("FAILED")
-                sys.exit(1)
-            write_normalized(baseline_file, output)
-            print("OK")
+        # Step 2: Generate single-pair baselines (always overwrite)
+        print(f"\n[Step 2] Generating single-pair baselines")
+        for name, work_dir, command in cases:
+            for outfmt in [2, -1]:
+                fmt_str = "outfmt-1" if outfmt == -1 else f"outfmt{outfmt}"
+                baseline_file = os.path.join(BASELINE_DIR, f"{name}_{fmt_str}.txt")
+                print(f"  {name} [{fmt_str}] ... ", end="", flush=True)
+                output, ok = run_single_pair(work_dir, command, outfmt)
+                if not ok:
+                    print("FAILED")
+                    sys.exit(1)
+                write_normalized(baseline_file, output)
+                print("OK")
 
-    # Step 3: Verify no directory prefixes left
-    print(f"\n[Step 3] Verifying baseline files")
-    bad = 0
-    for fname in sorted(os.listdir(BASELINE_DIR)):
-        if not fname.endswith(".txt"): continue
-        fpath = os.path.join(BASELINE_DIR, fname)
-        with open(fpath, "r", encoding="utf-8", errors="replace") as f:
-            for line in f:
-                if re.search(r'[/\\][\w.\-]+\.pdb:', line) or \
-                   re.search(r'[A-Za-z]:[/\\]', line):
-                    print(f"  WARNING: {fname} still has directory prefix!")
-                    bad += 1
-                    break
-    if bad == 0:
-        print("  All baseline files are clean (no directory prefixes)")
-    else:
-        print(f"  {bad} file(s) still have directory prefixes!")
+        # Step 3: Verify no directory prefixes left
+        print(f"\n[Step 3] Verifying baseline files")
+        bad = 0
+        for fname in sorted(os.listdir(BASELINE_DIR)):
+            if not fname.endswith(".txt"): continue
+            fpath = os.path.join(BASELINE_DIR, fname)
+            with open(fpath, "r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    if re.search(r'[/\\][\w.\-]+\.pdb:', line) or \
+                       re.search(r'[A-Za-z]:[/\\]', line):
+                        print(f"  WARNING: {fname} still has directory prefix!")
+                        bad += 1
+                        break
+        if bad == 0:
+            print("  All baseline files are clean (no directory prefixes)")
+        else:
+            print(f"  {bad} file(s) still have directory prefixes!")
 
-    print(f"\n[DONE] Baselines saved to: {BASELINE_DIR}")
+        print(f"\n[DONE] Baselines saved to: {BASELINE_DIR}")
+    finally:
+        if original_branch and original_branch != current_branch():
+            print(f"\n[Restore] Switching USalign back to '{original_branch}'")
+            git_checkout(original_branch)
+
 
 if __name__ == "__main__":
     sys.exit(main())

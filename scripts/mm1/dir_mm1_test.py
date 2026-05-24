@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Test runner for -dir + -mm 1 feature.
-Runs on the target branch (default: Usalign-beta), executes:
+Runs on the target branch (default: USalign-beta), executes:
 1. Regression tests: single-pair diff vs baseline
 2. Guard tests: verify parameter constraints (error exit + substring)
 3. Batch tests: split -dir output into pairs, diff vs single-pair baseline
@@ -158,9 +158,16 @@ def read_feature_cases():
 # ============================================================
 # Build & branch
 # ============================================================
-def git_checkout(branch):
+def current_branch():
     result = subprocess.run(["git", "-C", USALIGN_DIR, "branch", "--show-current"], capture_output=True, text=True)
-    current = result.stdout.strip()
+    if result.returncode != 0:
+        print(f"[ERROR] Failed to get current branch!")
+        sys.exit(1)
+    return result.stdout.strip()
+
+
+def git_checkout(branch):
+    current = current_branch()
     if current != branch:
         print(f"  Switching from '{current}' to '{branch}'...")
         result = subprocess.run(["git", "-C", USALIGN_DIR, "checkout", branch], capture_output=True, text=True)
@@ -435,7 +442,7 @@ def run_batch_tests(batches, regression_cases):
 # ============================================================
 def main():
     parser = argparse.ArgumentParser(description="Test runner for -dir + -mm 1")
-    parser.add_argument("--branch", default="Usalign-beta", help="Target branch to test (default: Usalign-beta)")
+    parser.add_argument("--branch", default="USalign-beta", help="Target branch to test (default: USalign-beta)")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -454,21 +461,28 @@ def main():
         sys.exit(1)
 
     # Step 1: Checkout target branch & compile
-    print(f"\n[Step 1] Checkout '{args.branch}' & compile")
-    git_checkout(args.branch)
-    compile_usalign()
+    original_branch = current_branch()
+    try:
+        print(f"\n[Step 1] Checkout '{args.branch}' & compile")
+        git_checkout(args.branch)
+        compile_usalign()
 
-    os.makedirs(RESULT_DIR, exist_ok=True)
-    os.makedirs(DIFF_DIR, exist_ok=True)
+        os.makedirs(RESULT_DIR, exist_ok=True)
+        os.makedirs(DIFF_DIR, exist_ok=True)
 
-    # Step 2: Regression tests
-    reg_pass, reg_warn, reg_fail = run_regression_tests(regression_cases)
+        # Step 2: Regression tests
+        reg_pass, reg_warn, reg_fail = run_regression_tests(regression_cases)
 
-    # Step 3: Guard tests
-    guard_pass, guard_fail = run_guard_tests(guards)
+        # Step 3: Guard tests
+        guard_pass, guard_fail = run_guard_tests(guards)
 
-    # Step 4: Batch tests
-    batch_pass, batch_fail, split_pass, split_warn, split_fail = run_batch_tests(batches, regression_cases)
+        # Step 4: Batch tests
+        batch_pass, batch_fail, split_pass, split_warn, split_fail = run_batch_tests(batches, regression_cases)
+
+    finally:
+        if original_branch and original_branch != current_branch():
+            print(f"[Restore] Switching USalign back to '{original_branch}'")
+            git_checkout(original_branch)
 
     # Step 5: Summary
     total_pass = reg_pass + guard_pass + batch_pass

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 TMscore 回归测试脚本
-切换到 Usalign-beta 分支，编译包含需求修改的 TMscore，运行全部用例，与 baseline/ 逐字节比对。
+切换到 USalign-beta 分支，编译包含需求修改的 TMscore，运行全部用例，与 baseline/ 逐字节比对。
 生成文件: -o TM_sup 会产生 TM_sup.pdb / TM_sup.pdb1 / *.pml（pml 不比对）。脚本结束后恢复运行前所在分支。
 """
 import subprocess, shutil, sys, difflib, re
@@ -130,14 +130,14 @@ def run_tests(exe_path: str):
 if __name__ == "__main__":
     original_branch = current_branch()
     try:
-        if original_branch != "Usalign-beta":
-            print(f"Switching USalign from {original_branch} to Usalign-beta for TMscore regression...")
-            checkout("Usalign-beta")
+        if original_branch != "USalign-beta":
+            print(f"Switching USalign from {original_branch} to USalign-beta for TMscore regression...")
+            checkout("USalign-beta")
         exe = str(SCRIPT_DIR / EXE_NAME)
         compile_mod(exe)
         ok = run_tests(exe)
     finally:
-        if original_branch and original_branch != "Usalign-beta":
+        if original_branch and original_branch != "USalign-beta":
             print(f"Restoring USalign branch to {original_branch}...")
             checkout(original_branch)
     sys.exit(0 if ok else 1)
