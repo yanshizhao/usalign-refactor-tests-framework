@@ -5,7 +5,7 @@ from pathlib import Path
 """
 性能回归测试脚本（Performance Regression Runner）
 功能：
-  1. 编译修改版 US-align 可执行文件 (如果尚未编译)
+  1. 切换到 Usalign-beta 分支，编译包含需求修改的 US-align 可执行文件
   2. 从 testcases_performance.txt 读取所有性能测试用例
   3. 对每个用例重复运行若干次（默认 5 次），提取平均 CPU 时间
   4. 将结果保存到 perf_current/ 目录下的 performance.csv 中

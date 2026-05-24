@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 MMalign 基线创建脚本
-从 master 分支提取原始源码编译原始版 MMalign，运行全部用例，输出保存到 baseline/。
+切换到干净的 master 分支，提取未修改源码编译原始版 MMalign，运行全部用例，输出保存到 baseline/。
+脚本结束后恢复运行前所在分支。
 """
 import subprocess, os, shutil, sys, tempfile
 from pathlib import Path

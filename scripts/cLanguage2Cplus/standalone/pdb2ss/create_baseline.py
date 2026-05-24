@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 pdb2ss 基线创建脚本
-从 master 分支提取原始源码编译原始版 pdb2ss，运行全部用例，输出保存到 baseline/。
-pdb2ss 无 -outfmt 选项，无生成文件，仅比对 stdout。
+切换到干净的 master 分支，提取未修改源码编译原始版 pdb2ss，运行全部用例，输出保存到 baseline/。
+pdb2ss 无 -outfmt 选项，无生成文件，仅比对 stdout。脚本结束后恢复运行前所在分支。
 """
 import subprocess, os, shutil, sys, tempfile
 from pathlib import Path

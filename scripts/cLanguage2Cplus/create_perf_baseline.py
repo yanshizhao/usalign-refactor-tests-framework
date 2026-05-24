@@ -5,7 +5,7 @@ from pathlib import Path
 """
 性能基线生成脚本（Performance Baseline Creator）
 功能：
-  1. 编译原始版 US-align 可执行文件 (如果尚未编译)
+  1. 切换到干净的 master 分支，编译原始（未修改）版 US-align 可执行文件
   2. 从 testcases_performance.txt 读取所有性能测试用例
   3. 对每个用例重复运行若干次（默认 5 次），并提取每次的 #Total CPU time
   4. 计算每个用例的平均耗时（秒），保存到 perf_baseline/baseline.csv 中

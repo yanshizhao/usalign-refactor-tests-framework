@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 pdb2ss 回归测试脚本
-编译当前源码（USalign-beta）的 pdb2ss，运行全部用例，与 baseline/ 逐字节比对。
-pdb2ss 仅输出 FASTA 格式二级结构序列到 stdout，无生成文件，无 -outfmt 选项。
+切换到 Usalign-beta 分支，编译包含需求修改的 pdb2ss，运行全部用例，与 baseline/ 逐字节比对。
+pdb2ss 仅输出 FASTA 格式二级结构序列到 stdout，无生成文件，无 -outfmt 选项。脚本结束后恢复运行前所在分支。
 """
 import subprocess, shutil, sys, difflib
 from pathlib import Path

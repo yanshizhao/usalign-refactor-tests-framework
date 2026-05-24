@@ -6,7 +6,7 @@ from pathlib import Path
 """
 回归测试执行脚本（Regression Runner）
 功能：
-  1. 编译修改后的 US-align 可执行文件 (USalign_mod.exe)
+  1. 切换到 Usalign-beta 分支，编译包含需求修改的 US-align 可执行文件 (USalign_mod.exe)
   2. 每次运行前自动清空 current/ 和 diffs/ 目录，避免旧数据干扰
   3. 从 testcases_functional.txt 读取所有功能测试用例
   4. 逐条运行用例，将输出保存到 current/ 目录（文件名添加 _mod 后缀）

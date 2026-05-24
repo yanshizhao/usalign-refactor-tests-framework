@@ -5,7 +5,7 @@ from pathlib import Path
 """
 创建基线文件脚本（Baseline Creator）
 功能：
-  1. 编译原始（未修改）版本的 US-align 可执行文件 (USalign_orig.exe)
+  1. 切换到干净的 master 分支，编译原始（未修改）版本的 US-align 可执行文件 (USalign_orig.exe)
   2. 从 testcases_functional.txt 读取所有功能测试用例
   3. 依次执行每个用例，并将完整的输出（stdout 和 stderr）保存到
      baseline/ 目录下，作为后续回归测试的“黄金标准”

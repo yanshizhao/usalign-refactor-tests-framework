@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 TMscore 回归测试脚本
-编译当前源码（USalign-beta）的 TMscore，运行全部用例，与 baseline/ 逐字节比对。
-生成文件: -o TM_sup 会产生 TM_sup.pdb / TM_sup.pdb1 / *.pml（pml 不比对）
+切换到 Usalign-beta 分支，编译包含需求修改的 TMscore，运行全部用例，与 baseline/ 逐字节比对。
+生成文件: -o TM_sup 会产生 TM_sup.pdb / TM_sup.pdb1 / *.pml（pml 不比对）。脚本结束后恢复运行前所在分支。
 """
 import subprocess, shutil, sys, difflib, re
 from pathlib import Path

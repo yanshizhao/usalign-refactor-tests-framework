@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 MMalign 回归测试脚本
-编译当前源码（USalign-beta）的 MMalign，运行全部用例，与 baseline/ 逐字节比对。
-生成文件: -o complex1.sup 会产生 complex1.sup / *.pml; -m matrix.txt 会产生 matrix.txt
+切换到 Usalign-beta 分支，编译包含需求修改的 MMalign，运行全部用例，与 baseline/ 逐字节比对。
+生成文件: -o complex1.sup 会产生 complex1.sup / *.pml; -m matrix.txt 会产生 matrix.txt。脚本结束后恢复运行前所在分支。
 """
 import subprocess, shutil, sys, difflib, re
 from pathlib import Path
