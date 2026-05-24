@@ -1,6 +1,6 @@
 # dir1 + -mm 1 regression test cases
-# Format: test_name  dir(相对项目�?  command(相对于dir的路�?
-# dir列是USalign的工作目�?cwd)，使输出路径最�?
+# Format: test_name  dir(鐩稿�归」鐩�鏍?  command(鐩稿�逛簬dir鐨勮矾寰?
+# dir鍒楁槸USalign鐨勫伐浣滅洰褰?cwd)锛屼娇杈撳嚭璺�寰勬渶鐭?
 
 US7351924051_vs_US735192405  usalign-refactor-tests-framework/scripts/mm1/data  MSTATest/US7351924051.pdb US735192405.pdb -mm 1 -ter 0
 US7351924052_vs_US735192405  usalign-refactor-tests-framework/scripts/mm1/data  MSTATest/US7351924052.pdb US735192405.pdb -mm 1 -ter 0

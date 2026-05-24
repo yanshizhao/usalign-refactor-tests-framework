@@ -415,12 +415,12 @@ def main():
     print(f"  Regression: {reg_pass} passed, {reg_warn} warned, {reg_fail} failed")
     print(f"  Guard:      {guard_pass} passed, {guard_warn} warned, {guard_fail} failed")
     print(f"  Batch:      {batch_pass} passed, {batch_warn} warned, {batch_fail} failed")
-    print(f"  ─────────────────────────────────────")
+    print(f"  -------------------------------------")
     print(f"  Total:      {total_pass} passed, {total_warn} warned, {total_fail} failed")
 
-    if total_fail > 0: print("\n❌ TESTS FAILED"); sys.exit(1)
-    elif total_warn > 0: print("\n⚠️ TESTS PASSED WITH WARNINGS"); sys.exit(0)
-    else: print("\n✅ ALL TESTS STRICTLY PASSED"); sys.exit(0)
+    if total_fail > 0: print("\n[FAIL] TESTS FAILED"); sys.exit(1)
+    elif total_warn > 0: print("\n[WARN] TESTS PASSED WITH WARNINGS"); sys.exit(0)
+    else: print("\n[PASS] ALL TESTS STRICTLY PASSED"); sys.exit(0)
 
 if __name__ == "__main__":
     main()

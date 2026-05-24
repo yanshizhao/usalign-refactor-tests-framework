@@ -1,102 +1,102 @@
-US-align -mm 1 �?-dir/-dir1/-dir2 适配 �?工作日志
+US-align -mm 1 涓?-dir/-dir1/-dir2 閫傞厤 鈥?宸ヤ綔鏃ュ織
 =========================================================
 
-日期�?026-05-18
+鏃ユ湡锛?026-05-18
 
 
-一、今日完成的工作
+涓�銆佷粖鏃ュ畬鎴愮殑宸ヤ綔
 -------------------
 
-1. Git 仓库搭建
-   - 确认 Git 仓库位于 D:\qlab\USalign-master\USalign
-   - �?master 创建 Usalign-beta 分支
-   - �?D:\qlab\Usalign-beta 中的 Phase 1 修改搬入该分支并提交
-   - 远程 origin: https://github.com/pylelab/USalign.git（未 push�?
-2. 第一阶段�?dir1 + -mm 1）测试基础设施
-   - 建立基线数据：test/baseline_dir1_mm1/ 目录
-     10 �?× 2 种输出格式（outfmt2 + outfmt-1�? 20 个基线文�?     命名规则：{name}_vs_US735192405_{format}.txt
-   - 创建测试脚本：test/dir1_mm1_test.py
-     功能：自动切换分支→编译→跑单对测试→跑 -dir1 批量测试→diff→汇�?   - 执行测试�?0/20 PASS
-     修复�?Unicode 编码问题（✓→OK, ✗→ERROR�?     修复�?list.txt CRLF 导致的文件名错误
-     修复�?CPU 时间行导致的误判（过�?"Total CPU time" 行）
+1. Git 浠撳簱鎼�寤�
+   - 纭�璁� Git 浠撳簱浣嶄簬 D:\qlab\USalign-master\USalign
+   - 浠?master 鍒涘缓 Usalign-beta 鍒嗘敮
+   - 灏?D:\qlab\Usalign-beta 涓�鐨� Phase 1 淇�鏀规惉鍏ヨ�ュ垎鏀�骞舵彁浜�
+   - 杩滅▼ origin: https://github.com/pylelab/USalign.git锛堟湭 push锛?
+2. 绗�涓�闃舵�碉�?dir1 + -mm 1锛夋祴璇曞熀纭�璁炬柦
+   - 寤虹珛鍩虹嚎鏁版嵁锛歵est/baseline_dir1_mm1/ 鐩�褰�
+     10 瀵?脳 2 绉嶈緭鍑烘牸寮忥紙outfmt2 + outfmt-1锛? 20 涓�鍩虹嚎鏂囦�?     鍛藉悕瑙勫垯锛歿name}_vs_US735192405_{format}.txt
+   - 鍒涘缓娴嬭瘯鑴氭湰锛歵est/dir1_mm1_test.py
+     鍔熻兘锛氳嚜鍔ㄥ垏鎹㈠垎鏀�鈫掔紪璇戔啋璺戝崟瀵规祴璇曗啋璺� -dir1 鎵归噺娴嬭瘯鈫抎iff鈫掓眹鎬?   - 鎵ц�屾祴璇曪�?0/20 PASS
+     淇�澶嶄�?Unicode 缂栫爜闂�棰橈紙鉁撯啋OK, 鉁椻啋ERROR锛?     淇�澶嶄�?list.txt CRLF 瀵艰嚧鐨勬枃浠跺悕閿欒��
+     淇�澶嶄�?CPU 鏃堕棿琛屽�艰嚧鐨勮��鍒わ紙杩囨�?"Total CPU time" 琛岋級
 
-3. 第二阶段�?dir2 + -mm 1）编�?   - 修改 USalign.cpp 两处�?     位置 3489�?chainmap 互斥检查从 dir1_opt 扩展�?(dir1_opt||dir2_opt)
-     位置 3554：新�?-dir2 循环分支（遍�?chain2_list�?   - 编译通过，已提交�?Usalign-beta 分支
+3. 绗�浜岄樁娈碉�?dir2 + -mm 1锛夌紪鐮?   - 淇�鏀� USalign.cpp 涓ゅ�勶�?     浣嶇疆 3489锛?chainmap 浜掓枼妫�鏌ヤ粠 dir1_opt 鎵╁睍涓?(dir1_opt||dir2_opt)
+     浣嶇疆 3554锛氭柊澧?-dir2 寰�鐜�鍒嗘敮锛堥亶鍘?chain2_list锛?   - 缂栬瘧閫氳繃锛屽凡鎻愪氦鍒?Usalign-beta 鍒嗘敮
 
-4. 方案审核与关键讨�?   - 深入分析�?MMalign 函数的设计意图（复合�?vs 复合物比对）
-   - 讨论�?parse_chain_list 的合并行�?   - 确认原始 IMPLEMENTATION_PLAN.txt 方案正确，无需修正
-
-
-5. Phase 3 编码�?026-05-19�?   - USalign.cpp:3459 �?解除 -dir + -mm 1 拦截，仅保留 -mm 2 拦截
-   - USalign.cpp:3489 �?-chainmap 互斥检查扩展为 dir_opt||dir1_opt||dir2_opt
-   - USalign.cpp:3536 �?新增 -dir 上三角二重循环（ii < jj），�?-dir1/-dir2 之前
-   - 编译通过，已提交�?2cc64f�?
-6. Phase 3 测试�?026-05-19�?   - 创建测试脚本：test/dir_mm1_test.py
-   - 建立基线数据：test/baseline_dir_mm1/�?0 个文件，master 分支生成�?5 �?× 2 格式�?   - 测试执行�?     a. 单对回归（前 10 对）�?0/20 PASS
-     b. -dir 批量�?5 对上三角）：outfmt2 45/45 + outfmt-1 45/45 = 90/90 PASS
-   - 总计�?10/110 PASS
-   - 结果目录：test/dir_mm1_result/
-   - 差分目录：test/dir_mm1_diff/
+4. 鏂规�堝�℃牳涓庡叧閿�璁ㄨ�?   - 娣卞叆鍒嗘瀽浜?MMalign 鍑芥暟鐨勮�捐�℃剰鍥撅紙澶嶅悎鐗?vs 澶嶅悎鐗╂瘮瀵癸級
+   - 璁ㄨ�轰�?parse_chain_list 鐨勫悎骞惰�屼�?   - 纭�璁ゅ師濮� IMPLEMENTATION_PLAN.txt 鏂规�堟�ｇ‘锛屾棤闇�淇�姝�
 
 
-二、当前进�?-----------
+5. Phase 3 缂栫爜锛?026-05-19锛?   - USalign.cpp:3459 鈥?瑙ｉ櫎 -dir + -mm 1 鎷︽埅锛屼粎淇濈暀 -mm 2 鎷︽埅
+   - USalign.cpp:3489 鈥?-chainmap 浜掓枼妫�鏌ユ墿灞曚负 dir_opt||dir1_opt||dir2_opt
+   - USalign.cpp:3536 鈥?鏂板�� -dir 涓婁笁瑙掍簩閲嶅惊鐜�锛坕i < jj锛夛紝浜?-dir1/-dir2 涔嬪墠
+   - 缂栬瘧閫氳繃锛屽凡鎻愪氦锛?2cc64f锛?
+6. Phase 3 娴嬭瘯锛?026-05-19锛?   - 鍒涘缓娴嬭瘯鑴氭湰锛歵est/dir_mm1_test.py
+   - 寤虹珛鍩虹嚎鏁版嵁锛歵est/baseline_dir_mm1/锛?0 涓�鏂囦欢锛宮aster 鍒嗘敮鐢熸垚锛?5 瀵?脳 2 鏍煎紡锛?   - 娴嬭瘯鎵ц�岋�?     a. 鍗曞�瑰洖褰掞紙鍓� 10 瀵癸級锛?0/20 PASS
+     b. -dir 鎵归噺锛?5 瀵逛笂涓夎�掞級锛歰utfmt2 45/45 + outfmt-1 45/45 = 90/90 PASS
+   - 鎬昏�★�?10/110 PASS
+   - 缁撴灉鐩�褰曪細test/dir_mm1_result/
+   - 宸�鍒嗙洰褰曪細test/dir_mm1_diff/
 
-   [✓] Phase 1 编码 + 编译 + 测试 + 提交
-   [✓] Phase 2 编码 + 编译 + 测试 + 提交
-   [✓] Phase 3 编码 + 编译 + 测试 + 提交
 
-   Git 提交历史（Usalign-beta 分支）：
+浜屻�佸綋鍓嶈繘搴?-----------
+
+   [鉁揮 Phase 1 缂栫爜 + 缂栬瘧 + 娴嬭瘯 + 鎻愪氦
+   [鉁揮 Phase 2 缂栫爜 + 缂栬瘧 + 娴嬭瘯 + 鎻愪氦
+   [鉁揮 Phase 3 缂栫爜 + 缂栬瘧 + 娴嬭瘯 + 鎻愪氦
+
+   Git 鎻愪氦鍘嗗彶锛圲salign-beta 鍒嗘敮锛夛細
    42cc64f Phase 3: -dir + -mm 1 support for oligomeric all-vs-all alignment
    ef648bf Phase 2: -dir2 + -mm 1 support for oligomeric batch alignment
    3e5d73d Phase 1: -dir1 + -mm 1 support for oligomeric batch alignment
-   aa9c9aa add citation to license  �?master
+   aa9c9aa add citation to license  鈫?master
 
 
-三、关键文件清�?---------------
+涓夈�佸叧閿�鏂囦欢娓呭�?---------------
 
-   文件                                             用�?   D:\qlab\USalign-master\USalign\USalign.cpp         主程序（已修改，Usalign-beta 分支�?   D:\qlab\USalign-master\test\baseline\               Phase 1 基线数据�?0 个文件）
-   D:\qlab\USalign-master\test\dir1_mm1_test.py       Phase 1 测试脚本
-   D:\qlab\USalign-master\test\dir2_mm1_test.py         Phase 2 测试脚本
-   D:\qlab\USalign-master\test\baseline_dir2_mm1\       Phase 2 基线数据�?0 个文件）
-   D:\qlab\USalign-master\test\dir_mm1_test.py          Phase 3 测试脚本
-   D:\qlab\USalign-master\test\baseline_dir_mm1\        Phase 3 基线数据�?0 个文件）
-   D:\qlab\USalign-master\IMPLEMENTATION_PLAN.txt       实施方案
-
-
-四、下一�?---------
-
-  1. 手动 push Usalign-beta 分支到远程仓�?     git push origin Usalign-beta
-  2. （可选）�?Linux/Mac 上编译并运行完整回归测试
+   鏂囦欢                                             鐢ㄩ�?   D:\qlab\USalign-master\USalign\USalign.cpp         涓荤▼搴忥紙宸蹭慨鏀癸紝Usalign-beta 鍒嗘敮锛?   D:\qlab\USalign-master\test\baseline\               Phase 1 鍩虹嚎鏁版嵁锛?0 涓�鏂囦欢锛�
+   D:\qlab\USalign-master\test\dir1_mm1_test.py       Phase 1 娴嬭瘯鑴氭湰
+   D:\qlab\USalign-master\test\dir2_mm1_test.py         Phase 2 娴嬭瘯鑴氭湰
+   D:\qlab\USalign-master\test\baseline_dir2_mm1\       Phase 2 鍩虹嚎鏁版嵁锛?0 涓�鏂囦欢锛�
+   D:\qlab\USalign-master\test\dir_mm1_test.py          Phase 3 娴嬭瘯鑴氭湰
+   D:\qlab\USalign-master\test\baseline_dir_mm1\        Phase 3 鍩虹嚎鏁版嵁锛?0 涓�鏂囦欢锛�
+   D:\qlab\USalign-master\IMPLEMENTATION_PLAN.txt       瀹炴柦鏂规��
 
 
-五、Usalign-beta 分支功能提交总结�?026-05-23�?---------------------------------------------
+鍥涖�佷笅涓�姝?---------
 
-Usalign-beta 分支�?3 个提交，全部修改 USalign.cpp，总计 63 行新增�? 行删除�?
-提交列表�?
+  1. 鎵嬪姩 push Usalign-beta 鍒嗘敮鍒拌繙绋嬩粨搴?     git push origin Usalign-beta
+  2. 锛堝彲閫夛級鍦?Linux/Mac 涓婄紪璇戝苟杩愯�屽畬鏁村洖褰掓祴璇�
+
+
+浜斻�乁salign-beta 鍒嗘敮鍔熻兘鎻愪氦鎬荤粨锛?026-05-23锛?---------------------------------------------
+
+Usalign-beta 鍒嗘敮鍏?3 涓�鎻愪氦锛屽叏閮ㄤ慨鏀� USalign.cpp锛屾�昏�� 63 琛屾柊澧炪�? 琛屽垹闄ゃ�?
+鎻愪氦鍒楄〃锛?
 1. 3e5d73d Phase 1: -dir1 + -mm 1 support for oligomeric batch alignment
-   - 支持 -dir1 �?-mm 1 组合使用
-   - 实现“目录中每个复合�?vs 指定目标”的寡聚体批量比�?   - 通过遍历 chain1_list，逐个构造单元素输入列表并调�?MMalign()
+   - 鏀�鎸� -dir1 涓?-mm 1 缁勫悎浣跨敤
+   - 瀹炵幇鈥滅洰褰曚腑姣忎釜澶嶅悎鐗?vs 鎸囧畾鐩�鏍団�濈殑瀵¤仛浣撴壒閲忔瘮瀵?   - 閫氳繃閬嶅巻 chain1_list锛岄�愪釜鏋勯�犲崟鍏冪礌杈撳叆鍒楄〃骞惰皟鐢?MMalign()
 
 2. ef648bf Phase 2: -dir2 + -mm 1 support for oligomeric batch alignment
-   - 支持 -dir2 �?-mm 1 组合使用
-   - 实现“指定查�?vs 目录中每个复合物”的寡聚体批量比�?   - 通过遍历 chain2_list，逐个构造单元素输入列表并调�?MMalign()
+   - 鏀�鎸� -dir2 涓?-mm 1 缁勫悎浣跨敤
+   - 瀹炵幇鈥滄寚瀹氭煡璇?vs 鐩�褰曚腑姣忎釜澶嶅悎鐗┾�濈殑瀵¤仛浣撴壒閲忔瘮瀵?   - 閫氳繃閬嶅巻 chain2_list锛岄�愪釜鏋勯�犲崟鍏冪礌杈撳叆鍒楄〃骞惰皟鐢?MMalign()
 
 3. 42cc64f Phase 3: -dir + -mm 1 support for oligomeric all-vs-all alignment
-   - 支持 -dir �?-mm 1 组合使用
-   - 实现目录内寡聚体全对全比�?   - 使用上三角二重循�?ii < jj，避免重复比对和自比�?
-核心功能变化�?
-1. 解除 -mm 1 �?-dir/-dir1/-dir2 的不兼容限制
-   - 原版会禁�?-mm 1 �?-mm 2 �?-dir 同时使用
-   - beta 分支改为仅禁�?-mm 2 �?-dir 同时使用
-   - -mm 1 寡聚体比对现在可以进入批量处理逻辑
+   - 鏀�鎸� -dir 涓?-mm 1 缁勫悎浣跨敤
+   - 瀹炵幇鐩�褰曞唴瀵¤仛浣撳叏瀵瑰叏姣斿�?   - 浣跨敤涓婁笁瑙掍簩閲嶅惊鐜?ii < jj锛岄伩鍏嶉噸澶嶆瘮瀵瑰拰鑷�姣斿�?
+鏍稿績鍔熻兘鍙樺寲锛?
+1. 瑙ｉ櫎 -mm 1 涓?-dir/-dir1/-dir2 鐨勪笉鍏煎�归檺鍒�
+   - 鍘熺増浼氱�佹�?-mm 1 鎴?-mm 2 涓?-dir 鍚屾椂浣跨敤
+   - beta 鍒嗘敮鏀逛负浠呯�佹�?-mm 2 涓?-dir 鍚屾椂浣跨敤
+   - -mm 1 瀵¤仛浣撴瘮瀵圭幇鍦ㄥ彲浠ヨ繘鍏ユ壒閲忓�勭悊閫昏緫
 
-2. 新增 -mm 1 批量模式调度逻辑
-   - -dir1：目录查询集逐个比对到固定目�?   - -dir2：固定查询逐个比对到目录目标集
-   - -dir：目录内结构两两全对全比�?   - 每个批量组合最终仍复用既有 MMalign() 主逻辑
+2. 鏂板�� -mm 1 鎵归噺妯″紡璋冨害閫昏緫
+   - -dir1锛氱洰褰曟煡璇㈤泦閫愪釜姣斿�瑰埌鍥哄畾鐩�鏍?   - -dir2锛氬浐瀹氭煡璇㈤�愪釜姣斿�瑰埌鐩�褰曠洰鏍囬泦
+   - -dir锛氱洰褰曞唴缁撴瀯涓や袱鍏ㄥ�瑰叏姣斿�?   - 姣忎釜鎵归噺缁勫悎鏈�缁堜粛澶嶇敤鏃㈡湁 MMalign() 涓婚�昏緫
 
-3. 新增 -chainmap 互斥检�?   - -chainmap 仍只允许�?-mm 1 使用
-   - beta 分支进一步禁�?-chainmap �?-dir�?dir1�?dir2 同时使用
-   - 原因是批量模式下每一对复合物可能需要不同链映射，单�?chainmap 文件不适合全局复用
+3. 鏂板�� -chainmap 浜掓枼妫�鏌?   - -chainmap 浠嶅彧鍏佽�镐�?-mm 1 浣跨敤
+   - beta 鍒嗘敮杩涗竴姝ョ�佹�?-chainmap 涓?-dir銆?dir1銆?dir2 鍚屾椂浣跨敤
+   - 鍘熷洜鏄�鎵归噺妯″紡涓嬫瘡涓�瀵瑰�嶅悎鐗╁彲鑳介渶瑕佷笉鍚岄摼鏄犲皠锛屽崟涓?chainmap 鏂囦欢涓嶉�傚悎鍏ㄥ眬澶嶇敤
 
-总体结论�?
-Usalign-beta 分支的主要功能是让寡聚体比对模式�?mm 1）支持批量输入，包括 -dir1�?dir2 �?-dir 三类目录模式。实现方式较保守，没有改�?MMalign() 核心算法，而是�?main() 的调度层增加循环，将批量任务拆成多个单对寡聚体比对执行�
+鎬讳綋缁撹�猴�?
+Usalign-beta 鍒嗘敮鐨勪富瑕佸姛鑳芥槸璁╁�¤仛浣撴瘮瀵规ā寮忥�?mm 1锛夋敮鎸佹壒閲忚緭鍏ワ紝鍖呮嫭 -dir1銆?dir2 鍜?-dir 涓夌被鐩�褰曟ā寮忋�傚疄鐜版柟寮忚緝淇濆畧锛屾病鏈夋敼鍔?MMalign() 鏍稿績绠楁硶锛岃�屾槸鍦?main() 鐨勮皟搴﹀眰澧炲姞寰�鐜�锛屽皢鎵归噺浠诲姟鎷嗘垚澶氫釜鍗曞�瑰�¤仛浣撴瘮瀵规墽琛屻�

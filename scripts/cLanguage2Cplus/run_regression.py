@@ -22,14 +22,28 @@ DATA_DIR = SCRIPT_DIR / "data"
 CURRENT = SCRIPT_DIR / "current"
 DIFFS   = SCRIPT_DIR / "diffs"
 BASELINE= SCRIPT_DIR / "baseline"
-SRC = SCRIPT_DIR / ".." / ".." / ".." / "USalign" / "USalign.cpp"
-EXE = "USalign_mod.exe"
+USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
+SRC = USALIGN_DIR / "USalign.cpp"
+EXE = SCRIPT_DIR / f"USalign_mod_{os.getpid()}.exe"
 MOD_SUFFIX = "_mod"
 
 
+def current_branch():
+    result = subprocess.run(["git", "branch", "--show-current"], cwd=str(USALIGN_DIR), capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to get current branch:\n{result.stderr}"); sys.exit(1)
+    return result.stdout.strip()
+
+
+def checkout(branch):
+    result = subprocess.run(["git", "checkout", branch], cwd=str(USALIGN_DIR), capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to checkout {branch}:\n{result.stderr}"); sys.exit(1)
+
+
 def compile():
-    print("Compiling modified US-align...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-o", EXE, str(SRC)]).returncode != 0:
+    print("Compiling modified US-align from Usalign-beta...")
+    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-o", str(EXE), str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 
@@ -58,7 +72,7 @@ def run_tests():
             name, workdir_rel, args_str = line.split(maxsplit=2)
             workdir = (DATA_DIR / workdir_rel).resolve()
             args_list = args_str.split()
-            cmd = [EXE] + args_list
+            cmd = [str(EXE)] + args_list
             print(f"Running {name} ...")
             print(f"  CWD: {workdir}")
             print(f"  CMD: {' '.join(cmd)}")
@@ -129,5 +143,16 @@ def _diff_files(base_filename, mod_filename, tag, extra_note=""):
 
 
 if __name__ == "__main__":
-    compile()
-    run_tests()
+    original_branch = current_branch()
+    try:
+        if original_branch != "Usalign-beta":
+            print(f"Switching USalign from {original_branch} to Usalign-beta for functional regression...")
+            checkout("Usalign-beta")
+        compile()
+        run_tests()
+    finally:
+        if EXE.exists():
+            EXE.unlink()
+        if original_branch and original_branch != "Usalign-beta":
+            print(f"Restoring USalign branch to {original_branch}...")
+            checkout(original_branch)

@@ -9,4 +9,11 @@ tests/scripts/cLanguage2Cplus/perf_current/
 tests/scripts/cLanguage2Cplus/standalone/*/baseline/
 tests/scripts/cLanguage2Cplus/standalone/*/current/
 tests/scripts/cLanguage2Cplus/standalone/*/diffs/
+scripts/cLanguage2Cplus/baseline/
+scripts/cLanguage2Cplus/current/
+scripts/cLanguage2Cplus/diffs/
+scripts/cLanguage2Cplus/perf_current/
+scripts/cLanguage2Cplus/standalone/*/current/
+scripts/cLanguage2Cplus/standalone/*/diffs/
+scripts/cLanguage2Cplus/data/sup*.pml
 USalign/

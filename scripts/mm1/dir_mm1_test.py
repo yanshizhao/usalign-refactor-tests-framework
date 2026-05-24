@@ -486,13 +486,13 @@ def main():
     print(f"  Total:      {total_pass} test suites passed, {total_warn} sub-tests warned, {total_fail} failed")
 
     if total_fail > 0:
-        print(f"\n鉂?TESTS FAILED")
+        print("\n[FAIL] TESTS FAILED")
         sys.exit(1)
     elif total_warn > 0:
-        print(f"\n鈿狅笍 TESTS PASSED WITH WARNINGS (Non-business content mismatches detected)")
+        print("\n[WARN] TESTS PASSED WITH WARNINGS (Non-business content mismatches detected)")
         sys.exit(0)
     else:
-        print(f"\n鉁?ALL TESTS PASSED STRICTLY")
+        print("\n[PASS] ALL TESTS PASSED STRICTLY")
         sys.exit(0)
 
 if __name__ == "__main__":

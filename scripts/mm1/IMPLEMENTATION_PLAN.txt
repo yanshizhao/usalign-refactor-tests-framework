@@ -1,97 +1,97 @@
-基于�?US-align 源码架构的深入剖析，现撰写一份完整的实施方案。本方案将改动按功能拆分为三个递进阶段�?dir1 �?-dir2 �?-dir），每阶段包�?5 个细化步骤，确保步步可验证、可回归�?
-US-align -mm 1 �?-dir/-dir1/-dir2 模式适配方案
-一、需求背景与目标
-1.1 业务背景
-US-align �?-mm 1 模式（寡聚体/多链复合物比对）�?-dir/-dir1/-dir2 模式（目录批量比对）均是核心功能。然而当前存在两类问题：
-- -dir �?-mm 1 被硬编码互斥（USalign.cpp:3459），无法使用
-- -dir1/-dir2 �?-mm 1 虽未被拦截，�?MMalign 会将目录下所有文件合并为一个巨型复合物，产生错误结�?
-1.2 需求目�?- 实现 -dir1 + -mm 1：目录中每个复合�?vs 指定目标复合�?- 实现 -dir2 + -mm 1：指定查询复合物 vs 目录中每个复合物
-- 实现 -dir  + -mm 1：目录下所有复合物的全对全比对（上三角�?- 确保现有单体 -dir�?dirpair、单对比对逻辑不受影响
+鍩轰簬瀵?US-align 婧愮爜鏋舵瀯鐨勬繁鍏ュ墫鏋愶紝鐜版挵鍐欎竴浠藉畬鏁寸殑瀹炴柦鏂规�堛�傛湰鏂规�堝皢鏀瑰姩鎸夊姛鑳芥媶鍒嗕负涓変釜閫掕繘闃舵�碉�?dir1 鈫?-dir2 鈫?-dir锛夛紝姣忛樁娈靛寘鍚?5 涓�缁嗗寲姝ラ�わ紝纭�淇濇�ユ�ュ彲楠岃瘉銆佸彲鍥炲綊銆?
+US-align -mm 1 涓?-dir/-dir1/-dir2 妯″紡閫傞厤鏂规��
+涓�銆侀渶姹傝儗鏅�涓庣洰鏍�
+1.1 涓氬姟鑳屾櫙
+US-align 鐨?-mm 1 妯″紡锛堝�¤仛浣�/澶氶摼澶嶅悎鐗╂瘮瀵癸級鍜?-dir/-dir1/-dir2 妯″紡锛堢洰褰曟壒閲忔瘮瀵癸級鍧囨槸鏍稿績鍔熻兘銆傜劧鑰屽綋鍓嶅瓨鍦ㄤ袱绫婚棶棰橈細
+- -dir 涓?-mm 1 琚�纭�缂栫爜浜掓枼锛圲Salign.cpp:3459锛夛紝鏃犳硶浣跨敤
+- -dir1/-dir2 涓?-mm 1 铏芥湭琚�鎷︽埅锛屼�?MMalign 浼氬皢鐩�褰曚笅鎵�鏈夋枃浠跺悎骞朵负涓�涓�宸ㄥ瀷澶嶅悎鐗╋紝浜х敓閿欒��缁撴�?
+1.2 闇�姹傜洰鏍?- 瀹炵幇 -dir1 + -mm 1锛氱洰褰曚腑姣忎釜澶嶅悎鐗?vs 鎸囧畾鐩�鏍囧�嶅悎鐗?- 瀹炵幇 -dir2 + -mm 1锛氭寚瀹氭煡璇㈠�嶅悎鐗� vs 鐩�褰曚腑姣忎釜澶嶅悎鐗�
+- 瀹炵幇 -dir  + -mm 1锛氱洰褰曚笅鎵�鏈夊�嶅悎鐗╃殑鍏ㄥ�瑰叏姣斿�癸紙涓婁笁瑙掞�?- 纭�淇濈幇鏈夊崟浣� -dir銆?dirpair銆佸崟瀵规瘮瀵归�昏緫涓嶅彈褰卞搷
 
-二、核心痛点与根因分析
-MMalign �?TMalign 的核心差异：
+浜屻�佹牳蹇冪棝鐐逛笌鏍瑰洜鍒嗘瀽
+MMalign 涓?TMalign 鐨勬牳蹇冨樊寮傦細
 
         TMalign                         MMalign
-解析    get_PDB_lines（逐文件）         parse_chain_list（合并所有文件）
-循环    内部 i/j 双层循环               无循环，全部合并后一次比�?-dir    每个文件单独解析→逐对比对 �?   所有文件合并→巨型复合�?�?
-parse_chain_list（MMalign.h:1077）的逻辑�?for each file in chain_list:
-    解析该文件的所有链 �?逐个追加�?xa_vec/ya_vec
-所以传�?[a.pdb, b.pdb, c.pdb] 会得到一个包含三个文件所有链的巨型复合物�?
-正确做法：在主函数中添加外层循环，每次只传单个文件对�?MMalign�?
-三种模式�?chain_list 结构与遍历方式：
+瑙ｆ瀽    get_PDB_lines锛堥�愭枃浠讹級         parse_chain_list锛堝悎骞舵墍鏈夋枃浠讹級
+寰�鐜�    鍐呴儴 i/j 鍙屽眰寰�鐜�               鏃犲惊鐜�锛屽叏閮ㄥ悎骞跺悗涓�娆℃瘮瀵?-dir    姣忎釜鏂囦欢鍗曠嫭瑙ｆ瀽鈫掗�愬�规瘮瀵� 鉁?   鎵�鏈夋枃浠跺悎骞垛啋宸ㄥ瀷澶嶅悎鐗?鉁?
+parse_chain_list锛圡Malign.h:1077锛夌殑閫昏緫锛?for each file in chain_list:
+    瑙ｆ瀽璇ユ枃浠剁殑鎵�鏈夐摼 鈫?閫愪釜杩藉姞鍒?xa_vec/ya_vec
+鎵�浠ヤ紶鍏?[a.pdb, b.pdb, c.pdb] 浼氬緱鍒颁竴涓�鍖呭惈涓変釜鏂囦欢鎵�鏈夐摼鐨勫法鍨嬪�嶅悎鐗┿�?
+姝ｇ‘鍋氭硶锛氬湪涓诲嚱鏁颁腑娣诲姞澶栧眰寰�鐜�锛屾瘡娆″彧浼犲崟涓�鏂囦欢瀵圭�?MMalign銆?
+涓夌�嶆ā寮忕�?chain_list 缁撴瀯涓庨亶鍘嗘柟寮忥細
 
-模式                        chain1_list                              chain2_list                 遍历方式
--dir1 PDB/ list target     [PDB/a.pdb, PDB/b.pdb, PDB/c.pdb]        [target.pdb]                单层循环 chain1_list
-query -dir2 PDB/ list      [query.pdb]                              [PDB/a.pdb, PDB/b.pdb, ...] 单层循环 chain2_list
--dir PDB/ list             [PDB/a.pdb, PDB/b.pdb, PDB/c.pdb]        �?chain1_list              上三角二重循�?(ii<jj)
+妯″紡                        chain1_list                              chain2_list                 閬嶅巻鏂瑰紡
+-dir1 PDB/ list target     [PDB/a.pdb, PDB/b.pdb, PDB/c.pdb]        [target.pdb]                鍗曞眰寰�鐜� chain1_list
+query -dir2 PDB/ list      [query.pdb]                              [PDB/a.pdb, PDB/b.pdb, ...] 鍗曞眰寰�鐜� chain2_list
+-dir PDB/ list             [PDB/a.pdb, PDB/b.pdb, PDB/c.pdb]        鍚?chain1_list              涓婁笁瑙掍簩閲嶅惊鐜?(ii<jj)
 
-前缀剥离参数对照（MMalign 内部使用 xname.substr(dir1_opt.size()) 剥离）：
+鍓嶇紑鍓ョ�诲弬鏁板�圭収锛圡Malign 鍐呴儴浣跨敤 xname.substr(dir1_opt.size()) 鍓ョ�伙級锛�
 
-模式        xname 示例      yname 示例      传入 dir1_opt    传入 dir2_opt
+妯″紡        xname 绀轰緥      yname 绀轰緥      浼犲叆 dir1_opt    浼犲叆 dir2_opt
 -dir1       PDB/a.pdb       target.pdb      dir1_opt         ""
 -dir2       query.pdb       PDB/a.pdb       ""               dir2_opt
 -dir        PDB/a.pdb       PDB/b.pdb       dir_opt          dir_opt
 
-三、开发工作流：Usalign-beta 分阶段交�?
-整体策略：每完成一种功能的编码适配并编译通过后，暂停并通知开发人员进行手动测试验证。开发人员确认测试通过后，再继续下一功能的适配。以此类推，确保每一步都有人工验证关口�?
-具体流程�?
-1. 创建 Usalign-beta 目录
-   �?USalign-master 目录下的所有源码文件（.cpp, .h, Makefile 等）复制�?Usalign-beta 目录�?   后续所有代码修改均�?Usalign-beta 目录中进行，保持�?USalign-master 目录不变�?
-2. 三阶段递进开�?   第一阶段�?dir1 + -mm 1）：
-     a. 编码完成 �?编译通过 �?通知开发人员手动测�?     b. 开发人员按验证矩阵（步�?1.5）执行手动测�?     c. 测试通过 �?将本次修改提交到 Usalign-beta �?进入第二阶段
+涓夈�佸紑鍙戝伐浣滄祦锛歎salign-beta 鍒嗛樁娈典氦浠?
+鏁翠綋绛栫暐锛氭瘡瀹屾垚涓�绉嶅姛鑳界殑缂栫爜閫傞厤骞剁紪璇戦�氳繃鍚庯紝鏆傚仠骞堕�氱煡寮�鍙戜汉鍛樿繘琛屾墜鍔ㄦ祴璇曢獙璇併�傚紑鍙戜汉鍛樼‘璁ゆ祴璇曢�氳繃鍚庯紝鍐嶇户缁�涓嬩竴鍔熻兘鐨勯�傞厤銆備互姝ょ被鎺�锛岀‘淇濇瘡涓�姝ラ兘鏈変汉宸ラ獙璇佸叧鍙ｃ�?
+鍏蜂綋娴佺▼锛?
+1. 鍒涘缓 Usalign-beta 鐩�褰�
+   灏?USalign-master 鐩�褰曚笅鐨勬墍鏈夋簮鐮佹枃浠讹紙.cpp, .h, Makefile 绛夛級澶嶅埗鍒?Usalign-beta 鐩�褰曘�?   鍚庣画鎵�鏈変唬鐮佷慨鏀瑰潎鍦?Usalign-beta 鐩�褰曚腑杩涜�岋紝淇濇寔鍘?USalign-master 鐩�褰曚笉鍙樸�?
+2. 涓夐樁娈甸�掕繘寮�鍙?   绗�涓�闃舵�碉�?dir1 + -mm 1锛夛細
+     a. 缂栫爜瀹屾垚 鈫?缂栬瘧閫氳繃 鈫?閫氱煡寮�鍙戜汉鍛樻墜鍔ㄦ祴璇?     b. 寮�鍙戜汉鍛樻寜楠岃瘉鐭╅樀锛堟�ラ�?1.5锛夋墽琛屾墜鍔ㄦ祴璇?     c. 娴嬭瘯閫氳繃 鈫?灏嗘湰娆′慨鏀规彁浜ゅ埌 Usalign-beta 鈫?杩涘叆绗�浜岄樁娈�
 
-   第二阶段�?dir2 + -mm 1）：
-     a. 编码完成 �?编译通过 �?通知开发人员手动测�?     b. 开发人员按验证矩阵（步�?2.5）执行手动测试（�?-dir1 回归�?     c. 测试通过 �?将本次修改提交到 Usalign-beta �?进入第三阶段
+   绗�浜岄樁娈碉�?dir2 + -mm 1锛夛細
+     a. 缂栫爜瀹屾垚 鈫?缂栬瘧閫氳繃 鈫?閫氱煡寮�鍙戜汉鍛樻墜鍔ㄦ祴璇?     b. 寮�鍙戜汉鍛樻寜楠岃瘉鐭╅樀锛堟�ラ�?2.5锛夋墽琛屾墜鍔ㄦ祴璇曪紙鍚?-dir1 鍥炲綊锛?     c. 娴嬭瘯閫氳繃 鈫?灏嗘湰娆′慨鏀规彁浜ゅ埌 Usalign-beta 鈫?杩涘叆绗�涓夐樁娈�
 
-   第三阶段�?dir + -mm 1）：
-     a. 编码完成 �?编译通过 �?通知开发人员手动测�?     b. 开发人员按验证矩阵（步�?3.5）执行手动测试（�?-dir1/-dir2 回归�?     c. 测试通过 �?将本次修改提交到 Usalign-beta �?全部功能适配完成
+   绗�涓夐樁娈碉�?dir + -mm 1锛夛細
+     a. 缂栫爜瀹屾垚 鈫?缂栬瘧閫氳繃 鈫?閫氱煡寮�鍙戜汉鍛樻墜鍔ㄦ祴璇?     b. 寮�鍙戜汉鍛樻寜楠岃瘉鐭╅樀锛堟�ラ�?3.5锛夋墽琛屾墜鍔ㄦ祴璇曪紙鍚?-dir1/-dir2 鍥炲綊锛?     c. 娴嬭瘯閫氳繃 鈫?灏嗘湰娆′慨鏀规彁浜ゅ埌 Usalign-beta 鈫?鍏ㄩ儴鍔熻兘閫傞厤瀹屾垚
 
-3. 每阶段交付物
-   - 修改后的源代码（�?Usalign-beta 目录中）
-   - 编译通过的可执行文件 USalign（或 USalign.exe�?   - 当前阶段的验证矩阵，供开发人员逐项核对
+3. 姣忛樁娈典氦浠樼墿
+   - 淇�鏀瑰悗鐨勬簮浠ｇ爜锛堝�?Usalign-beta 鐩�褰曚腑锛�
+   - 缂栬瘧閫氳繃鐨勫彲鎵ц�屾枃浠� USalign锛堟垨 USalign.exe锛?   - 褰撳墠闃舵�电殑楠岃瘉鐭╅樀锛屼緵寮�鍙戜汉鍛橀�愰」鏍稿��
 
-四、详细实施方案（三阶段递进�?
+鍥涖�佽�︾粏瀹炴柦鏂规�堬紙涓夐樁娈甸�掕繘锛?
 =============================
-第一阶段：实�?-dir1 + -mm 1
+绗�涓�闃舵�碉細瀹炵�?-dir1 + -mm 1
 =============================
 
-当前状态：-dir1 + -mm 1 未被拦截，但 MMalign 会将 chain1_list 中所有文件合并为一个巨型复合物，产生错误结果�?
-步骤 1.1：确认无需解除拦截
+褰撳墠鐘舵�侊細-dir1 + -mm 1 鏈�琚�鎷︽埅锛屼絾 MMalign 浼氬皢 chain1_list 涓�鎵�鏈夋枃浠跺悎骞朵负涓�涓�宸ㄥ瀷澶嶅悎鐗╋紝浜х敓閿欒��缁撴灉銆?
+姝ラ�� 1.1锛氱‘璁ゆ棤闇�瑙ｉ櫎鎷︽埅
 
-当前拦截检查（USalign.cpp:3459）仅针对 dir_opt�?    if (dir_opt.size() && (mm_opt==1||mm_opt==2))
+褰撳墠鎷︽埅妫�鏌ワ紙USalign.cpp:3459锛変粎閽堝�� dir_opt锛?    if (dir_opt.size() && (mm_opt==1||mm_opt==2))
         PrintErrorAndQuit("-mm 1 or 2 cannot be used with -dir");
--dir1 不受此检查影响，无需修改此处的拦截逻辑�?
-当前代码会走�?mm_opt==1 分支�?if (dirpair_opt.size()==0) 路径（USalign.cpp:3534），将整�?chain1_list 传给 MMalign �?合并为巨型复合物。这是需要修复的地方�?
-步骤 1.2：添加安全防�?
-�?USalign.cpp:3488 之后新增 -chainmap �?-dir1 的互斥检查：
+-dir1 涓嶅彈姝ゆ��鏌ュ奖鍝嶏紝鏃犻渶淇�鏀规�ゅ�勭殑鎷︽埅閫昏緫銆?
+褰撳墠浠ｇ爜浼氳蛋鍒?mm_opt==1 鍒嗘敮鐨?if (dirpair_opt.size()==0) 璺�寰勶紙USalign.cpp:3534锛夛紝灏嗘暣涓?chain1_list 浼犵粰 MMalign 鈫?鍚堝苟涓哄法鍨嬪�嶅悎鐗┿�傝繖鏄�闇�瑕佷慨澶嶇殑鍦版柟銆?
+姝ラ�� 1.2锛氭坊鍔犲畨鍏ㄩ槻绾?
+鍦?USalign.cpp:3488 涔嬪悗鏂板�� -chainmap 涓?-dir1 鐨勪簰鏂ユ��鏌ワ細
 
     if (chainmapfile.size() && mm_opt!=1)
         PrintErrorAndQuit("ERROR! -chainmap must be used with -mm 1");
-    // 新增
+    // 鏂板��
     if (chainmapfile.size() && dir1_opt.size())
         PrintErrorAndQuit("ERROR! -chainmap cannot be used with -dir1");
 
-步骤 1.3：在 mm_opt==1 分支中添�?-dir1 循环入口
+姝ラ�� 1.3锛氬湪 mm_opt==1 鍒嗘敮涓�娣诲�?-dir1 寰�鐜�鍏ュ彛
 
-�?USalign.cpp:3534-3536，于现有 if (dirpair_opt.size()==0) 之前插入 -dir1 分支入口�?
-当前结构�?    else if (mm_opt==1)
+鍦?USalign.cpp:3534-3536锛屼簬鐜版湁 if (dirpair_opt.size()==0) 涔嬪墠鎻掑叆 -dir1 鍒嗘敮鍏ュ彛銆?
+褰撳墠缁撴瀯锛?    else if (mm_opt==1)
     {
-        if (dirpair_opt.size()==0) MMalign(...)  // 原有单对路径
-        else { ... }                               // 原有 -dirpair 路径
+        if (dirpair_opt.size()==0) MMalign(...)  // 鍘熸湁鍗曞�硅矾寰�
+        else { ... }                               // 鍘熸湁 -dirpair 璺�寰�
     }
 
-修改为：
+淇�鏀逛负锛�
     else if (mm_opt==1)
     {
-        if (dir1_opt.size()>0) { ... }            // 新增 -dir1 路径
-        else if (dirpair_opt.size()==0) MMalign(...)  // 原有单对路径保持不变
-        else { ... }                                   // 原有 -dirpair 路径保持不变
+        if (dir1_opt.size()>0) { ... }            // 鏂板�� -dir1 璺�寰�
+        else if (dirpair_opt.size()==0) MMalign(...)  // 鍘熸湁鍗曞�硅矾寰勪繚鎸佷笉鍙�
+        else { ... }                                   // 鍘熸湁 -dirpair 璺�寰勪繚鎸佷笉鍙�
     }
 
-步骤 1.4：实�?-dir1 循环�?
+姝ラ�� 1.4锛氬疄鐜?-dir1 寰�鐜�浣?
     else if (dir1_opt.size()>0)
     {
-        // -dir1: 目录中每个复合物 vs target
+        // -dir1: 鐩�褰曚腑姣忎釜澶嶅悎鐗� vs target
         for (int ii=0; ii<chain1_list.size(); ii++)
         {
             xname = chain1_list[ii];
@@ -108,54 +108,54 @@ query -dir2 PDB/ list      [query.pdb]                              [PDB/a.pdb, 
         }
     }
 
-关键设计点：
-- xname = chain1_list[ii]：完整路径如 PDB/a.pdb，MMalign 内部�?xname.substr(dir1_opt.size()) �?a.pdb
-- yname = chain2_list[0]：裸文件名如 target.pdb，dir2_opt="" 不做剥离
-- single1/single2：单元素向量，parse_chain_list 只解析一个文�?�?不会合并多文�?
-步骤 1.5：验�?-dir1 + -mm 1
+鍏抽敭璁捐�＄偣锛�
+- xname = chain1_list[ii]锛氬畬鏁磋矾寰勫�� PDB/a.pdb锛孧Malign 鍐呴儴鐢?xname.substr(dir1_opt.size()) 鈫?a.pdb
+- yname = chain2_list[0]锛氳８鏂囦欢鍚嶅�� target.pdb锛宒ir2_opt="" 涓嶅仛鍓ョ��
+- single1/single2锛氬崟鍏冪礌鍚戦噺锛宲arse_chain_list 鍙�瑙ｆ瀽涓�涓�鏂囦�?鈫?涓嶄細鍚堝苟澶氭枃浠?
+姝ラ�� 1.5锛氶獙璇?-dir1 + -mm 1
 
-测试场景	        命令�?                                                        预期结果
-核心功能	        USalign -dir1 PDB list target.pdb -mm 1 -ter 0 -outfmt 2	        输出 N 行结果，chain1 文件名无 PDB/ 前缀
-精度一致�?        对比其中一对与手动 USalign PDB/A.pdb target.pdb -mm 1 -ter 0	    分数完全一�?单对回归	        USalign A.pdb B.pdb -mm 1 -ter 0	                                结果不变
--dirpair 回归	    USalign -dirpair pairlist -mm 1 -ter 0	                        结果不变
--chainmap 拦截	    USalign -dir1 PDB list target.pdb -mm 1 -chainmap map.txt	    报错退�?
+娴嬭瘯鍦烘櫙	        鍛戒护琛?                                                        棰勬湡缁撴灉
+鏍稿績鍔熻兘	        USalign -dir1 PDB list target.pdb -mm 1 -ter 0 -outfmt 2	        杈撳嚭 N 琛岀粨鏋滐紝chain1 鏂囦欢鍚嶆棤 PDB/ 鍓嶇紑
+绮惧害涓�鑷存�?        瀵规瘮鍏朵腑涓�瀵逛笌鎵嬪姩 USalign PDB/A.pdb target.pdb -mm 1 -ter 0	    鍒嗘暟瀹屽叏涓�鑷?鍗曞�瑰洖褰�	        USalign A.pdb B.pdb -mm 1 -ter 0	                                缁撴灉涓嶅彉
+-dirpair 鍥炲綊	    USalign -dirpair pairlist -mm 1 -ter 0	                        缁撴灉涓嶅彉
+-chainmap 鎷︽埅	    USalign -dir1 PDB list target.pdb -mm 1 -chainmap map.txt	    鎶ラ敊閫�鍑?
 
 =============================
-第二阶段：实�?-dir2 + -mm 1
+绗�浜岄樁娈碉細瀹炵�?-dir2 + -mm 1
 =============================
 
-当前状态：-dir2 + -mm 1 未被拦截，但 MMalign 会将 chain2_list 中所有文件合并为一个巨型复合物，产生错误结果�?
-步骤 2.1：确认无需解除拦截
+褰撳墠鐘舵�侊細-dir2 + -mm 1 鏈�琚�鎷︽埅锛屼絾 MMalign 浼氬皢 chain2_list 涓�鎵�鏈夋枃浠跺悎骞朵负涓�涓�宸ㄥ瀷澶嶅悎鐗╋紝浜х敓閿欒��缁撴灉銆?
+姝ラ�� 2.1锛氱‘璁ゆ棤闇�瑙ｉ櫎鎷︽埅
 
-同步�?1.1——当前拦截检查仅针对 dir_opt�?dir2 不受影响�?
-步骤 2.2：扩展安全防�?
-将步�?1.2 �?-chainmap 检查从�?dir1_opt 扩展�?dir1_opt||dir2_opt�?
+鍚屾�ラ�?1.1鈥斺�斿綋鍓嶆嫤鎴�妫�鏌ヤ粎閽堝�� dir_opt锛?dir2 涓嶅彈褰卞搷銆?
+姝ラ�� 2.2锛氭墿灞曞畨鍏ㄩ槻绾?
+灏嗘�ラ�?1.2 鐨?-chainmap 妫�鏌ヤ粠浠?dir1_opt 鎵╁睍涓?dir1_opt||dir2_opt锛?
     if (chainmapfile.size() && (dir1_opt.size()||dir2_opt.size()))
         PrintErrorAndQuit("ERROR! -chainmap cannot be used with -dir1 or -dir2");
 
-步骤 2.3：在 mm_opt==1 分支中添�?-dir2 循环入口
+姝ラ�� 2.3锛氬湪 mm_opt==1 鍒嗘敮涓�娣诲�?-dir2 寰�鐜�鍏ュ彛
 
-�?-dir1 分支之后、dirpair_opt.size()==0 之前插入 -dir2 分支�?
-当前结构�?    else if (mm_opt==1)
+鍦?-dir1 鍒嗘敮涔嬪悗銆乨irpair_opt.size()==0 涔嬪墠鎻掑叆 -dir2 鍒嗘敮銆?
+褰撳墠缁撴瀯锛?    else if (mm_opt==1)
     {
-        if (dir1_opt.size()>0) { ... }            // 第一阶段 -dir1
+        if (dir1_opt.size()>0) { ... }            // 绗�涓�闃舵�� -dir1
         else if (dirpair_opt.size()==0) MMalign(...)
         else { ... }
     }
 
-修改为：
+淇�鏀逛负锛�
     else if (mm_opt==1)
     {
-        if (dir1_opt.size()>0) { ... }            // 第一阶段 -dir1
-        else if (dir2_opt.size()>0) { ... }       // 新增 -dir2 路径
+        if (dir1_opt.size()>0) { ... }            // 绗�涓�闃舵�� -dir1
+        else if (dir2_opt.size()>0) { ... }       // 鏂板�� -dir2 璺�寰�
         else if (dirpair_opt.size()==0) MMalign(...)
         else { ... }
     }
 
-步骤 2.4：实�?-dir2 循环�?
+姝ラ�� 2.4锛氬疄鐜?-dir2 寰�鐜�浣?
     else if (dir2_opt.size()>0)
     {
-        // -dir2: query vs 目录中每个复合物
+        // -dir2: query vs 鐩�褰曚腑姣忎釜澶嶅悎鐗�
         for (int jj=0; jj<chain2_list.size(); jj++)
         {
             xname = chain1_list[0];
@@ -172,64 +172,64 @@ query -dir2 PDB/ list      [query.pdb]                              [PDB/a.pdb, 
         }
     }
 
-关键设计点：
-- xname = chain1_list[0]：裸文件名，dir1_opt="" 不做剥离
-- yname = chain2_list[jj]：完整路径如 PDB/a.pdb，MMalign 内部�?yname.substr(dir2_opt.size()) �?a.pdb
+鍏抽敭璁捐�＄偣锛�
+- xname = chain1_list[0]锛氳８鏂囦欢鍚嶏紝dir1_opt="" 涓嶅仛鍓ョ��
+- yname = chain2_list[jj]锛氬畬鏁磋矾寰勫�� PDB/a.pdb锛孧Malign 鍐呴儴鐢?yname.substr(dir2_opt.size()) 鈫?a.pdb
 
-步骤 2.5：验�?-dir2 + -mm 1
+姝ラ�� 2.5锛氶獙璇?-dir2 + -mm 1
 
-测试场景	        命令�?                                                        预期结果
-核心功能	        USalign query.pdb -dir2 PDB list -mm 1 -ter 0 -outfmt 2	        输出 N 行结果，chain2 文件名无 PDB/ 前缀
-精度一致�?        对比其中一对与手动 USalign query.pdb PDB/A.pdb -mm 1 -ter 0	    分数完全一�?-dir1 回归	        USalign -dir1 PDB list target.pdb -mm 1 -ter 0 -outfmt 2	    功能不受影响
-单对回归	        USalign A.pdb B.pdb -mm 1 -ter 0	                                结果不变
+娴嬭瘯鍦烘櫙	        鍛戒护琛?                                                        棰勬湡缁撴灉
+鏍稿績鍔熻兘	        USalign query.pdb -dir2 PDB list -mm 1 -ter 0 -outfmt 2	        杈撳嚭 N 琛岀粨鏋滐紝chain2 鏂囦欢鍚嶆棤 PDB/ 鍓嶇紑
+绮惧害涓�鑷存�?        瀵规瘮鍏朵腑涓�瀵逛笌鎵嬪姩 USalign query.pdb PDB/A.pdb -mm 1 -ter 0	    鍒嗘暟瀹屽叏涓�鑷?-dir1 鍥炲綊	        USalign -dir1 PDB list target.pdb -mm 1 -ter 0 -outfmt 2	    鍔熻兘涓嶅彈褰卞搷
+鍗曞�瑰洖褰�	        USalign A.pdb B.pdb -mm 1 -ter 0	                                缁撴灉涓嶅彉
 
 
 =============================
-第三阶段：实�?-dir + -mm 1
+绗�涓夐樁娈碉細瀹炵�?-dir + -mm 1
 =============================
 
-当前状态：-dir + -mm 1 被硬编码拦截（USalign.cpp:3459），无法执行�?
-步骤 3.1：解除错误拦�?
-修改 USalign.cpp:3459�?
-    // 修改前：
+褰撳墠鐘舵�侊細-dir + -mm 1 琚�纭�缂栫爜鎷︽埅锛圲Salign.cpp:3459锛夛紝鏃犳硶鎵ц�屻�?
+姝ラ�� 3.1锛氳В闄ら敊璇�鎷︽�?
+淇�鏀� USalign.cpp:3459锛?
+    // 淇�鏀瑰墠锛�
     if (dir_opt.size() && (mm_opt==1||mm_opt==2))
         PrintErrorAndQuit("-mm 1 or 2 cannot be used with -dir");
 
-    // 修改后：仅保�?-mm 2 的限制（MMdock 将全目录合并为一个受体无意义�?    if (dir_opt.size() && mm_opt==2)
+    // 淇�鏀瑰悗锛氫粎淇濈�?-mm 2 鐨勯檺鍒讹紙MMdock 灏嗗叏鐩�褰曞悎骞朵负涓�涓�鍙椾綋鏃犳剰涔夛�?    if (dir_opt.size() && mm_opt==2)
         PrintErrorAndQuit("-mm 2 cannot be used with -dir");
 
-步骤 3.2：扩展安全防�?
-�?-chainmap 检查扩展为同时覆盖 dir_opt�?
+姝ラ�� 3.2锛氭墿灞曞畨鍏ㄩ槻绾?
+灏?-chainmap 妫�鏌ユ墿灞曚负鍚屾椂瑕嗙洊 dir_opt锛?
     if (chainmapfile.size() && (dir_opt.size()||dir1_opt.size()||dir2_opt.size()))
         PrintErrorAndQuit("ERROR! -chainmap cannot be used with -dir, -dir1 or -dir2");
 
-步骤 3.3：在 mm_opt==1 分支中添�?-dir 循环入口
+姝ラ�� 3.3锛氬湪 mm_opt==1 鍒嗘敮涓�娣诲�?-dir 寰�鐜�鍏ュ彛
 
-�?-dir1 �?-dir2 分支之前、mm_opt==1 块的开头插�?-dir 分支�?
-注意�?dir 必须�?-dir1/-dir2 之前判断，虽�?-dir �?-dir1/-dir2 互斥（已有检�?USalign.cpp:3387-3388），
-但为保持代码清晰�?dir（互斥的目录模式组合不存在时 dir1_opt/dir2_opt 均为空）放在最前面�?
-当前结构�?    else if (mm_opt==1)
+鍦?-dir1 鍜?-dir2 鍒嗘敮涔嬪墠銆乵m_opt==1 鍧楃殑寮�澶存彃鍏?-dir 鍒嗘敮銆?
+娉ㄦ剰锛?dir 蹇呴』鍦?-dir1/-dir2 涔嬪墠鍒ゆ柇锛岃櫧鐒?-dir 涓?-dir1/-dir2 浜掓枼锛堝凡鏈夋��鏌?USalign.cpp:3387-3388锛夛紝
+浣嗕负淇濇寔浠ｇ爜娓呮櫚锛?dir锛堜簰鏂ョ殑鐩�褰曟ā寮忕粍鍚堜笉瀛樺湪鏃� dir1_opt/dir2_opt 鍧囦负绌猴級鏀惧湪鏈�鍓嶉潰銆?
+褰撳墠缁撴瀯锛?    else if (mm_opt==1)
     {
-        if (dir1_opt.size()>0) { ... }            // 第一阶段
-        else if (dir2_opt.size()>0) { ... }       // 第二阶段
+        if (dir1_opt.size()>0) { ... }            // 绗�涓�闃舵��
+        else if (dir2_opt.size()>0) { ... }       // 绗�浜岄樁娈�
         else if (dirpair_opt.size()==0) MMalign(...)
         else { ... }
     }
 
-修改为：
+淇�鏀逛负锛�
     else if (mm_opt==1)
     {
-        if (dir_opt.size()>0) { ... }             // 新增 -dir 路径（必须放在最前）
-        else if (dir1_opt.size()>0) { ... }       // 第一阶段
-        else if (dir2_opt.size()>0) { ... }       // 第二阶段
+        if (dir_opt.size()>0) { ... }             // 鏂板�� -dir 璺�寰勶紙蹇呴』鏀惧湪鏈�鍓嶏級
+        else if (dir1_opt.size()>0) { ... }       // 绗�涓�闃舵��
+        else if (dir2_opt.size()>0) { ... }       // 绗�浜岄樁娈�
         else if (dirpair_opt.size()==0) MMalign(...)
         else { ... }
     }
 
-步骤 3.4：实�?-dir 循环�?
+姝ラ�� 3.4锛氬疄鐜?-dir 寰�鐜�浣?
     if (dir_opt.size()>0)
     {
-        // -dir: 寡聚体全对全比对（上三角遍历，避免自比对和重复比对）
+        // -dir: 瀵¤仛浣撳叏瀵瑰叏姣斿�癸紙涓婁笁瑙掗亶鍘嗭紝閬垮厤鑷�姣斿�瑰拰閲嶅�嶆瘮瀵癸級
         for (int ii=0; ii<chain1_list.size(); ii++)
         {
             for (int jj=ii+1; jj<chain1_list.size(); jj++)
@@ -249,28 +249,28 @@ query -dir2 PDB/ list      [query.pdb]                              [PDB/a.pdb, 
         }
     }
 
-关键设计点：
-- 二重循环 jj=ii+1：上三角遍历，避免自比对 (ii=jj) 和重复比�?(A vs B �?B vs A)
-- dir_opt, dir_opt：双方路径都有相同前缀，MMalign 内部 substr 自动剥离
+鍏抽敭璁捐�＄偣锛�
+- 浜岄噸寰�鐜� jj=ii+1锛氫笂涓夎�掗亶鍘嗭紝閬垮厤鑷�姣斿�� (ii=jj) 鍜岄噸澶嶆瘮瀵?(A vs B 鍜?B vs A)
+- dir_opt, dir_opt锛氬弻鏂硅矾寰勯兘鏈夌浉鍚屽墠缂�锛孧Malign 鍐呴儴 substr 鑷�鍔ㄥ墺绂�
 
-步骤 3.5：验�?-dir + -mm 1
+姝ラ�� 3.5锛氶獙璇?-dir + -mm 1
 
-测试场景	        命令�?                                                        预期结果
-核心功能	        USalign -dir PDB list -suffix .pdb -mm 1 -ter 0 -outfmt 2	    输出 N*(N-1)/2 行，文件名无 PDB/ 前缀
-精度一致�?        对比其中一对与手动 USalign PDB/A.pdb PDB/B.pdb -mm 1 -ter 0	    分数完全一�?-mm 2 拦截	        USalign -dir PDB list -mm 2	                                报错退�?-chainmap 拦截	    USalign -dir PDB list -mm 1 -chainmap map.txt	                报错退�?-o 拦截	            USalign -dir PDB list -mm 1 -o sup.pdb	                    报错退出（已有检查）
--dir1 回归	        USalign -dir1 PDB list target.pdb -mm 1 -ter 0 -outfmt 2	    功能不受影响
--dir2 回归	        USalign query.pdb -dir2 PDB list -mm 1 -ter 0 -outfmt 2	    功能不受影响
-单体 -dir 回归	    USalign -dir PDB list -ter 0 -outfmt 2	                    结果与修改前一�?-dirpair 回归	    USalign -dirpair pairlist -mm 1 -ter 0	                    结果不变
-单对回归	        USalign A.pdb B.pdb -mm 1 -ter 0	                            结果不变
+娴嬭瘯鍦烘櫙	        鍛戒护琛?                                                        棰勬湡缁撴灉
+鏍稿績鍔熻兘	        USalign -dir PDB list -suffix .pdb -mm 1 -ter 0 -outfmt 2	    杈撳嚭 N*(N-1)/2 琛岋紝鏂囦欢鍚嶆棤 PDB/ 鍓嶇紑
+绮惧害涓�鑷存�?        瀵规瘮鍏朵腑涓�瀵逛笌鎵嬪姩 USalign PDB/A.pdb PDB/B.pdb -mm 1 -ter 0	    鍒嗘暟瀹屽叏涓�鑷?-mm 2 鎷︽埅	        USalign -dir PDB list -mm 2	                                鎶ラ敊閫�鍑?-chainmap 鎷︽埅	    USalign -dir PDB list -mm 1 -chainmap map.txt	                鎶ラ敊閫�鍑?-o 鎷︽埅	            USalign -dir PDB list -mm 1 -o sup.pdb	                    鎶ラ敊閫�鍑猴紙宸叉湁妫�鏌ワ級
+-dir1 鍥炲綊	        USalign -dir1 PDB list target.pdb -mm 1 -ter 0 -outfmt 2	    鍔熻兘涓嶅彈褰卞搷
+-dir2 鍥炲綊	        USalign query.pdb -dir2 PDB list -mm 1 -ter 0 -outfmt 2	    鍔熻兘涓嶅彈褰卞搷
+鍗曚綋 -dir 鍥炲綊	    USalign -dir PDB list -ter 0 -outfmt 2	                    缁撴灉涓庝慨鏀瑰墠涓�鑷?-dirpair 鍥炲綊	    USalign -dirpair pairlist -mm 1 -ter 0	                    缁撴灉涓嶅彉
+鍗曞�瑰洖褰�	        USalign A.pdb B.pdb -mm 1 -ter 0	                            缁撴灉涓嶅彉
 
 
-五、最�?mm_opt==1 分支完整结构
+浜斻�佹渶缁?mm_opt==1 鍒嗘敮瀹屾暣缁撴瀯
 
-三个阶段全部完成后，USalign.cpp �?else if (mm_opt==1) 块结构如下：
+涓変釜闃舵�靛叏閮ㄥ畬鎴愬悗锛孶Salign.cpp 涓?else if (mm_opt==1) 鍧楃粨鏋勫�備笅锛�
 
     else if (mm_opt==1)
     {
-        if (dir_opt.size()>0)           // 第三阶段�?dir（必须在 -dir1/-dir2 之前�?        {
+        if (dir_opt.size()>0)           // 绗�涓夐樁娈碉�?dir锛堝繀椤诲湪 -dir1/-dir2 涔嬪墠锛?        {
             for (int ii=0; ii<chain1_list.size(); ii++)
                 for (int jj=ii+1; jj<chain1_list.size(); jj++)
                 {
@@ -281,7 +281,7 @@ query -dir2 PDB/ list      [query.pdb]                              [PDB/a.pdb, 
                     MMalign(xname, yname, ..., dir_opt, dir_opt, ..., single1, single2, ...);
                 }
         }
-        else if (dir1_opt.size()>0)     // 第一阶段�?dir1
+        else if (dir1_opt.size()>0)     // 绗�涓�闃舵�碉�?dir1
         {
             for (int ii=0; ii<chain1_list.size(); ii++)
             {
@@ -292,7 +292,7 @@ query -dir2 PDB/ list      [query.pdb]                              [PDB/a.pdb, 
                 MMalign(xname, yname, ..., dir1_opt, "", ..., single1, single2, ...);
             }
         }
-        else if (dir2_opt.size()>0)     // 第二阶段�?dir2
+        else if (dir2_opt.size()>0)     // 绗�浜岄樁娈碉�?dir2
         {
             for (int jj=0; jj<chain2_list.size(); jj++)
             {
@@ -303,24 +303,24 @@ query -dir2 PDB/ list      [query.pdb]                              [PDB/a.pdb, 
                 MMalign(xname, yname, ..., "", dir2_opt, ..., single1, single2, ...);
             }
         }
-        else if (dirpair_opt.size()==0) // 原有单对逻辑不变
+        else if (dirpair_opt.size()==0) // 鍘熸湁鍗曞�归�昏緫涓嶅彉
         {
             MMalign(xname, yname, ..., dir1_opt, dir2_opt, ..., chain1_list, chain2_list, ...);
         }
-        else                            // 原有 -dirpair 逻辑不变
+        else                            // 鍘熸湁 -dirpair 閫昏緫涓嶅彉
         {
             for (i=0;i<chain1_list.size();i++) { ... }
         }
         chainmapfile.clear();
     }
 
-六、改动的安全防线汇�?
-阶段  位置              修改内容
-1.2   USalign.cpp:3488  新增 -chainmap �?-dir1 互斥检�?2.2   USalign.cpp:3488  将上述检查扩展为 dir1_opt||dir2_opt
-3.1   USalign.cpp:3459  解除 -dir + -mm 1 拦截，仅保留 -mm 2 拦截
-3.2   USalign.cpp:3488  将上述检查扩展为 dir_opt||dir1_opt||dir2_opt
+鍏�銆佹敼鍔ㄧ殑瀹夊叏闃茬嚎姹囨�?
+闃舵��  浣嶇疆              淇�鏀瑰唴瀹�
+1.2   USalign.cpp:3488  鏂板�� -chainmap 涓?-dir1 浜掓枼妫�鏌?2.2   USalign.cpp:3488  灏嗕笂杩版��鏌ユ墿灞曚负 dir1_opt||dir2_opt
+3.1   USalign.cpp:3459  瑙ｉ櫎 -dir + -mm 1 鎷︽埅锛屼粎淇濈暀 -mm 2 鎷︽埅
+3.2   USalign.cpp:3488  灏嗕笂杩版��鏌ユ墿灞曚负 dir_opt||dir1_opt||dir2_opt
 
-七、已知限�?
-1. 错误处理：MMalign 内部使用 PrintErrorAndQuit（exit(1)），单个损坏文件会终止整个批量任务�?   本次不改�?MMalign 内部错误处理（影响面太大）。用户应确保目录中文件格式正确�?
-2. 性能：无文件解析缓存，每个文件在每对比对中都被重新解析。对小目录（N<30）影响可忽略�?
-3. -full 选项：在目录模式下会产生极其冗长的输出（每对 × 每条链的详细比对），不建议组合使用�
+涓冦�佸凡鐭ラ檺鍒?
+1. 閿欒��澶勭悊锛歁Malign 鍐呴儴浣跨敤 PrintErrorAndQuit锛坋xit(1)锛夛紝鍗曚釜鎹熷潖鏂囦欢浼氱粓姝㈡暣涓�鎵归噺浠诲姟銆?   鏈�娆′笉鏀瑰�?MMalign 鍐呴儴閿欒��澶勭悊锛堝奖鍝嶉潰澶�澶э級銆傜敤鎴峰簲纭�淇濈洰褰曚腑鏂囦欢鏍煎紡姝ｇ‘銆?
+2. 鎬ц兘锛氭棤鏂囦欢瑙ｆ瀽缂撳瓨锛屾瘡涓�鏂囦欢鍦ㄦ瘡瀵规瘮瀵逛腑閮借��閲嶆柊瑙ｆ瀽銆傚�瑰皬鐩�褰曪紙N<30锛夊奖鍝嶅彲蹇界暐銆?
+3. -full 閫夐」锛氬湪鐩�褰曟ā寮忎笅浼氫骇鐢熸瀬鍏跺啑闀跨殑杈撳嚭锛堟瘡瀵� 脳 姣忔潯閾剧殑璇︾粏姣斿�癸級锛屼笉寤鸿��缁勫悎浣跨敤銆

@@ -18,12 +18,26 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 DATA_DIR = SCRIPT_DIR / "data"
 BASELINE = SCRIPT_DIR / "baseline"
-SRC = SCRIPT_DIR / ".." / ".." / ".." / "USalign" / "USalign.cpp"
+USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
+SRC = USALIGN_DIR / "USalign.cpp"
 EXE = "USalign_orig.exe"
 
 
+def current_branch():
+    result = subprocess.run(["git", "branch", "--show-current"], cwd=str(USALIGN_DIR), capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to get current branch:\n{result.stderr}"); sys.exit(1)
+    return result.stdout.strip()
+
+
+def checkout(branch):
+    result = subprocess.run(["git", "checkout", branch], cwd=str(USALIGN_DIR), capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to checkout {branch}:\n{result.stderr}"); sys.exit(1)
+
+
 def compile():
-    print("Compiling original US-align...")
+    print("Compiling original US-align from master...")
     if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-o", EXE, str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
@@ -66,5 +80,14 @@ def run_baseline():
 
 
 if __name__ == "__main__":
-    compile()
-    run_baseline()
+    original_branch = current_branch()
+    try:
+        if original_branch != "master":
+            print(f"Switching USalign from {original_branch} to master for functional baseline...")
+            checkout("master")
+        compile()
+        run_baseline()
+    finally:
+        if original_branch and original_branch != "master":
+            print(f"Restoring USalign branch to {original_branch}...")
+            checkout(original_branch)
