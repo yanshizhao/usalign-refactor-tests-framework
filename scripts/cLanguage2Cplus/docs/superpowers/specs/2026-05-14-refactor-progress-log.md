@@ -1337,7 +1337,48 @@ usalign_modify/                              # 主仓库 (main, 已 push)
 | 头文件 for 循环变量内联 | ~200 处 | P3-2 跳过：TMalign/SOIalign/flexalign/MMalign 算法核心，改动风险高 |
 | MMalign.h C89 集中声明 | 61 处 | 纯外观，无编译影响 |
 | Kabsch.h 循环变量内联 | 15 处 | 永久跳过：337行密集SVD，19个变量交叉复用，风险>收益 |
-| se_main/NWalign_main 方向翻转 | — | 永久取消：问题15栈溢出(snprintf栈帧布局差异)，.c_str()为永久方案 |
+| se_main/NWalign_main 方向翻转 | — | ✅ 2026-05-25 se_main 已完成（问题15根因确认，见下），NWalign_main 同理可做 |
+| ~~se_main 方向翻转永久取消~~ | — | 2026-05-25 实验验证后推翻原结论，见下方"问题 15 终局" |
 | `/* */` → `//` | ~20 处 | 均为多行文档注释，保留 |
 | qTMclust.cpp seq_vec 类型链 | — | P2：独立程序已有问题，非本次引入 |
 | xyz_sfetch.cpp safe_stoi 未声明 | — | P3：独立程序已有问题，非本次引入 |
+
+---
+
+## 2026-05-25 问题 15 终局：方向翻转实验 + 根因修正
+
+### 背景
+
+此前认为 `se_main` 的方向翻转（string 变真实现、char* 变桥接）会因栈帧布局问题导致崩溃，标记为"永久取消"，`.c_str()` 为永久方案。
+
+### 实验
+
+对 `se.h` 进行完整的方向翻转测试：
+
+**阶段 1 — 翻转 + 保留 char* 桥接**：
+- 238 行真实现签名 `const char *seqx, const char *seqy` → `const std::string &seqx, const std::string &seqy`
+- 函数体零改动（仅用 `operator[]` 读取，语义等价）
+- 新增 char* 反向桥接：`std::string sx(seqx)` → 调 string 实现
+- 8 处调用点去除 `.c_str()` 绕过
+- **结果**：✅ 编译通过，msta_rna 不崩溃，14 用例全量回归 PASS
+
+**阶段 2 — 删除 char* 桥接**：
+- 全项目扫描：零 char* 调用者，反向桥接为死代码
+- 删除反向桥接 + 前置声明，se.h 精简为唯一重载
+- **结果**：✅ 编译通过，等待用户手动测试
+
+### 根因修正
+
+**之前的推测（错误）**：`const std::string&` 参数类型改变栈帧布局 → 被推翻。真实现直接用 `const std::string&` 在深层嵌套中不崩。
+
+**真正的根因**：M-1 阶段新增的**那层正向桥接**本身——`const std::string&` 跨栈帧引用 + `.c_str()` 在桥接帧内求值 + 再次调 char* 版的三层嵌套，在 mTMalign 深层嵌套中出了问题。不是参数类型的问题，是那一层多余的函数调用帧的问题。
+
+### 最终方案
+
+- 删除全部桥接：正向桥接（根因）+ 反向桥接（全项目无 char* 调用者，死代码）
+- se.h 精简为唯一重载：`const std::string &seqx, const std::string &seqy`
+- 修改文件：`se.h`（主要）、`MMalign.h`（5 处）、`USalign.cpp`（3 处）
+
+### 同样适用
+
+NWalign_main 当前仍有相同的正向桥接模式，可以应用相同的精简方案。
