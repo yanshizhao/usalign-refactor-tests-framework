@@ -1189,3 +1189,155 @@ c0534bd refactor(S6): MMalign.h MMalign_search secx/secy char* → std::string
 | 2 | ~~L1-6 FILE*→ifstream~~ | ✅ 已在 M-1 完成（全项目应用代码已无 FILE*） |
 | 3 | 独立程序验证 | HwRMSD + MMalign（S5 stash）+ TMscore | 重构完成后手动测试 |
 | 4 | ~~L1-10/L1-12/Kabsch.h 收尾~~ | ✅ 2026-05-20 完成/永久跳过 |
+
+---
+
+## 2026-05-25 项目终态快照
+
+### 一、项目目录层级图
+
+```
+usalign_modify/                              # 主仓库 (main, 已 push)
+│
+├── USalign/                                # 源码仓库 (USalign-beta, 领先 master 51 commits, 已 push origin)
+│   ├── USalign.cpp                         # 主程序入口 (157KB, ~3600行) — main() + TMalign/MMalign/SOIalign/flexalign/mTMalign/MMdock
+│   │
+│   ├── 核心算法头文件 (.h)                 # 纯头文件模板库
+│   │   ├── TMalign.h                       #   核心单体比对引擎 (142KB, ~3800行) — TMalign_main/score_fun8/DP_iter/初始策略
+│   │   ├── MMalign.h                       #   寡聚体比对 (118KB, ~3000行) — MMalign_search/final/iter/dimer + 贪心链分配
+│   │   ├── flexalign.h                     #   柔性铰链比对 (71KB, ~2000行) — flexalign_main
+│   │   ├── SOIalign.h                      #   序列顺序无关比对 (31KB) — SOIalign_main + soi_egs
+│   │   ├── TMscore.h                       #   纯 TM-score/GDT/MaxSub 计算 (33KB) — TMscore8_search
+│   │   ├── NWalign.h                       #   Gotoh 序列比对 (22KB) — NWalign_main + calculate_score_gotoh
+│   │   ├── NW.h                            #   简化 NW 动态规划 (11KB) — NWDP_TM / NWDP_SE (gap_open=gap_extend)
+│   │   ├── Kabsch.h                        #   Kabsch 最优旋转矩阵 (11KB)
+│   │   ├── se.h                            #   无叠加结构比对 (7KB) — se_main
+│   │   ├── HwRMSD.h                        #   加权 RMSD (8KB) — HwRMSD_main
+│   │   ├── basic_fun.h                     #   基础工具库 (38KB, ~1050行) — read_PDB/get_PDB_lines/do_rotation
+│   │   ├── BLOSUM.h                        #   BLOSUM62/80/45 + BLASTN 替换矩阵 (52KB)
+│   │   ├── param_set.h                     #   d0 归一化参数公式 (3KB)
+│   │   └── pstream.h                       #   第三方库 — gzip/bzip2 透明读取 (73KB, 未改造)
+│   │
+│   ├── 独立程序入口 (.cpp)                 # 各自包含对应 .h 头文件独立编译
+│   │   ├── TMalign.cpp                     #   独立单体比对
+│   │   ├── TMscore.cpp                     #   独立 TM-score 计算
+│   │   ├── MMalign.cpp                     #   独立寡聚体比对
+│   │   ├── NWalign.cpp                     #   独立序列比对
+│   │   ├── se.cpp                          #   独立结构比对提取
+│   │   ├── HwRMSD.cpp                      #   独立加权 RMSD
+│   │   ├── qTMclust.cpp                    #   准 TM-score 聚类 (32KB)
+│   │   ├── pdb2ss.cpp                      #   PDB → 二级结构
+│   │   ├── pdb2fasta.cpp                   #   PDB → FASTA
+│   │   ├── pdb2xyz.cpp                     #   PDB → xyz 格式
+│   │   ├── cif2pdb.cpp                     #   mmCIF → PDB (19KB)
+│   │   ├── pdbAtomName.cpp                 #   标准化原子名称
+│   │   ├── addChainID.cpp                  #   添加链 ID
+│   │   ├── biounitasym.cpp                 #   生物单元 ↔ 不对称单元
+│   │   └── xyz_sfetch.cpp                  #   xyz 数据库提取
+│   │
+│   ├── __init__.py                         # PyMOL 插件 (usalign / usalign_msta 命令)
+│   ├── Makefile / Dockerfile / LICENSE / readme.txt
+│   └── align.txt / PDB1.pdb / PDB2.pdb     # 示例输入文件
+│
+└── usalign-refactor-tests-framework/       # 测试框架仓库 (main, 已 push origin)
+    │
+    └── scripts/
+        │
+        ├── cLanguage2Cplus/                # ★ 主回归测试框架
+        │   ├── CLAUDE.md                   #   框架说明 (架构/约定/命令)
+        │   │
+        │   ├── 测试脚本 (Python)
+        │   │   ├── create_baseline.py      #   编译原始版 USalign.cpp → 生成 baseline/
+        │   │   ├── run_regression.py       #   编译修改版 USalign.cpp → 逐字节比对 14 用例
+        │   │   ├── create_perf_baseline.py #   编译原始版 → 生成 perf_baseline/
+        │   │   ├── run_perf_test.py        #   编译修改版 → 5次取平均, <20% PASS
+        │   │   ├── build_Small_DB.py       #   从 PDB 集合构建 smallDB
+        │   │   └── find_pdb_length.py      #   辅助工具
+        │   │
+        │   ├── 测试用例定义 (纯文本)
+        │   │   ├── testcases_functional.txt    #   14 用例: 
+                                                            standard/multichain/oligomer/circular/fully_non_seq/
+                                                            semi_non_seq/superposed/tmscore_resid/tmscore_seqalign/
+                                                            complex_chainid/complex_chainmap/msta_rna/all_vs_all/database_search
+        │   │   └── testcases_performance.txt   #   4 用例: perf_fast1/perf_fast2/perf_msta_rna/perf_database_search
+        │   │
+        │   ├── baseline/                   #   原始版基线 (14 .out + sup.pdb)
+        │   ├── current/                    #   修改版当前输出 (运行时重建)
+        │   ├── diffs/                      #   差异文件 (7 .diff)
+        │   ├── perf_baseline/              #   性能基线 (baseline.csv)
+        │   ├── perf_current/               #   当前性能 (performance.csv)
+        │   │
+        │   ├── data/                       # ★ 测试数据
+        │   │   ├── *.pdb + *.pdb1          #   单体/多链结构 (15个)
+        │   │   ├── help/                   #   TM-score引导测试 (model/native/complex x2)
+        │   │   ├── MSTATest/               #   RNA多结构比对 (12 .pdb + list.txt)
+        │   │   └── smallDB/                #   数据库搜索子集 (100 .pdb + list.txt)
+        │   │
+        │   ├── standalone/                 # ★ 4 个独立程序子测试框架 (已验证 20/20 PASS)
+        │   │   ├── tmscore/                #   TMscore: testcases.txt + create_baseline.py + run_test.py (6用例)
+        │   │   ├── hwrmsd/                 #   HwRMSD: testcases.txt + create_baseline.py + run_test.py (5用例)
+        │   │   ├── mmalign/                #   MMalign: testcases.txt + create_baseline.py + run_test.py (4用例)
+        │   │   └── pdb2ss/                 #   pdb2ss: testcases.txt + create_baseline.py + run_test.py (2用例)
+        │   │
+        │   └── docs/superpowers/specs/     # ★ 项目文档
+        │       ├── 2026-05-12-usalign-cpp-refactor-design.md
+        │       │                            #   重构总体方案: 22类C→C++映射表 + 4层文件拆分 + 独立里程碑
+        │       ├── 2026-05-14-refactor-progress-log.md
+        │       │                            #   重构详细进度: 逐日逐步记录, 24个问题发现与修复, 51个commit链路 (本文件)
+        │       ├── 2026-05-21-refactor-final-summary.md
+        │       │                            #   最终总结: 完成状态表 + 剩余工作 + 已验证测试结果
+        │       └── 2026-05-21-usalign-l2h-pointer-to-container-design.md
+        │                                    #   L2-h 二级指针方案: ~347处, 7类容器类型, ~38步, 6阶段
+        │
+        └── mm1/                            # MMalign 独立功能测试 (已恢复)
+            ├── CLAUDE.md / IMPLEMENTATION_PLAN.txt / WORK_LOG.txt
+            ├── dir_mm1_test.py             #   -dir 模式: 全对全比对测试
+            ├── dir1_mm1_test.py            #   -dir1 模式: 单侧搜索测试
+            ├── dir2_mm1_test.py            #   -dir2 模式: 另一侧搜索测试
+            ├── *_generate_baseline.py      #   对应基线生成脚本
+            ├── *_test_cases.txt            #   测试用例定义
+            ├── *_feature_cases.txt         #   功能特性用例
+            ├── dirbaseline/ / dir1baseline/ / dir2baseline/   # 基线输出
+            └── data/MSTATest/              #   测试数据 (3 PDB + list)
+```
+
+### 二、数据统计
+
+#### ✅ 已完成
+
+| 维度 | 数值 | 详情 |
+|------|------|------|
+| C→C++ 映射类别完成 | **16 类** | strcmp→operator==, atoi/atof→safe, strlen→.size(), strcpy→string, char*→string&, NULL→nullptr, C强转→static_cast, C头文件→C++头文件, #define MAX→std::max, FILE*→ifstream, clock→std::clock, #define守卫→#pragma once, VLA→vector, (char*)强转清理, 逗号声明拆分, C89集中声明→随用随声明 |
+| 已取消映射类别 | **2 类** | printf/fprintf 格式化(P-3取消), sprintf(P-3取消) |
+| 改造源文件 | **27 个** | 15 `.h` + 12 `.cpp`（仅 pstream.h 三方库未动） |
+| USalign-beta commits | **51** | 领先 master，已 push origin/USalign-beta |
+| 独立里程碑完成 | **4 个** | M: char*→string+FILE*→ifstream、S: secx/secy迁移(~45处)、P-2: 纯文本printf→cout、VLA全局清零 |
+| 功能回归测试用例 | **34 个** | 主回归 14 + 独立程序 20（TMscore 6 / HwRMSD 5 / MMalign 4 / pdb2ss 2） |
+| 性能回归测试用例 | **4 个** | perf_fast1/2, perf_msta_rna, perf_database_search（各5次取平均） |
+| 测试框架 Python 脚本 | **13 个** | 主框架 6 + 独立程序 4×2 + mm1 3×1（基线+测试各有） |
+| 独立程序验证结果 | **20/20 PASS** | TMscore(6) + HwRMSD(5) + MMalign(4) + pdb2ss(2) 全部通过 |
+| mm1 子框架 | **3 模式** | -dir / -dir1 / -dir2 各有基线 + 测试脚本 + 测试用例 |
+| 核心设计文档 | **4 份** | 重构方案(743行) + 进度日志(1192行) + 最终总结(198行) + L2-h方案(397行) |
+| 重构中修复的问题 | **24 个** | P0 5个 + P1 5个 + P2 8个 + P3 6个 |
+| Git 仓库 | **2 个** | 主仓库(main,已push) + USalign(USalign-beta,已push) |
+
+#### ⏳ 剩余工作
+
+| 事项 | 规模 | 详情 |
+|------|------|------|
+| USalign-beta → master 合并 | **1 项** | 51 commits，需选策略（squash / merge / rebase） |
+| L2-h: 二级指针 → C++ 容器 | **~38 步** | ~347处 NewArray/DeleteArray，7类容器类型(Coords/DPMatrix/PathMat/IntMat/Rotation/Bond2)，6阶段，方案已制定 |
+
+#### ❌ 明确不做
+
+| 事项 | 数量 | 原因 |
+|------|------|------|
+| printf/fprintf 格式化 | 106 处 | P-3 已取消：snprintf+cout 风格收益低，逐字节对齐调试成本高 |
+| sprintf | — | P-3 已取消：同上 |
+| 头文件 for 循环变量内联 | ~200 处 | P3-2 跳过：TMalign/SOIalign/flexalign/MMalign 算法核心，改动风险高 |
+| MMalign.h C89 集中声明 | 61 处 | 纯外观，无编译影响 |
+| Kabsch.h 循环变量内联 | 15 处 | 永久跳过：337行密集SVD，19个变量交叉复用，风险>收益 |
+| se_main/NWalign_main 方向翻转 | — | 永久取消：问题15栈溢出(snprintf栈帧布局差异)，.c_str()为永久方案 |
+| `/* */` → `//` | ~20 处 | 均为多行文档注释，保留 |
+| qTMclust.cpp seq_vec 类型链 | — | P2：独立程序已有问题，非本次引入 |
+| xyz_sfetch.cpp safe_stoi 未声明 | — | P3：独立程序已有问题，非本次引入 |
