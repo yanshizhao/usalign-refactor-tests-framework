@@ -984,6 +984,89 @@ DP 转换策略：先改最底层的 `NWDP_TM`，再逐层上推。
 
 ### 12.8 与已完成工作的衔接
 
-- ✅ 19 commits 完成全项目坐标数组 → Coords
+- ✅ 33 commits 完成全项目坐标数组 → Coords + Phase 11 Wave 1-2 + 部分 Wave 3
 - ✅ 测试稳定：14/14 无崩溃，11 PASS + 3 expected -ffast-math 差异
-- ⏸️ 本 Phase 的 22 步完成后，L2-h 重构全部结束
+- ⏸️ 剩余 ~10-13 commits：TMalign_main 翻转 + 其余核心翻转 + Wave 4 清理
+
+### 12.9 TMalign_main 翻转详细计划（2026-05-28 制定）
+
+#### 当前状态
+
+```
+double** 版（TMalign.h:4906-5521）：600 行算法体，真实现
+Coords& 桥接（TMalign.h:5782-5811）：13 行，构建 double** 视图后委托
+
+顺序：double** 在前，Coords& 在后 — 翻转后需对调
+```
+
+#### 前置审计：xa/ya 子调用 Coords& 覆盖情况
+
+TMalign_main 算法体内 `xa`/`ya` 被传递给以下函数：
+
+| 被调函数 | const Coords& x/y 重载 | 状态 |
+|---------|:---------------------:|:--:|
+| `detailed_search` | P11-1 | ✅ |
+| `detailed_search_standard` | P11-1 | ✅ |
+| `standard_TMscore` | P11-2 | ✅ |
+| `get_initial` | P11-6 | ✅ |
+| `get_initial5` | P11-8 | ✅ |
+| `get_initial_fgt` | P11-7 | ✅ |
+| `get_initial_ssplus` | **缺失** | ❌ 需新增 |
+| `DP_iter` | P11-9 | ✅ |
+| `approx_TM` | **缺失** | ❌ 需新增 |
+| `do_rotation(xa, xt)` | `do_rotation(Coords&, Coords&)` 已有 | ✅ |
+| `dist(&xt[...], &ya[...])` | `dist(double*, const double*)` 缺失 | ⚠️ 需 const_cast |
+
+#### 翻转执行步骤（5 步）
+
+**步骤 1**：新增 `get_initial_ssplus` const Coords& x/y 重载
+- 文件：TMalign.h
+- 内容：在 Coords& 版之后插入，函数体零改动，x/y 类型 `double**` → `const Coords&`
+- 验证：编译 + 回归测试
+- 风险：低（新增重载，零波及）
+
+**步骤 2**：新增 `approx_TM` const Coords& x/y 重载
+- 文件：TMalign.h
+- 内容：函数体复制，`&xa[i][0]` → `(double*)&xa[i][0]`（transform 需非 const），`&ya[j][0]` → `(double*)&ya[j][0]`（dist 需非 const）
+- 验证：编译 + 回归测试
+- 风险：低
+
+**步骤 3**：翻转 — 搬迁算法体到 Coords& 版
+- 工具：Python 脚本（精确行号，不做边界检测）
+- 操作：
+  a. 读文件到 lines[]
+  b. 提取 double** 版算法体 lines[4920:5521]（0-indexed）
+  c. 替换 Coords& 桥接体 lines[5797:5811] 为算法体
+  d. 替换 double** 版体 lines[4920:5521] 为薄包装器（~15行）
+  e. 删除原 double** 版（含签名），在 Coords& 版之后重插入包装器
+- 验证：编译 + 回归测试
+- 风险：**高**（~600 行搬迁，需精确处理）
+
+**步骤 4**：处理 `dist(&xt[...], &ya[...])` const_cast
+- 算法体中 `dist(&xt[m1[k]][0], &ya[m2[k]][0])` 在 Coords& 版中 `&ya[...][0]` 返回 `const double*`
+- 修改：`dist(..., (double*)&ya[m2[k]][0])`
+- 或：依赖已有的 `dist(array<double,3>&, double*)` 混合重载（basic_fun.h:864）
+- 验证：编译
+
+**步骤 5**：全量回归 + 独立程序测试
+- `run_regression.py`（14 用例）
+- `standalone/*/run_test.py`（20 用例）
+- 预期：坐标路径全部走 Coords& 真实现，double** 包装器仅在 flexalign/CPalign 遗留路径使用
+
+#### 风险缓解
+
+| 风险 | 缓解 |
+|------|------|
+| 步骤 3 脚本行号偏移 | 先编译验证当前行号，脚本用绝对索引 `lines[4920:5521]`，不做动态检测 |
+| 包装器拷贝开销 | O(n) 仅发生在 flexalign/CPalign 的 double** 遗留路径，非热路径 |
+| const_cast 安全性 | `transform` 和 `dist` 只读不写，const_cast 安全 |
+
+#### 完成标志
+
+翻转后 TMalign_main 的调用关系：
+```
+USalign.cpp TMalign() xa/ya=Coords → TMalign_main(Coords&,Coords&) → 真实现（600行）
+MMalign_search xa/ya=Coords      → TMalign_main(Coords&,Coords&) → 同上
+flexalign_main xa/ya=double**    → TMalign_main(double**,double**) → 包装器(拷贝) → 真实现
+CPalign_main xa/ya=double**      → TMalign_main(double**,double**) → 包装器(拷贝) → 真实现
+```
