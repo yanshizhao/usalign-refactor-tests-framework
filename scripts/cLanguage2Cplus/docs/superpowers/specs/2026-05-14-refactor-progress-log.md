@@ -1,5 +1,85 @@
 # USalign C → C++ 重构进度记录
 
+## 2026-05-28（续）Phase 11 Wave 1-2 完成 + 部分 Wave 3
+
+| 指标 | 数值 |
+|---|---|
+| 本日新增 Commit | 33（`0e5e54a` ~ `d78e199`） |
+| 测试结果 | **14/14 无崩溃，始终 11 PASS + 3 known -ffast-math diffs** |
+| USalign-beta 领先 master | 51 + 33 = 84 commits |
+
+### 完成概要
+
+| Phase | 步骤数 | 内容 | Commits |
+|-------|:--:|------|:--:|
+| 问题 28 | 1 | RNA make_sec A0_var bad_alloc 修复 | 1 |
+| 坐标数组收尾 | 14 | USalign.cpp 6函数 + MMalign.h 10函数 + 独立cpp + 桥接 | 14 |
+| 阻塞链 C+D | 3 | TMalign_dimer_main + hetero_refined_greedy | 3 |
+| **Wave 1** | 9 | 10个子函数 const Coords& x/y 重载（自底向上拓扑排序） | 9 |
+| **Wave 2** | 4 | getCloseK score容器 + NWDP_TM/score_matrix_rmsd_sec/DP_iter/get_initial5/clean_up DPMatrix重载 | 4 |
+| **Wave 3 部分** | 2 | getCloseK翻转 + se_main包装器删除 | 2 |
+| **合计** | **33** | | |
+
+### Phase 11 Wave 1 详细（const Coords& x/y 重载）
+
+按拓扑排序自底向上完成，每步独立编译测试提交：
+
+| 层 | 函数 | 备注 |
+|----|------|------|
+| 第 0 层 LEAF | `detailed_search` + `detailed_search_standard` | 只读 x[i][j]，不传子函数 |
+| | `standard_TMscore` | 同上 |
+| | `score_matrix_rmsd_sec` | 同上（需 const_cast transform/dist） |
+| | `get_score_fast` | 同上 |
+| | `find_max_frag` | 同上 |
+| 第 1 层 | `get_initial` | 仅传给 get_score_fast（T0已就绪） |
+| 第 2 层 | `get_initial_fgt` | 传给 find_max_frag + get_score_fast + get_initial |
+| | `get_initial5` | 传给 NWDP_TM(Coords) + get_score_fast(Coords) |
+| | `DP_iter` | 传给 NWDP_TM(Coords) + TMscore8_search(Coords) |
+| +1 | `NWDP_TM(path,val,x,y)` (NW.h) | get_initial5/DP_iter 的依赖 |
+
+### Phase 11 Wave 2 详细（DP 矩阵容器化）
+
+| 函数 | 内容 | 级联 |
+|------|------|:--:|
+| `getCloseK` 局部 score | `double**` → `vector<vector<double>>`（局部变量，零级联） | 无 |
+| `NWDP_TM` DP-only 版 | 新增 `DPMatrix/PathMat` 重载（path bool→char:1/0） | 无 |
+| `score_matrix_rmsd_sec` | 新增 `DPMatrix& score` 重载 | 无 |
+| `clean_up_after_approx_TM` | 新增 DPMatrix 重载（DP 自动析构，仅删 invmap） | 无 |
+| `DP_iter` const Coords& 版 | 新增 `PathMat/DPMatrix` + `const Coords&` 组合重载 | 依赖 NWDP_TM |
+| `get_initial5` const Coords& 版 | 同上 | 同上 |
+| `NWDP_TM` Coords 版 | 新增 `PathMat/DPMatrix` + `const Coords&` 组合重载 | 无 |
+
+### Phase 11 Wave 3 启动
+
+| 函数 | 内容 | 状态 |
+|------|------|:--:|
+| `getCloseK` (SOIalign.h) | Coords& 版 → 真实现（搬迁函数体），double** 版 → 包装器 | ✅ |
+| `se_main` (se.h) | 纯 double** 包装器删除（零调用者，已在2026-05-25翻转） | ✅ |
+
+### 遇到的问题
+
+| # | 问题 | 处理 |
+|---|------|------|
+| 29 | **函数边界检测不可靠**（Python 脚本 brace counting 在多处插入位置偏差） | 改用精确行号 + Edit 工具大上下文匹配 |
+| 30 | **const double\* → double\* 转换**（`score_matrix_rmsd_sec` 等调用 `transform`/`dist` 需非 const 指针） | 使用 `(double*)&x[i][0]` const_cast（安全：只读不写） |
+| 31 | **get_initial5/DP_iter 压缩版函数体写错**（误加不存在的 `xt` 参数，调用不存在的子函数） | 严格读原函数体逐行复制，放弃压缩 |
+| 32 | **NW.h 无 include**——`vector` 需 `std::` 全限定名 | 改用 `std::vector<std::vector<double>>` |
+| 33 | **TMalign_main DP 矩阵转换触发组合爆炸**（需 `double** x/y + DPMatrix` 组合重载，每个函数 4 种组合） | **回退**，DP 矩阵保持 double**，仅 Coords 翻转先行 |
+| 34 | **TMalign_main 翻转脚本复杂度**（~600 行搬迁 + double** 包装器顺序 + `approx_TM` 缺失重载） | **延后**，下次会话专项处理 |
+
+### 下一步计划
+
+| 优先级 | 内容 | 预估 |
+|:--:|------|:--:|
+| 1 | TMalign_main 翻转（需 `approx_TM` + `get_initial_ssplus` Coords 重载 + 搬迁脚本修复） | 2-3 commits |
+| 2 | TMalign_dimer_main 翻转 | 1-2 commits |
+| 3 | SOIalign_main + soi_se_main 翻转 | 2 commits |
+| 4 | flexalign_main 翻转 | 1 commit |
+| 5 | Wave 4 清理（删零调用者 double** 重载 + NewArray/DeleteArray 模板） | 3-5 commits |
+| **剩余** | | **~10-13 commits** |
+
+---
+
 ## 2026-05-28 L2-h 阶段 6-9 全面推进 + 问题 28 修复
 
 | 指标 | 数值 |
