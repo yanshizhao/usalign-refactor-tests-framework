@@ -75,12 +75,18 @@
 | DP 矩阵 (score/path/val/TMave/mask ~20处) | ⏸️ | 方案 3 延后 |
 | 非坐标项 (ut_mat/xcentroids/xk/secx_bond) | ⏸️ | 非坐标，不在改造范围 |
 
-### 下一步计划
+### 下一步计划：Phase 11（2026-05-28 制定）
 
-1. 孤立坐标残余收尾（flexalign.h xa_h/ya_h + TMalign.h xa_cp + MMalign.cpp）
-2. 阶段 10 部分清理（坐标相关零调用者 double** 重载删除）
-3. DP 矩阵独立阶段
-4. 阶段 10 完整清理（NewArray/DeleteArray 模板删除）
+详见 `2026-05-21-usalign-l2h-pointer-to-container-design.md` 第 12 节。
+
+**4 波推进，~21 步**：
+
+| Wave | 内容 | 步骤 |
+|------|------|:--:|
+| W1: x/y 参数统一 | 给 detailed_search/standard_TMscore/get_initial/TMscore8_search 添加 Coords& x/y 重载 | 4 |
+| W2: DP 容器化 | score/path/val → DPMatrix/PathMat/IntMat，级联 NWDP_TM 等 | 6 |
+| W3: 核心翻转 | TMalign_main/TMalign_dimer_main/SOIalign/flexalign/se_main 真实现搬迁 | 6 |
+| W4: 完整清理 | 删旧重载 + NewArray/DeleteArray 模板删除 | 5 |
 
 ---
 

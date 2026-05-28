@@ -780,3 +780,172 @@ cd scripts && python run_perf_test.py
 - ✅ VLA → vector 已完成
 - ✅ 独立程序回归测试框架已建立
 - ✅ USalign-beta 分支 51 个 commit 基线稳定
+
+## 12. Phase 11：方向翻转 + DP 矩阵 + 完整清理（2026-05-28 制定）
+
+### 12.1 背景
+
+2026-05-28 完成了全项目坐标数组的 Coords 转换（19 commits）。当前状态：
+
+- ✅ 所有坐标数组（xa/ya/xt/r1/r2）→ Coords，NewArray/DeleteArray 清零
+- ⏸️ 10+ 个 Coords& 重载是**桥接**（委托 double** 真实现），不能删除
+- ⏸️ ~31 处 DP 矩阵 NewArray（score/path/val/TMave/mask），延后
+- ⏸️ `NewArray`/`DeleteArray` 模板仍存在（DP 矩阵使用）
+
+### 12.2 核心思路
+
+当前"双层共存"：
+
+```
+调用方(Coords) → 桥接(Coords&, 5行) → 真实现(double**, 500行)
+                                         → 子函数(double**, ...)
+```
+
+翻转为：
+
+```
+调用方(Coords) → 真实现(Coords&, 500行) → 子函数(DPMatrix&, ...)
+调用方(double**) → 包装器(double**, 5行) → 真实现(Coords&)
+```
+
+**关键原则**：翻转一个函数后，它的 Coords& 版本必须能独立运行全部算法，不再依赖 double** 版本。这意味着子函数调用也必须全部使用 Coords&（或 DPMatrix&）接口。
+
+### 12.3 调用图分析
+
+以 TMalign_main 为根节点的调用树：
+
+```
+TMalign_main(xa,ya, score,path,val)
+ ├─ [Coords内] detailed_search(r1,r2,xtm,ytm,xt, x,y)     ← x,y 仍是 double**
+ │   ├─ TMscore8_search(r1,r2,xtm,ytm,xt)                 ← 纯 Coords ✅
+ │   │   └─ Kabsch, do_rotation, score_fun8               ← 纯 Coords ✅
+ │   └─ get_score_fast(r1,r2,xtm,ytm)                     ← 纯 Coords ✅
+ ├─ [DP内] score_matrix_rmsd_sec(score, ...)              ← score 是 double**
+ ├─ [混合] DP_iter(r1,r2,xtm,ytm,xt, score,path,val, x,y) ← Coords内 + DP + x/y
+ │   └─ NWDP_TM(score,path,val)                           ← 纯 DP
+ ├─ [混合] get_initial5(r1,r2,xtm,ytm, score,path,val, x,y)
+ ├─ [Coords内] get_initial(r1,r2,xtm,ytm, x,y)            ← x,y double**
+ ├─ [Coords内] standard_TMscore(r1,r2,xtm,ytm,xt, x,y)   ← x,y double**
+ └─ [清理] clean_up_after_approx_TM(score,path,val, ...)  ← 混合
+```
+
+**分类**：
+| 类别 | 函数 | 当前 Coords& 重载？ | 翻转依赖 |
+|------|------|:--:|------|
+| 纯 Coords (叶) | Kabsch, do_rotation, score_fun8, dist | ✅ 已有 | 无 |
+| Coords 内 + double** x/y | detailed_search, standard_TMscore, get_initial, get_initial_fgt, TMscore8_search | ✅ 有（内部 Coords，x/y 仍是 double**） | x/y 也需 Coords& |
+| 混合 (Coords + DP + x/y) | DP_iter, get_initial5 | ✅ 有（内部 Coords） | DP + x/y |
+| 纯 DP | score_matrix_rmsd_sec, NWDP_TM | ❌ 无 | 需新增 DPMatrix& |
+| 清理 | clean_up_after_approx_TM | ✅ 有（Coords 参数，DP 仍是 double**） | DP |
+
+### 12.4 执行策略：自底向上，分 4 波推进
+
+#### Wave 1：叶节点 Coords x/y 参数统一
+
+将"Coords 内部 + double** x/y"模式的函数，扩展为 x/y 也接受 Coords&。
+
+**原理**：这些函数只读取 x/y 坐标（通过 `x[i][j]` 语法），不分配、不释放。创建 Coords& 重载后函数体可以完全不变（`x[i][j]` 在 Coords& 和 double** 下语法等价）。
+
+| 子步骤 | 文件 | 函数 | 改动 |
+|--------|------|------|------|
+| **W1-1** | TMalign.h | `detailed_search` + `detailed_search_standard` | 新增 x/y 为 `const Coords&` 的重载 |
+| **W1-2** | TMalign.h | `standard_TMscore` | 同上 |
+| **W1-3** | TMalign.h | `get_initial` + `get_initial_fgt` | 同上（这些函数用 x/y 做 Kabsch/do_rotation 的临时源） |
+| **W1-4** | TMalign.h | `TMscore8_search` + `TMscore8_search_standard` | 同上 |
+
+> **验证**：每步编译 + `run_regression.py`。此时所有调用方仍用 double** → 不匹配 Coords& → 走旧重载 → 零行为变化。
+
+#### Wave 2：DP 矩阵容器化
+
+将 score/path/val/TMave/mask 从 `NewArray` 改为 `DPMatrix`/`PathMat`/`IntMat`。
+
+**原理**：`vector<vector<T>>` 和 `NewArray` 产生相同的内存布局（行指针 + 独立行分配），`score[i][j]` 语法等价。收益：RAII 自动清理，消除 DeleteArray。
+
+**影响范围**（按函数）：
+
+| 子步骤 | 文件 | 函数 | 改动 |
+|--------|------|------|------|
+| **W2-1** | TMalign.h | `TMalign_main` | score/path/val → DPMatrix/PathMat；`NewArray` → `assign`；删对应 `DeleteArray` |
+| **W2-2** | TMalign.h | `DP_iter` | score/path/val 参数 → DPMatrix&/PathMat&/IntMat&（注意：path 是 `bool**` → `PathMat` = `vector<vector<char>>`，需 `path[i][j]=1/0`） |
+| **W2-3** | TMalign.h | `get_initial5` | 同上 |
+| **W2-4** | NW.h | `NWDP_TM` | score/val 参数 → DPMatrix&/IntMat&；path 参数 → PathMat& |
+| **W2-5** | TMalign.h | `score_matrix_rmsd_sec` | score 参数 → DPMatrix& |
+| **W2-6** | TMalign.h | `clean_up_after_approx_TM` | 删除 score/path/val 的 DeleteArray（Coords 版本已无坐标 DeleteArray，只剩 DP，DP 转容器后自动析构） |
+
+> **W2 可验证**：DP 矩阵容器化后，TMalign_main 仍可用 double** xa/ya（走旧签名），但 DP 已转容器。编译 + 回归测试验证。
+
+#### Wave 3：核心函数方向翻转
+
+将 TMalign_main 等函数的 Coords& 桥接"翻转"为真实现。
+
+**翻转 = 函数体搬迁 + 旧版退化为包装器**：
+```cpp
+// 翻转后（真实现）
+int TMalign_main(Coords& xa, Coords& ya, ..., DPMatrix& score, ...) {
+    // 原来的 500 行算法（xa[i][j], score[i][j] 语法兼容）
+}
+
+// 旧版退化为包装器（O(n) 拷贝开销，非热路径）
+int TMalign_main(double **xa, double **ya, ..., double **score, ...) {
+    Coords xa_c; /* 从 xa 拷贝 */ Coords ya_c; /* 从 ya 拷贝 */
+    DPMatrix score_c; /* 从 score 拷贝 */
+    return TMalign_main(xa_c, ya_c, ..., score_c, ...);
+}
+```
+
+| 子步骤 | 文件 | 函数 | 翻转后删除什么 |
+|--------|------|------|------|
+| **W3-1** | SOIalign.h | `getCloseK` | 删 double** 版（最简，只有 score 局部 DP，无子函数级联） |
+| **W3-2** | TMalign.h | `TMalign_main` | 删 double** 版，Coords& 版成为唯一实现 |
+| **W3-3** | MMalign.h | `TMalign_dimer_main` | 同上 |
+| **W3-4** | SOIalign.h | `soi_se_main` + `SOIalign_main` | 同上 |
+| **W3-5** | se.h | `se_main` | 同上（已部分翻转：Coords& 是真实现，double** 是包装器。验证包装器调用者是否为零） |
+| **W3-6** | flexalign.h | `flexalign_main` | 同上 |
+
+> **W3 验证**：翻转后坐标双精度重载退化为包装器（仅在非热路径使用），主路径全走 Coords&。回归测试必须全部通过。
+
+#### Wave 4：完整清理
+
+| 子步骤 | 内容 | 前提 |
+|--------|------|------|
+| **W4-1** | 审计并删除零调用者 double** 坐标包装器（TMalign_main, SOIalign_main, flexalign_main, TMalign_dimer_main, se_main, getCloseK, Kabsch, do_rotation 等的 double** 版本） | W3 全部完成 |
+| **W4-2** | 审计并删除零调用者 double** DP 包装器（NWDP_TM, score_matrix_rmsd_sec, DP_iter, get_initial5 等的 double** 版本） | W2 全部完成 |
+| **W4-3** | 删除 `NewArray` / `DeleteArray` 模板函数（`basic_fun.h`） | 全项目零 `NewArray`/`DeleteArray` 调用 |
+| **W4-4** | 全量回归测试 + 独立程序测试 | |
+| **W4-5** | USalign-beta → master 合并策略评估 | |
+
+### 12.5 步骤汇总
+
+| Wave | 步骤数 | 说明 | 预估风险 |
+|------|--------|------|:--:|
+| W1: x/y 参数统一 | 4 | 给子函数加 Coords& x/y 重载 | 低（纯签名，函数体零改动） |
+| W2: DP 容器化 | 6 | score/path/val → DPMatrix，级联子函数签名 | 中（path bool→char 语义需验证） |
+| W3: 核心翻转 | 6 | 真实现搬迁，旧版退化为包装器 | 中（包装器有 O(n) 拷贝开销，需确认调用频率） |
+| W4: 清理 | 5 | 删旧重载 + 模板删除 | 低（审计驱动） |
+| **合计** | **~21 步** | |
+
+### 12.6 风险与缓解
+
+| 风险 | 缓解 |
+|------|------|
+| W2 `path` 从 `bool**` → `vector<vector<char>>` 后 `path[i][j]=true` 需改为 `=1` | 全局搜索替换，正则验证 |
+| W3 包装器的 O(n) 拷贝在热路径上可能影响性能 | 翻转前用 `run_perf_test.py` 建立性能基线，翻转后对比 |
+| W3 se_main 已有方向翻转（2026-05-25），可能只需验证 | 优先审计 se_main 的当前状态 |
+| DP 矩阵 `vector<vector<T>>` 每行独立分配，与 NewArray 相同，无性能退化 | 方案 3 已有论证 |
+
+### 12.7 不在此阶段处理的内容
+
+- 独立 .cpp 文件（TMscore/HwRMSD/MMalign/se 等）中的 DP 矩阵 — 这些编译为独立可执行文件，不影响主 USalign 的 NewArray 模板删除。可在之后按需处理
+- `NWalign.h` Gotoh 矩阵（JumpH/JumpV/H/V/S/P）— 级联深，延后
+- `TMscore.h` 独立副本 — 延后
+- USalign.cpp 中 TMave_mat/TMave_init — 这些被传递给 MMalign.h 函数，需等 MMalign.h 翻转后统一处理
+
+### 12.8 与已完成工作的衔接
+
+Phase 11 的前提是 2026-05-28 完成的 19 个 commits：
+
+- ✅ 全项目坐标数组 → Coords 清零
+- ✅ 阻塞链 A/B/C/D 全部突破
+- ✅ 4 个 double** 包装器已删除（copy_chain_data, read_PDB, make_sec×2）
+- ✅ 测试稳定：14/14 无崩溃，11 PASS + 3 expected -ffast-math 差异
+- ⏸️ 10+ Coords& 桥接仍依赖 double** 真实现 ← Phase 11 要解决
