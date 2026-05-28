@@ -70,23 +70,27 @@
 | 全项目坐标数组 (xa/ya/xt/r1/r2) | ✅ | **清零** |
 | 阻塞链 C (TMalign_dimer_main) | ✅ | 已突破 |
 | 阻塞链 D (hetero_refined_greedy) | ✅ | 已突破 |
-| 孤立坐标残余 (flexalign xa_h/ya_h, TMalign xa_cp, MMalign.cpp) | ⏸️ | 工作量小，独立收尾 |
-| 阶段 10 部分清理 | ⏸️ | 坐标相关 double** 重载中零调用者可删除 |
-| DP 矩阵 (score/path/val/TMave/mask ~20处) | ⏸️ | 方案 3 延后 |
+| 孤立坐标残余 (flexalign xa_h/ya_h, TMalign xa_cp, MMalign.cpp) | ✅ | 已清零 |
+| 阶段 10 部分清理 (copy_chain_data/read_PDB/make_sec×2) | ✅ | 4 个 double** 真实现模式重载已删除 |
+| DP 矩阵 (score/path/val/TMave/mask ~31处) | ⏸️ | Phase 11 步骤 10-13 处理 |
+| 10+ 桥接模式 double** 重载 | ⏸️ | Phase 11 步骤 14-22 翻转后删除 |
+| NewArray/DeleteArray 模板 | ⏸️ | Phase 11 步骤 22 删除 |
 | 非坐标项 (ut_mat/xcentroids/xk/secx_bond) | ⏸️ | 非坐标，不在改造范围 |
 
-### 下一步计划：Phase 11（2026-05-28 制定）
+### 下一步计划：Phase 11（2026-05-28 制定，同日修订为完整版）
 
-详见 `2026-05-21-usalign-l2h-pointer-to-container-design.md` 第 12 节。
+详见 `2026-05-21-usalign-l2h-pointer-to-container-design.md` 第 12 节（22 步完整方案）。
 
-**4 波推进，~21 步**：
+**4 层拓扑排序，22 步**：
 
-| Wave | 内容 | 步骤 |
-|------|------|:--:|
-| W1: x/y 参数统一 | 给 detailed_search/standard_TMscore/get_initial/TMscore8_search 添加 Coords& x/y 重载 | 4 |
-| W2: DP 容器化 | score/path/val → DPMatrix/PathMat/IntMat，级联 NWDP_TM 等 | 6 |
-| W3: 核心翻转 | TMalign_main/TMalign_dimer_main/SOIalign/flexalign/se_main 真实现搬迁 | 6 |
-| W4: 完整清理 | 删旧重载 + NewArray/DeleteArray 模板删除 | 5 |
+| 层 | 步骤 | 内容 | 影响 |
+|----|:--:|------|:--:|
+| 第 0 层 Coords Leaf | 1-5 | detailed_search/standard_TMscore/score_matrix_rmsd_sec/get_score_fast/find_max_frag 加 const Coords& x/y 重载 | 零波及 |
+| 第 1 层 Coords | 6 | get_initial 加 const Coords& x/y 重载 | 零波及 |
+| 第 2 层 Coords | 7-9 | get_initial_fgt/get_initial5/DP_iter 加 const Coords& x/y 重载 | 零波及 |
+| DP 容器化 | 10-13 | NWDP_TM → DP_iter → get_initial5 → clean_up DPMatrix/PathMat/IntMat 重载 | 零波及 |
+| 根节点翻转 | 14-19 | getCloseK → TMalign_main → TMalign_dimer_main → SOIalign → se_main → flexalign | 行为变更 |
+| 清理 | 20-22 | 删旧重载 + 删 NewArray/DeleteArray 模板 | 审计驱动 |
 
 ---
 
