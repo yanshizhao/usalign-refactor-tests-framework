@@ -429,6 +429,67 @@ TMscore.h 有与 TMalign.h **同名但独立实现**的函数（不同的 GDT/Ma
 | **B4** | TMscore.cpp | 同上 | 低 |
 | **B5** | HwRMSD.cpp | `xa/ya` → Coords | 低 |
 
+#### 阻塞链 C：TMalign_dimer_main 内部坐标数组（解锁 TMalign_dimer_main 的 xtm/ytm/xt/r1/r2）
+
+**制定日期**：2026-05-28
+**背景**：阶段 9（USalign.cpp）全部 6 函数已转换完毕。TMalign_dimer_main 是 MMalign.h 中唯一仍有内部坐标 NewArray 的核心函数。
+
+**代码分析**：
+
+TMalign_dimer_main（行 2427-3034）内部有 5 个临时坐标数组，当前仍为 `double**`：
+
+```cpp
+double **xtm, **ytm;  // TMscore 搜索引擎临时缓冲区 (minlen × 3)
+double **xt;           // 叠合后坐标 (xlen × 3)
+double **r1, **r2;     // Kabsch 旋转临时缓冲区 (minlen × 3)
+```
+
+这 5 个数组被传递给以下函数：
+
+| 被调函数 | 调用次数 | 已有 Coords& 重载？ | 所在文件 |
+|---------|:-------:|:-------------------:|---------|
+| `detailed_search` / `detailed_search_standard` | 8 | ✅ 已有（L2h-07，TMalign.h） | TMalign.h |
+| `standard_TMscore` | 2 | ✅ 已有（L2h-09，TMalign.h） | TMalign.h |
+| `get_initial` / `get_initial_fgt` | 2 | ✅ 已有（L2h-08，TMalign.h） | TMalign.h |
+| `TMscore8_search` | 5 | ✅ 已有（L2h-04，TMalign.h） | TMalign.h |
+| **`DP_iter_dimer`** | **6** | ❌ 无 | **MMalign.h** |
+| **`get_initial5_dimer`** | **1** | ❌ 无 | **MMalign.h** |
+| **`get_initial_ssplus_dimer`** | **1** | ❌ 无 | **MMalign.h** |
+| `clean_up_after_approx_TM` | 7 | ⚠️ 有，但参数不匹配 | TMalign.h |
+| `do_rotation(xa, xt, ...)` | 2 | ⚠️ 混合类型（xa=double**, xt=Coords），已有 `do_rotation(double**, Coords&, ...)` 重载 | basic_fun.h |
+
+**关键发现**：
+- 大部分被调函数（17/24 次调用）已有 Coords& 重载，且签名设计为内部数组用 `Coords&`、外部 xa/ya 仍用 `double**`，恰好匹配 TMalign_dimer_main 的参数类型
+- `do_rotation(xa, xt)` 其中 xa 是外部参数（double**），xt 是内部数组。basic_fun.h 已有 `do_rotation(double**, Coords&, ...)` 混合重载
+- `clean_up_after_approx_TM` 有 Coords& 重载但参数列表少一个 `minlen`，call site 传了 12 个参数，重载只接受 11 个
+- 原始代码中无任何直接的 `DeleteArray` 调用——所有清理都在 `clean_up_after_approx_TM` 内部。切换到 Coords& 重载后坐标清理自动消失，DP 矩阵（score/path/val）的 DeleteArray 保持不变
+
+**策略**：5 步逐级击破，每步独立编译测试。
+
+| 子步骤 | 文件 | 内容 | 状态 |
+|--------|------|------|:--:|
+| **C1** | TMalign.h | `clean_up_after_approx_TM` Coords& 重载添加 `int /*minlen*/ = 0` 默认参数 | ✅ |
+| **C2** | MMalign.h | `DP_iter_dimer` 新增 Coords& 桥接重载 | ✅ |
+| **C3** | MMalign.h | `get_initial5_dimer` 新增 Coords& 桥接重载 | ✅ |
+| **C4** | MMalign.h | `get_initial_ssplus_dimer` 新增 Coords& 桥接重载 | ✅ |
+| **C5** | MMalign.h | TMalign_dimer_main 内部 xtm/ytm/xt/r1/r2 → Coords(resize) | ✅ |
+
+> **C1 修正**：最初用 `int /*minlen*/`（必选参数），导致 TMalign_main 的 11-arg 调用 site 不匹配（TMalign_main 也使用 Coords& 重载但不传 minlen）。改为 `= 0` 默认值后 11/12 参数调用均兼容。
+
+**Commit**：`0518839`（+ TMalign_dimer_main 桥接在 `4d755a5`）
+
+---
+#### 阻塞链 D：hetero_refined_greedy_search ✅ 已完成（2026-05-28）
+
+**最终方案**（比预期更简单）：calMMscore 仅被 hetero_refined_greedy_search 调用（2 处），函数体使用 `r1[i][j]` 语法完全兼容 Coords。直接改签名 `double** r1/r2/xt` → `Coords& r1/r2/xt`，函数体零改动。Kabsch/do_rotation/dist 均有 Coords& 重载。
+
+| 子步骤 | 文件 | 内容 | 状态 |
+|--------|------|------|:--:|
+| D1 | MMalign.h | calMMscore 签名 `double** r1/r2/xt` → `Coords& r1/r2/xt` | ✅ |
+| D2 | MMalign.h | hetero_refined_greedy_search 内部 `r1/r2/xt` → `Coords(resize)`，删 DeleteArray | ✅ |
+
+**Commit**：`7acca17`
+
 ---
 
 ### 阶段 6：MMalign.h（最大的文件）
@@ -526,11 +587,18 @@ MMalign.h 有 31 处 `DeleteArray`，是多链比对的核心。函数多、调�
 | 10: 清理 | 3 | 删除旧 double** 重载 + NewArray/DeleteArray |
 | A: se_main 阻塞链 | 5 | 解锁 flexalign.h + HwRMSD.h + se.cpp |
 | B: TMalign_main 阻塞链 | 5 | 解锁 TMalign.cpp + TMscore.cpp + HwRMSD.cpp |
+| **C: TMalign_dimer_main 阻塞链** | **5** | C1~C5，解锁 TMalign_dimer_main 内部坐标数组（2026-05-28 制定） |
+| **D: hetero_refined_greedy 阻塞链** | **~3** | calMMscore 桥接 + 内部 r1/r2/xt → Coords（待分析） |
 | 11: DP 矩阵（延后） | ~8 | NWalign, se, MMalign DP 矩阵 + 全局清理残留 NewArray |
-| **合计** | **~57 步** |（含阻塞链解除 + DP 矩阵独立阶段）|
+| 12: MMalign_dimer/cross/iter | ~3 | 透传函数，添加 Coords& 桥接（当前仍用 double** 参数） |
+| **合计** | **~68 步** |（含全部阻塞链 + DP 矩阵独立阶段）|
 
 > **方案 3 影响**：阶段 3~9 每步只转换坐标数组，DP 矩阵保持 `NewArray`/`DeleteArray`。阶段 10 清理时一次性删除所有旧坐标重载。DP 矩阵作为独立的阶段 11 统一处理。
-> **阻塞链**：阶段 5 执行中发现 se_main → NWDP_SE 和 TMalign_main 外部签名的级联阻塞。阻塞链 A/B 采用方向翻转/桥接重载策略逐级击破。
+> **阻塞链**：阶段 5 执行中发现 se_main → NWDP_SE 和 TMalign_main 外部签名的级联阻塞。阻塞链 A/B 采用方向翻转/桥接重载策略逐级击破。阻塞链 C/D 在阶段 9 完成后发现，TMalign_dimer_main 的内部数组级联到 3 个 _dimer 专属子函数。
+>
+> **2026-05-28 方案变更**：
+> - MMalign.h 的 MMalign_search/final/se_final 使用「内部 Coords 局部变量 + 无名 double** 参数」策略，比原计划的桥接重载更简洁
+> - SOIalign.h / flexalign.h 新增 Coords& 桥接（getCloseK / soi_se_main / SOIalign_main / flexalign_main），参照 TMalign_main 桥接模式
 
 ## 6. 类型转换对照表
 

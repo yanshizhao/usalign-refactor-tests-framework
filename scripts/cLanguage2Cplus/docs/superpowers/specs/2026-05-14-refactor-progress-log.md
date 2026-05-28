@@ -1,5 +1,89 @@
 # USalign C → C++ 重构进度记录
 
+## 2026-05-28 L2-h 阶段 6-9 全面推进 + 问题 28 修复
+
+| 指标 | 数值 |
+|---|---|
+| 新增 Commit | **13**（`0e5e54a` ~ `4d755a5`） |
+| 修改文件 | `USalign.cpp`（6 函数）、`MMalign.h`（10 函数 + 5 新桥接）、`TMalign.h`（RNA make_sec 修复 + clean_up_after_approx_TM 签名）、`SOIalign.h`（3 新桥接）、`flexalign.h`（1 新桥接）、`qTMclust.cpp`、`biounitasym.cpp` |
+| USalign.cpp 坐标数组 | **全部转换完毕**（TMalign/MMalign/mTMalign/SOIalign/flexalign/MMdock） |
+| MMalign.h 坐标数组 | **全部转换完毕**（parse_chain_list / adjust_dimer / copy_chain_data / MMalign_search / MMalign_final / MMalign_se_final / TMalign_dimer_main / calMMscore / hetero_refined_greedy / MMalign_dimer） |
+| 全项目坐标 NewArray | **清零**（xa/ya/xt/r1/r2 全部转换，DP 矩阵/非坐标项延后） |
+| 独立 .cpp | qTMclust.cpp, biounitasym.cpp |
+| 测试结果 | **14/14 无崩溃，11 PASS + 3 已知 -ffast-math 差异** |
+
+### 问题 28：RNA make_sec(Coords) A0_var bad_alloc ✅ 已修复
+
+**症状**：TMalign() xa/ya → Coords 后，MSTATest RNA 数据 bad_alloc 崩溃。非 -dir 路径也崩溃。
+
+**诊断过程**：
+1. 确认非 -dir 特有 — MSTATest 单对 RNA 比对也崩溃
+2. 逐级 cerr debug，定位崩溃点在 `make_sec(Coords&, RNA)` 的 A0_var 后处理
+3. 对比 `double**` 版与 `Coords&` 版：两个版本的 A0_var 后处理完全不同
+4. double** 版：简单 `<` / `>` 写入，A0_var 大小不变
+5. Coords& 版：复杂重叠处理，`push_back` 在迭代中修改容器 → 无限增长 → bad_alloc
+6. 最小化验证：仅 bp 矩阵 + base-pair 循环 → OK；加入 A0_var 循环 → OK；加入后处理 → 崩溃
+
+**根因**：`TMalign.h:1697` RNA `make_sec(Coords&)` 的 A0_var 后处理中 `push_back` 在 `for(i<A0_var.size())` 循环内修改容器大小，导致无限增长。
+
+**修复**：将 Coords& 版后处理替换为与 double** 版一致的简单 `<` / `>` 逻辑。
+
+**排除的猜想**：Coords 连续内存、-ffast-math、-dir 循环 clear/reserve 语义、vector<bool> 链式赋值代理、sec/seq 指针悬空 — 均不是根因（-O0 同样崩溃，最小化验证逐一排除）。
+
+### 方案变更
+
+| 项目 | 原方案 | 实际执行 | 原因 |
+|------|--------|---------|------|
+| MMalign.h 剩余函数 | 桥接重载（每函数一个 Coords& 重载） | **内部 Coords 局部变量 + 无名 double** 参数** | 这些函数的 double** 参数在函数体第一行就被 NewArray 覆盖，实际是局部变量占位符。直接替换参数名为 `/*_xa*/` 并添加局部 Coords，零调用方改动。比桥接更简洁 |
+| SOIalign.h / flexalign.h | （未规划） | 添加 Coords& 桥接重载（getCloseK / soi_se_main / SOIalign_main / flexalign_main） | SOIalign() / flexalign() 转换所需，参照 TMalign_main 桥接模式 |
+| MMdock() 范围 | 仅 xa/ya | xa/ya + ya_trim + xt 全部转换 | 混合类型调用（TMalign_main(xa, ya_trim) 等），ya_trim 和 xt 必须同步转换 |
+
+### 执行步骤
+
+| 步骤 | Commit | 内容 |
+|------|--------|------|
+| 1 | `0e5e54a` | **问题 28 修复**：RNA make_sec(Coords) A0_var 对齐 double** 版。**L2h-35**：TMalign() xa/ya → Coords |
+| 2 | `04f323d` | **L2h-25**：parse_chain_list xa → Coords。**L2h-23**：adjust_dimer_assignment xa/ya/xt → Coords |
+| 3 | `90bf977` | **L2h-32**：qTMclust.cpp xa/ya → Coords。**L2h-34**：biounitasym.cpp xa/ya → Coords |
+| 4 | `9950ff5` | **L2h-20**：MMalign_search + copy_chain_data Coords& 重载 |
+| 5 | `55b5f9f` | **L2h-21**：MMalign_final + MMalign_se_final xa/ya/xt → Coords |
+| 6 | `4ca5d79` | **L2h-36**：MMalign() USalign.cpp xa/ya → Coords |
+| 7 | `8c329c7` | **L2h-37a**：mTMalign() xa/ya/xt → Coords |
+| 8 | `65919b5` | **L2h-37b**：SOIalign.h 桥接（getCloseK / soi_se_main / SOIalign_main）+ SOIalign() xa/ya → Coords |
+| 9 | `6b68afe` | **L2h-37c**：flexalign.h 桥接（flexalign_main）+ flexalign() xa/ya → Coords |
+| 10 | `085a033` | **L2h-37d**：MMdock() xa/ya/ya_trim/xt → Coords |
+| 11 | `0518839` | **阻塞链 C**：C1~C5，TMalign_dimer_main 内部 xtm/ytm/xt/r1/r2 → Coords + DP_iter_dimer/get_initial5_dimer/get_initial_ssplus_dimer 桥接 |
+| 12 | `7acca17` | **阻塞链 D**：hetero_refined_greedy_search r1/r2/xt → Coords + calMMscore 签名 Coords& |
+| 13 | `4d755a5` | **L2h-24**：MMalign_dimer xa/ya/xt → Coords + TMalign_dimer_main Coords& 桥接 |
+
+### 遗留问题
+
+| # | 问题 | 严重性 | 状态 |
+|---|------|--------|------|
+| 28 | RNA make_sec(Coords) A0_var bad_alloc | P0 | ✅ 已修复（2026-05-28） |
+| — | MMalign.h 的 bad_alloc 是否同根因？ | — | ✅ 确认：问题 28 修复后 MMalign.h 所有函数正常，无需额外处理 |
+
+### 未完成 / 阻塞（2026-05-28 最终）
+
+| 项目 | 状态 | 说明 |
+|------|:--:|------|
+| 全项目坐标数组 (xa/ya/xt/r1/r2) | ✅ | **清零** |
+| 阻塞链 C (TMalign_dimer_main) | ✅ | 已突破 |
+| 阻塞链 D (hetero_refined_greedy) | ✅ | 已突破 |
+| 孤立坐标残余 (flexalign xa_h/ya_h, TMalign xa_cp, MMalign.cpp) | ⏸️ | 工作量小，独立收尾 |
+| 阶段 10 部分清理 | ⏸️ | 坐标相关 double** 重载中零调用者可删除 |
+| DP 矩阵 (score/path/val/TMave/mask ~20处) | ⏸️ | 方案 3 延后 |
+| 非坐标项 (ut_mat/xcentroids/xk/secx_bond) | ⏸️ | 非坐标，不在改造范围 |
+
+### 下一步计划
+
+1. 孤立坐标残余收尾（flexalign.h xa_h/ya_h + TMalign.h xa_cp + MMalign.cpp）
+2. 阶段 10 部分清理（坐标相关零调用者 double** 重载删除）
+3. DP 矩阵独立阶段
+4. 阶段 10 完整清理（NewArray/DeleteArray 模板删除）
+
+---
+
 ## 2026-05-26 L2-h 二级指针 → C++ 容器重构（阶段 0-3 启动）
 
 | 指标 | 数值 |
@@ -183,30 +267,59 @@ TMalign_main 内部坐标临时数组已切换为 Coords，但外部签名的 `x
 **阶段 9：USalign.cpp 主程序**
 | 步骤 | 函数 | 状态 | 说明 |
 |------|------|:--:|------|
-| L2h-35 | `TMalign()` | ❌ | xa/ya → Coords 后 `-dir` 路径 bad_alloc 崩溃（问题 28） |
+| L2h-35 | `TMalign()` | ✅ | xa/ya → Coords 完成（问题 28 已修复，见下方） |
 
 ### 新发现的问题
 
-#### 问题 28：TMalign() xa/ya → Coords 后 `-dir` 路径 bad_alloc 崩溃
+#### 问题 28：TMalign() xa/ya → Coords 后 bad_alloc 崩溃 ✅ 已修复
 
-**症状**：USalign.cpp `TMalign()` 函数中 xa/ya 从 `double**` → `Coords` 后，`-dir` 模式（all_vs_all 用例）运行时抛出 `std::bad_alloc`，程序崩溃。非 `-dir` 路径的 11 个用例正常。
+**症状**：USalign.cpp `TMalign()` 函数中 xa/ya 从 `double**` → `Coords` 后，MSTATest RNA 数据（无论 `-dir` 还是单对）运行时抛出 `std::bad_alloc`，程序崩溃。蛋白质数据正常。
 
-**排查状态**：已确认非 sed 误操作（回退 USalign.cpp 后恢复正常，重做后复现）。根因待查——怀疑 `-dir` 嵌套循环中 Coords 的 `clear()`/`reserve()`/`push_back()` 与原有的 `NewArray`/`DeleteArray` 内存复用模式存在语义差异。
+**诊断过程**（2026-05-28）：
+1. 确认非 `-dir` 特有——MSTATest 单对 RNA 比对也崩溃
+2. 逐级插入 cerr debug，定位崩溃点在 `make_sec(Coords&, RNA)` 的 A0_var 后处理阶段
+3. 对比 `double**` 版与 `Coords&` 版 RNA `make_sec`：发现两个版本的 A0_var 后处理**完全不同**
+4. `double**` 版：简单循环写入 `<` / `>` 字符，A0_var 大小不变
+5. `Coords&` 版：复杂重叠处理，在迭代 A0_var 的同时 `push_back` 插入新元素 → 无限增长 → bad_alloc
+6. 缩小测试：仅保留 bp 矩阵 + base-pair 循环 → 正常；加入 A0_var 循环 → 正常；加入后处理 → 崩溃
 
-**当前处置**：USalign.cpp 保持 `double**`，延后处理。
+**根因**：`TMalign.h` 中 RNA `make_sec(const char*, const Coords&, ...)`（第 1697 行）的 A0_var 后处理算法中，`A0_var.push_back()` 在 `for(i=0; i<A0_var.size(); i++)` 循环内修改容器大小，导致无限增长，耗尽内存。
 
-### 未完成 / 阻塞
+**不是根因的猜想**：
+- ❌ Coords 连续内存布局 — 与问题无关（即使 -O0 也崩溃）
+- ❌ `-ffast-math` 优化 — 与问题无关（-O0 同样崩溃）
+- ❌ `-dir` 嵌套循环 clear/reserve 语义 — 单对模式同样崩溃
+- ❌ `vector<bool>` 链式赋值代理 — 拆分后仍崩溃
+- ❌ `sec`/`seq` 指针悬空 — 最小化验证指针有效
 
-| 文件 | 状态 | 原因 |
-|------|:--:|------|
-| MMalign.h | ❌ | 39 处 NewArray，内部函数紧密耦合，`parse_chain_list` 转换后 bad_alloc，已回退。需整体规划 |
-| MMalign.cpp | ❌ | 依赖 MMalign.h |
-| qTMclust.cpp | ⏸️ | 未开始 |
-| biounitasym.cpp | ⏸️ | 未开始 |
-| USalign.cpp 其余函数 | ❌ | TMalign() bad_alloc + MMalign/mTMalign/SOIalign/flexalign 依赖未打通的路径 |
-| 阶段 10 清理 | ⏸️ | 待所有文件迁移完成后 |
+**修复**（commit `0e5e54a`）：
+将 `Coords&` 版 A0_var 后处理替换为与 `double**` 版一致的简单逻辑，消除 `push_back`。
 
-### 提交记录
+```cpp
+// 修复后（与 double** 版一致）
+for (i=0; i<A0_var.size(); i++)
+{
+    for (j=0;;j++)
+    {
+        if (A0_var[i]+j > C0_var[i]) break;
+        sec[A0_var[i]+j] = '<';
+        sec[D0_var[i]+j] = '>';
+    }
+}
+sec[len] = 0;
+// clean up
+A0_var.clear(); B0_var.clear();
+C0_var.clear(); D0_var.clear();
+bp.clear();
+```
+
+**当前处置**：已修复，测试全部通过。
+
+### 未完成 / 阻塞（2026-05-28 已大幅推进，见顶部更新）
+
+> 以下为 2026-05-27 快照，大部分已在 2026-05-28 完成。最新状态见文档顶部。
+
+### 提交记录（2026-05-27 及之前）
 
 | Commit | 内容 |
 |--------|------|
@@ -216,14 +329,6 @@ TMalign_main 内部坐标临时数组已切换为 Coords，但外部签名的 `x
 | `667a3b8` | L2h-33 + L2h-26 + make_sec Coords& 重载 — pdb2ss.cpp 首次成功迁移 |
 | `cd7c928` | L2h-14 — SOIalign.h 坐标临时数组 → Coords |
 | `1f12dc6` | L2h-13 — TMscore_main 坐标临时数组 → Coords |
-
-### 下一步计划
-
-1. 排查问题 28（TMalign() `-dir` 路径 bad_alloc）
-2. 尝试 qTMclust.cpp、biounitasym.cpp（依赖链可能简单）
-3. MMalign.h 整体规划（39 处 NewArray，内部耦合严重，建议独立阶段）
-4. USalign.cpp 其余函数（MMalign、mTMalign、SOIalign、flexalign、search_databases）
-5. 阶段 10 清理旧重载 + 删除 NewArray/DeleteArray 模板
 
 ---
 
