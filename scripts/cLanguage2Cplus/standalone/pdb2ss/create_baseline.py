@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-pdb2ss 基线创建脚本
-切换到干净的 master 分支，提取未修改源码编译原始版 pdb2ss，运行全部用例，输出保存到 baseline/。
-pdb2ss 无 -outfmt 选项，无生成文件，仅比对 stdout。脚本结束后恢复运行前所在分支。
+pdb2ss baseline creation script
+Switch to the clean master branch, extract unmodified source code, compile the original pdb2ss, run all test cases, and save output to baseline/.
+pdb2ss has no -outfmt option, generates no files, only stdout is compared. Restores the branch that was active before running.
 """
 import subprocess, os, shutil, sys, tempfile
 from pathlib import Path
@@ -29,7 +29,7 @@ def checkout(branch):
 
 
 def extract_master_sources(tmpdir: str):
-    """从 master 分支提取所有 .cpp .h 源码到临时目录"""
+    """Extract all .cpp and .h source files from the master branch to a temporary directory"""
     result = subprocess.run(
         ["git", "ls-tree", "--name-only", "-r", "master"],
         capture_output=True, text=True, cwd=str(USALIGN_DIR)

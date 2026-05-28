@@ -4,17 +4,18 @@ from pathlib import Path
 
 
 """
-回归测试执行脚本（Regression Runner）
-功能：
-  1. 切换到 USalign-beta 分支，编译包含需求修改的 US-align 可执行文件 (USalign_mod.exe)
-  2. 每次运行前自动清空 current/ 和 diffs/ 目录，避免旧数据干扰
-  3. 从 testcases_functional.txt 读取所有功能测试用例
-  4. 逐条运行用例，将输出保存到 current/ 目录（文件名添加 _mod 后缀）
-  5. 将修改版输出与 baseline/ 中的原始基线进行逐字节比较
-  6. 若完全一致，报告 “PASS”；若不一致，报告 “CHECK” 并在 diffs/ 目录中
-     生成详细的 unified diff 文件，便于人工审查差异点
-  7. 支持叠加结构 (superposed_structure) 的特殊处理，自动移动和清洗 .pml 文件
-注意：修改 US-align 源码后运行此脚本，以验证修改未引入功能回归。
+Regression test execution script (Regression Runner)
+Features:
+  1. Switch to the USalign-beta branch, compile US-align with the required modifications (USalign_mod.exe)
+  2. Automatically clean the current/ and diffs/ directories before each run to avoid interference from old data
+  3. Read all functional test cases from testcases_functional.txt
+  4. Run each test case sequentially, saving output to the current/ directory (with _mod suffix appended to filenames)
+  5. Compare the modified output against the original baseline in baseline/ (strip CPU time first)
+  6. If identical, report PASS
+  7. If only CPU time differs, report WARNING and generate a diff file in diffs/
+  8. If business data differs, report FAIL and generate a diff file in diffs/
+  9. Support special handling for superposed_structure: automatically move and clean up .pml files
+Note: Run this script after modifying US-align source code to verify the changes did not introduce functional regressions.
 """
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
@@ -43,7 +44,7 @@ def checkout(branch):
 
 def compile():
     print("Compiling modified US-align from USalign-beta...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-o", str(EXE), str(SRC)]).returncode != 0:
+    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", str(EXE), str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 
@@ -54,15 +55,30 @@ def clean_directory(dir_path):
 
 
 def clean_slash(text: str) -> str:
-    """移除输出中 Name of Structure_X: 后面多余的 '/' 前缀"""
+    """Remove redundant '/' prefix after 'Name of Structure_X:' in output"""
     return re.sub(r'(Name of Structure_\d+:)\s*/', r'\1 ', text)
+
+
+def strip_cpu_time(text: str) -> str:
+    """Remove #Total CPU time lines -- CPU time naturally fluctuates and is not used for regression decisions"""
+    return re.sub(r'^#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
+
+
+def is_non_business_line(line: str) -> bool:
+    """Determine whether a diff line is non-business content (CPU time, etc., environmental differences)"""
+    stripped = line.strip()
+    if not stripped:
+        return True
+    if "#Total CPU time is" in stripped:
+        return True
+    return False
 
 
 def run_tests():
     clean_directory(CURRENT)
     clean_directory(DIFFS)
 
-    total, passed, checked, failed = 0, 0, 0, 0
+    total, passed, warned, failed = 0, 0, 0, 0
 
     with open("testcases_functional.txt", "r", encoding="utf-8") as f:
         for line in f:
@@ -77,7 +93,7 @@ def run_tests():
             print(f"  CWD: {workdir}")
             print(f"  CMD: {' '.join(cmd)}")
 
-            # 捕获输出，清洗后写入文件
+            # Capture output, clean it, then write to file
             proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
             content = proc.stdout + proc.stderr
             content = clean_slash(content)
@@ -94,11 +110,9 @@ def run_tests():
                     shutil.move(str(sup_pdb), str(CURRENT / f"sup{MOD_SUFFIX}.pdb"))
                 for pml in workdir.glob("*.pml"):
                     pml.unlink()
-                result = _diff_files("sup.pdb", f"sup{MOD_SUFFIX}.pdb", name, " (structure)")
+                result = _diff_binary("sup.pdb", f"sup{MOD_SUFFIX}.pdb", name, " (structure)")
                 if result == "PASS":
                     passed += 1
-                elif result == "CHECK":
-                    checked += 1
                 else:
                     failed += 1
             else:
@@ -106,37 +120,85 @@ def run_tests():
                 result = _diff_files(f"{name}.out", out_filename, name)
                 if result == "PASS":
                     passed += 1
-                elif result == "CHECK":
-                    checked += 1
+                elif result == "WARNING":
+                    warned += 1
                 else:
                     failed += 1
 
-    print(f"\n=== Summary: total={total}, PASS={passed}, CHECK={checked}, FAIL={failed} ===")
+    print(f"\n=== Summary: total={total}, PASS={passed}, WARNING={warned}, FAIL={failed} ===")
+    return failed == 0
 
 
 def _diff_files(base_filename, mod_filename, tag, extra_note=""):
+    """Compare text output files with CPU-time-aware classification.
+
+    Returns: "PASS" (identical), "WARNING" (only CPU time differs), "FAIL" (business data differs)
+    """
     base = BASELINE / base_filename
     curr = CURRENT / mod_filename
     diff = DIFFS / f"{tag}.diff"
     try:
-        with open(base, "rb") as fb, open(curr, "rb") as fc:
-            bdata = fb.read()
-            cdata = fc.read()
-        if bdata == cdata:
+        btext = strip_cpu_time(base.read_text(encoding="utf-8", errors="replace"))
+        ctext = strip_cpu_time(curr.read_text(encoding="utf-8", errors="replace"))
+        if btext == ctext:
+            print(f"  PASS{extra_note}")
+            if diff.exists():
+                diff.unlink()
+            return "PASS"
+
+        # generate diff and classify lines
+        blines = btext.splitlines(keepends=True)
+        clines = ctext.splitlines(keepends=True)
+        diff_lines = list(difflib.unified_diff(
+            blines, clines, fromfile=str(base), tofile=str(curr)
+        ))
+        with open(diff, "w", encoding="utf-8") as df:
+            df.writelines(diff_lines)
+
+        has_business = False
+        for line in diff_lines:
+            if line.startswith('---') or line.startswith('+++') or line.startswith('@@') or line.startswith(' '):
+                continue
+            content = line[1:].strip()
+            if line.startswith('-') or line.startswith('+'):
+                if not is_non_business_line(content):
+                    has_business = True
+                    break
+
+        if has_business:
+            print(f"  FAIL{extra_note} (business data mismatch, see {diff})")
+            return "FAIL"
+        else:
+            print(f"  WARNING{extra_note} (CPU time only, see {diff})")
+            return "WARNING"
+    except FileNotFoundError as e:
+        print(f"  ERROR: {e}")
+        return "ERROR"
+
+
+def _diff_binary(base_filename, mod_filename, tag, extra_note=""):
+    """Byte-level comparison for structure files (.pdb, .sup).
+
+    Returns: "PASS" (identical) or "FAIL" (any byte difference)
+    """
+    base = BASELINE / base_filename
+    curr = CURRENT / mod_filename
+    diff = DIFFS / f"{tag}.diff"
+    try:
+        if base.read_bytes() == curr.read_bytes():
             print(f"  PASS{extra_note}")
             if diff.exists():
                 diff.unlink()
             return "PASS"
         else:
-            print(f"  CHECK{extra_note} (see {diff})")
-            blines = bdata.decode('utf-8', errors='replace').splitlines(keepends=True)
-            clines = cdata.decode('utf-8', errors='replace').splitlines(keepends=True)
-            diff_content = difflib.unified_diff(
-                blines, clines, fromfile=str(base), tofile=str(curr)
-            )
+            print(f"  FAIL{extra_note} (structure file mismatch, see {diff})")
+            blines = base.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)
+            clines = curr.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)
             with open(diff, "w", encoding="utf-8") as df:
-                df.writelines(diff_content)
-            return "CHECK"
+                df.writelines(difflib.unified_diff(
+                    blines, clines, fromfile=str(base), tofile=str(curr)
+                ))
+            return "FAIL"
     except FileNotFoundError as e:
         print(f"  ERROR: {e}")
         return "ERROR"

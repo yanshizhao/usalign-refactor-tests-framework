@@ -3,19 +3,19 @@ import subprocess, os, sys, re, csv
 from pathlib import Path
 
 """
-性能回归测试脚本（Performance Regression Runner）
-功能：
-  1. 切换到 USalign-beta 分支，编译包含需求修改的 US-align 可执行文件
-  2. 从 testcases_performance.txt 读取所有性能测试用例
-  3. 对每个用例重复运行若干次（默认 5 次），提取平均 CPU 时间
-  4. 将结果保存到 perf_current/ 目录下的 performance.csv 中
-  5. 读取 perf_baseline/baseline.csv 中的基线数据，与本次结果进行对比
-  6. 计算每个用例的时间变化百分比，按阈值分级输出：
-       < 20%  : PASS (正常波动)
-       20%-50%: WARNING (需关注)
-       > 50%  : FAIL (性能显著退化)
-  7. 自动处理路径，确保性能测试在正确的目录下执行
-注意：修改 US-align 源码后运行此脚本，以评估修改对计算效率的影响。
+Performance regression test script (Performance Regression Runner)
+Features:
+  1. Switch to the USalign-beta branch, compile US-align with the required modifications
+  2. Read all performance test cases from testcases_performance.txt
+  3. Run each case multiple times (default 5), extract average CPU time
+  4. Save results to performance.csv in perf_current/ directory
+  5. Read baseline data from perf_baseline/baseline.csv and compare with current results
+  6. Calculate the percentage change in time for each case, classify by threshold:
+       < 20%  : PASS (normal fluctuation)
+       20%-50%: WARNING (needs attention)
+       > 50%  : FAIL (significant performance degradation)
+  7. Automatically handle paths to ensure tests run in the correct directory
+Note: Run this script after modifying US-align source code to evaluate the impact on computational efficiency.
 """
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
@@ -43,7 +43,7 @@ def checkout(branch):
 
 def compile():
     print("Compiling modified US-align from USalign-beta...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-o", str(EXE), str(SRC)]).returncode != 0:
+    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", str(EXE), str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 def extract_time(output: str) -> float:

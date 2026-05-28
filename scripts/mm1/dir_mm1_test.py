@@ -380,9 +380,9 @@ def run_batch_tests(batches, regression_cases):
     print("-" * 50)
     case_lookup = build_case_lookup(regression_cases)
     
-    # 缁熻�＄淮搴�1锛欱ATCH 鐢ㄤ緥绾у埆
+    # Statistical dimension 1: BATCH case level
     batch_passed, batch_failed = 0, 0
-    # 缁熻�＄淮搴�2锛氭媶鍒嗗�圭骇鍒�
+    # Statistical dimension 2: split pair level
     total_split_pass, total_split_warn, total_split_fail = 0, 0, 0
 
     for batch in batches:
@@ -416,12 +416,12 @@ def run_batch_tests(batches, regression_cases):
         else:
             errs.append(f"Unsupported outfmt={outfmt} for batch cross-validation")
 
-        # 绱�鍔犳媶鍒嗗�圭骇鍒�鐨勭粺璁�
+        # Accumulate split pair level statistics
         total_split_fail += len(errs)
         total_split_warn += len(warns)
         total_split_pass += len(passes)
 
-        # 鎵撳嵃褰撳墠 BATCH 鐢ㄤ緥缁撴灉骞剁疮鍔?BATCH 绾у埆缁熻��
+        # Print current BATCH case result and accumulate BATCH level statistics
         if errs:
             print(f"FAIL ({len(errs)} business mismatch(es))")
             for err in errs: print(f"    {err}")

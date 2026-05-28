@@ -2,18 +2,18 @@
 import subprocess, os, shutil, sys, re
 from pathlib import Path
 
-"""
-创建基线文件脚本（Baseline Creator）
-功能：
-  1. 切换到干净的 master 分支，编译原始（未修改）版本的 US-align 可执行文件 (USalign_orig.exe)
-  2. 从 testcases_functional.txt 读取所有功能测试用例
-  3. 依次执行每个用例，并将完整的输出（stdout 和 stderr）保存到
-     baseline/ 目录下，作为后续回归测试的“黄金标准”
-  4. 自动为每个用例设置正确的工作目录，确保所有结构文件能被找到
-  5. 对包含 -dir/-dir2 选项的用例，自动将列表文件路径转换为绝对路径
-  6. 运行完成后打印 “Baseline created.” 提示
-注意：该脚本只应在修改源代码之前运行一次，以建立不可变的预期输出。
-"""
+“””
+Baseline file creation script (Baseline Creator)
+Features:
+  1. Switch to the clean master branch, compile the original (unmodified) US-align executable (USalign_orig.exe)
+  2. Read all functional test cases from testcases_functional.txt
+  3. Execute each case sequentially, saving the full output (stdout and stderr) to
+     the baseline/ directory as the “golden standard” for subsequent regression tests
+  4. Automatically set the correct working directory for each case, ensuring all structure files can be found
+  5. For cases with -dir/-dir2 options, automatically convert list file paths to absolute paths
+  6. Print “Baseline created.” prompt after completion
+Note: This script should be run only once before modifying the source code, to establish immutable expected output.
+“””
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 DATA_DIR = SCRIPT_DIR / "data"
@@ -38,12 +38,12 @@ def checkout(branch):
 
 def compile():
     print("Compiling original US-align from master...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-o", EXE, str(SRC)]).returncode != 0:
+    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", EXE, str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 
 def clean_slash(text: str) -> str:
-    """移除输出中 Name of Structure_X: 后面多余的 '/' 前缀"""
+    """Remove redundant '/' prefix after 'Name of Structure_X:' in output"""
     return re.sub(r'(Name of Structure_\d+:)\s*/', r'\1 ', text)
 
 
@@ -63,7 +63,7 @@ def run_baseline():
             print(f"  CWD: {workdir}")
             print(f"  CMD: {' '.join(cmd)}")
 
-            # 捕获输出，清洗后写入基线文件
+            # Capture output, clean it, then write to baseline file
             proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
             content = proc.stdout + proc.stderr
             content = clean_slash(content)

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-pdb2ss 回归测试脚本
-切换到 USalign-beta 分支，编译包含需求修改的 pdb2ss，运行全部用例，与 baseline/ 逐字节比对。
-pdb2ss 仅输出 FASTA 格式二级结构序列到 stdout，无生成文件，无 -outfmt 选项。脚本结束后恢复运行前所在分支。
+pdb2ss regression test script
+Switch to the USalign-beta branch, compile the modified pdb2ss, run all test cases, and compare byte-by-byte with baseline/.
+pdb2ss only outputs the FASTA-format secondary structure sequence to stdout, generates no files, and has no -outfmt option. Restores the branch that was active before running.
 """
 import subprocess, shutil, sys, difflib
 from pathlib import Path

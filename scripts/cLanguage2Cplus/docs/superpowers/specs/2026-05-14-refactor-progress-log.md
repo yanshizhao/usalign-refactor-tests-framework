@@ -1,5 +1,282 @@
 # USalign C → C++ 重构进度记录
 
+## 2026-05-26 L2-h 二级指针 → C++ 容器重构（阶段 0-3 启动）
+
+| 指标 | 数值 |
+|---|---|
+| 方案文档 | `2026-05-21-usalign-l2h-pointer-to-container-design.md` |
+| 已完成步骤 | L2h-00 ~ L2h-10a（11 步） |
+| 修改文件 | `basic_fun.h`（类型别名 + dist()/do_rotation Coords& 重载）、`Kabsch.h`（Kabsch Coords& 重载）、`TMalign.h`（16 个 Coords& 重载 + TMalign_main 坐标缓冲区切换 + clean_up 改造）、`USalign.cpp`（TMalign_main 调用者适配） |
+| 新增类型 | `Coords`、`DPMatrix`、`PathMat`、`IntMat`、`Rotation`、`Bond2` |
+
+### 背景
+
+此前 L2-h 被标记为"延后性能优化阶段"（第 22 类 C→C++ 映射的最后一个延后项）。2026-05-25~26 重新评估，将纯语法替换方案升级为以**提升缓存命中率**为目标的性能优化方案。
+
+方案选型：AoS 布局 `vector<array<double,3>>`（连续内存，消除碎片化）+ `reserve/push_back`（避免零初始化）。排除了 DP 矩阵拍平、缓存行对齐、多线程并行、`__restrict` 等优化方向。
+
+### 已完成的执行步骤
+
+**阶段 0：基础设施**
+| 步骤 | 内容 |
+|------|------|
+| L2h-00 | `basic_fun.h` 添加 6 个类型别名 |
+
+**阶段 1：底层热函数 Coords& 重载**
+| 步骤 | 文件 | 函数 |
+|------|------|------|
+| L2h-01 | `Kabsch.h` | `Kabsch()` — 新增 `const Coords&` 重载 |
+| L2h-02 | `TMalign.h` | `score_fun8()` + `score_fun8_standard()` — 新增 `const Coords&` 重载 |
+| L2h-03 | `basic_fun.h` | `dist()` + `do_rotation()` + `transform()` — 新增重载 |
+
+**阶段 2：TMalign.h 中层函数逐层上推**
+| 步骤 | 函数组 |
+|------|--------|
+| L2h-04 | `TMscore8_search()` + `TMscore8_search_standard()` |
+| L2h-05 | `get_score_fast()` |
+| L2h-06 | `score_matrix_rmsd_sec()` |
+| L2h-07 | `detailed_search()` + `detailed_search_standard()` |
+| L2h-08 | `get_initial5()` + `get_initial()` + `get_initial_fgt()` + `get_initial_ssplus()` |
+| L2h-09 | `standard_TMscore()` |
+
+> 阶段 2 使用 Python 脚本批量添加重载。过程中发现 `x`/`y` 参数不能直接转为 `const Coords&`（下游 `transform()` 需要非 const `double*`），改为保持 `double**`。DP 矩阵参数（`score`/`path`/`val`）也保持在 `double**`/`bool**`，因为 NWDP_TM 尚未提供对应的重载。
+
+**阶段 3：TMalign_main 坐标缓冲区实际切换**
+| 步骤 | 内容 |
+|------|------|
+| L2h-10a | `TMalign_main` 内部 `xtm`/`ytm`/`xt`/`r1`/`r2` 从 `NewArray` → `Coords`（`resize`）。`clean_up_after_approx_TM` 新增 `Coords&` 重载，保留旧 `double**` 重载供 MMalign.h 调用 |
+
+> 补充修改：`basic_fun.h` 新增 `do_rotation(double**, Coords&, ...)` 混合重载（TMalign_main 中 `xa` 仍为 `double**`，`xt` 已为 `Coords`）；`TMalign.h` 追加 `detailed_search_standard` 和 `DP_iter` 的 Coords& 重载（编译过程中发现遗漏）。
+
+### 新发现的问题
+
+#### 问题 25：Coords 连续内存 + `-ffast-math` 导致回归测试浮点差异
+
+**症状**：L2h-10a 完成后运行 `run_regression.py`，9 个用例出现 diff：
+- 6 个仅 `#Total CPU time` 差异（无业务数据变化）
+- 2 个（`all_vs_all`、`database_search`）旋转矩阵 `t[m]`/`u[m][i]` 第 10-11 位小数差异
+- 1 个（`msta_rna`）MSTA 最佳配对选择变化
+
+**根因分析**：
+`-ffast-math` 允许编译器对浮点运算做 FMA 收缩和别名分析优化。`double**`（碎片化堆分配）和 `Coords`（连续内存块）的内存布局不同，编译器对两种布局下的 Kabsch SVD 内部循环做出了不同的优化决策。Kabsch 的 SVD 迭代会累积舍入差异，导致旋转矩阵末位小数（10^-10 ~ 10^-11）分岔。
+
+**msta_rna 特例**：`US735192405` 和 `US7351924051` 的链 A 坐标完全相同，两者与 `US73519240510:J` 的比对分数理应相同。在 `double**` 下（master），碎片化内存引入 1 ULP 伪差（`...2186` vs `...2175`），j=0 严格大于 j=10。在 `Coords` 下（USalign-beta），连续内存消除了这一噪声，两分数**精确相等**（`...2453` vs `...2453`，diff=0）。MSTA 最佳配对选择逻辑使用 `<=` 比较，平局时保留 `repr_idx`（j=10），导致表格输出中 `US73519240510:J` 的配对对象从 `US7351924051:A` 变为 `US735192405:A`。
+
+**验证过程**：
+1. 在 master 分支编译二进制，确认输出与基线一致（`US7351924051:A`）
+2. 在 USalign-beta 分支添加 debug 输出 `TMave_mat[9][0]` 和 `TMave_mat[9][10]` 的 17 位精度值
+3. Master：`TM[0]=...2186`，`TM[10]=...2175`，diff = 1 ULP
+4. USalign-beta：`TM[0]=...2453`，`TM[10]=...2453`，diff = 0
+5. 进一步确认：US735192405.pdb 和 US7351924051.pdb 链 A 坐标完全相同（前 2090 行一致）
+6. MSTA 表格只输出 10 行（每个结构展示一个最佳配对），选择逻辑位于 `USalign.cpp` 第 1958 行
+7. 进一步发现选择逻辑分两步，两步的平局规则**恰好相反**：
+   - **第一步选 repr_idx**（第 1912 行）：`if (TMave_list[j] < repr_TM) continue`，用 `<`，相等时**后面覆盖前面**（遍历 j=0→10，最终 repr_idx=10）
+   - **第二步选 maxj**（第 1958 行）：`if (TMave_mat[i][j] <= maxTM) continue`，用 `<=`，相等时**保留先前的**（初始值恰好是第一步的最终结果 repr_idx=10）
+   - 因此 Coords 下两分数精确相等时，j=0 在第二步被跳过，maxj 留在第一步传下来的 10
+
+**结论**：所有差异根因为 `-ffast-math` 下连续内存布局的浮点舍入差异。消除差异的方案：(1) 去掉 `-ffast-math` 编译选项；(2) 接受差异并更新 baseline。
+
+**详细分析报告**：`2026-05-26-l2h-msta-rna-diff-analysis.md`
+
+### 待解决
+
+- [ ] 决定 `-ffast-math` 差异的处理方案（去掉 vs 接受并更新 baseline）
+- [ ] L2h-10b：TMalign_main DP 矩阵（`score`/`path`/`val`）→ `DPMatrix`/`PathMat`/`IntMat`
+- [ ] 阶段 4~10 后续步骤
+
+### 待解决
+
+- [ ] 决定 `-ffast-math` 差异的处理方案（去掉 vs 接受并更新 baseline）
+
+---
+
+## 2026-05-27 L2-h 继续推进 + 方案 3 执行
+
+### 方案决策
+
+- **采用方案 3**：DP 矩阵统一延后，聚焦坐标数组 → Coords
+- **`-ffast-math`**：接受差异，暂不更新 baseline。3 个已知 FAIL（msta_rna / database_search / all_vs_all）均为浮点舍入差异
+- **测试框架修复**：`run_regression.py` 从 PASS/CHECK 改为 PASS/WARNING/FAIL，增加 `-static` 编译参数
+
+### 已完成的执行步骤
+
+**阶段 3 收尾**
+| 步骤 | 内容 |
+|------|------|
+| L2h-10a-R1~R3 | 收尾 `resize` → `reserve+push_back` 论证后跳过（工作缓冲区 resize 适用，一次性零初始化开销可忽略） |
+
+**阶段 4：TMscore.h**
+| 步骤 | 内容 |
+|------|------|
+| L2h-11 | `score_fun8` + `score_fun8_standard` 新增 `const Coords&` 重载（含 GDT/MaxSub） |
+| L2h-12 | `TMscore8_search` + `TMscore8_search_standard` + `detailed_search_standard` 新增 `Coords&` 重载 |
+| L2h-13 | `TMscore_main` 坐标临时数组 `xtm/ytm/xt/r1/r2` → `Coords(resize)`，`clean_up` 改为 Coords& 版 |
+
+**阶段 5：其他算法头文件**
+| 步骤 | 文件 | 状态 |
+|------|------|:--:|
+| L2h-14 | SOIalign.h | ✅ `SOIalign_main` + `get_SOI_initial_assign` 坐标数组 → Coords；`SOI_assign2super`/`SOI_iter`/`SOI_super2score` 新增 Coords& 重载；`basic_fun.h` 新增 `dist(array<double,3>&, double*)` 混合重载 |
+| L2h-15 | flexalign.h | ❌ 阻塞 |
+| L2h-16 | HwRMSD.h | ❌ 阻塞 |
+| L2h-17 | NWalign.h | ⏭️ 跳过（纯 DP） |
+| L2h-18 | se.h | ⏭️ 跳过（纯 DP） |
+
+### 新发现的问题
+
+#### 问题 26：se_main Coords& 级联阻塞链
+
+**症状**：flexalign.h 和 HwRMSD.h 内部均调用 `se_main(xt, ya, ...)`，其中 `xt` 是待转换的坐标数组。将 `xt` 改为 Coords 后 `se_main` 无 Coords& 重载，编译失败。
+
+**级联链**：`se_main(Coords&)` → `NWDP_SE(Coords& x, Coords& y)` → `NWDP_SE` 在 NW.h 有两个重载（259 行 + 80 行），均需 Coords& 版本。
+
+**波及范围**：
+| 受阻文件 | 受阻原因 |
+|---------|---------|
+| flexalign.h | `xt` → Coords 后 `se_main(xt, ya, ...)` 不匹配 |
+| HwRMSD.h | 同上；另有 `Kabsch_Superpose(r1, r2, xt, ...)` 混合类型问题 |
+| MMalign.h（阶段 6） | 大概率同样受阻 |
+
+**尝试过的方案**：方向翻转（Coords& 为真实现 + double** thin wrapper）。函数体 238 行，签名字面量改写即可（`xa[i][j]` 语法等价）。但需同步级联修改 NW.h 两个 NWDP_SE 重载。
+
+**当前处置**：暂时跳过。后续统一处理：`se_main` → 方向翻转 + `NWDP_SE` 两个 Coords& 重载。届时 flexalign.h、HwRMSD.h 可一并解锁。
+
+#### 问题 27：TMalign_main 外部签名仍为 double**
+
+TMalign_main 内部坐标临时数组已切换为 Coords，但外部签名的 `xa`/`ya` 参数仍为 `double**`。flexalign.h 中 `xa_h`/`ya_h` 传给 TMalign_main，无法转换。需阶段 9（USalign.cpp）整体迁移时同步处理。
+
+> **2026-05-27 方案制定**：两条阻塞链的细化解除计划已写入 `2026-05-21-usalign-l2h-pointer-to-container-design.md`「阻塞链解除计划」章节。
+> - **阻塞链 A**（5 步）：se_main → NWDP_SE，方向翻转策略，解锁 flexalign.h + HwRMSD.h + se.cpp
+> - **阻塞链 B**（5 步）：TMalign_main / TMscore_main 外部签名，桥接重载策略，解锁 TMalign.cpp + TMscore.cpp + HwRMSD.cpp
+
+### 阻塞链解除执行
+
+**阻塞链 A：se_main → NWDP_SE**（方向翻转策略）
+| 步骤 | 文件 | 内容 | 状态 |
+|------|------|------|:--:|
+| A1 | NW.h | 两个 `NWDP_SE` 各新增 `Coords&` 重载 | ✅ |
+| A2 | se.h | `se_main` 签名 `double**` → `Coords&`（方向翻转），末尾新增 double** thin wrapper；新增 Coords& + double** 混合重载 | ✅ |
+| A3 | flexalign.h | `xt` → `Coords(resize)`，删 2 处 DeleteArray | ✅ |
+| A4 | HwRMSD.h | `xt` → `Coords(resize)` + `r1/r2` → `Coords(resize)`，删 3+3 处 DeleteArray；`Kabsch_Superpose` 新增 Coords& 重载 | ✅ |
+| A5 | se.cpp | `xa/ya` → Coords，删 `NewArray`/`DeleteArray` | ✅ |
+
+**阻塞链 B：TMalign_main / TMscore_main 外部签名**（桥接重载策略）
+| 步骤 | 文件 | 内容 | 状态 |
+|------|------|------|:--:|
+| B1 | TMalign.h | `TMalign_main` 新增 `Coords& xa/ya` 桥接重载（`vector<double*>` 视图委托 double** 版） | ✅ |
+| — | TMalign.h | `CPalign_main` 同上 | ✅ |
+| B2 | TMscore.h | `TMscore_main` 同上 | ✅ |
+| — | HwRMSD.h | `HwRMSD_main` 同上 | ✅ |
+| B3 | TMalign.cpp | `xa/ya` → Coords，删 `NewArray`/`DeleteArray` | ✅ |
+| B4 | TMscore.cpp | 同上 | ✅ |
+| B5 | HwRMSD.cpp | 同上 | ✅ |
+
+**附带解锁**
+| 文件 | 函数 | 内容 |
+|------|------|------|
+| TMalign.h | `make_sec`（蛋白质版） | 新增 `const Coords&` 重载 |
+| TMalign.h | `make_sec`（RNA 版） | 新增 `const Coords&` 重载 |
+| basic_fun.h | `dist()` | 新增 `dist(const array<double,3>&, double*)` 混合重载 |
+| basic_fun.h | `read_PDB` | 新增 `Coords&` 重载（`clear + reserve + push_back`） |
+| SOIalign.h | `SOI_super2score` | 新增 `const Coords&` 重载 |
+| se.h | `se_main` | 新增 Coords& + double** 混合重载（flexalign 调用方） |
+
+**阶段 9：USalign.cpp 主程序**
+| 步骤 | 函数 | 状态 | 说明 |
+|------|------|:--:|------|
+| L2h-35 | `TMalign()` | ❌ | xa/ya → Coords 后 `-dir` 路径 bad_alloc 崩溃（问题 28） |
+
+### 新发现的问题
+
+#### 问题 28：TMalign() xa/ya → Coords 后 `-dir` 路径 bad_alloc 崩溃
+
+**症状**：USalign.cpp `TMalign()` 函数中 xa/ya 从 `double**` → `Coords` 后，`-dir` 模式（all_vs_all 用例）运行时抛出 `std::bad_alloc`，程序崩溃。非 `-dir` 路径的 11 个用例正常。
+
+**排查状态**：已确认非 sed 误操作（回退 USalign.cpp 后恢复正常，重做后复现）。根因待查——怀疑 `-dir` 嵌套循环中 Coords 的 `clear()`/`reserve()`/`push_back()` 与原有的 `NewArray`/`DeleteArray` 内存复用模式存在语义差异。
+
+**当前处置**：USalign.cpp 保持 `double**`，延后处理。
+
+### 未完成 / 阻塞
+
+| 文件 | 状态 | 原因 |
+|------|:--:|------|
+| MMalign.h | ❌ | 39 处 NewArray，内部函数紧密耦合，`parse_chain_list` 转换后 bad_alloc，已回退。需整体规划 |
+| MMalign.cpp | ❌ | 依赖 MMalign.h |
+| qTMclust.cpp | ⏸️ | 未开始 |
+| biounitasym.cpp | ⏸️ | 未开始 |
+| USalign.cpp 其余函数 | ❌ | TMalign() bad_alloc + MMalign/mTMalign/SOIalign/flexalign 依赖未打通的路径 |
+| 阶段 10 清理 | ⏸️ | 待所有文件迁移完成后 |
+
+### 提交记录
+
+| Commit | 内容 |
+|--------|------|
+| `75a9653` | L2h-A+B — 阻塞链 A/B 解除（se_main 方向翻转 + TMalign_main 桥接 + flexalign/HwRMSD/独立.cpp 全部转换） |
+| `22ce7d7` | 阻塞链 B 完成 |
+| `0cbf19e` | A3+A4 完成（flexalign.h + HwRMSD.h） |
+| `667a3b8` | L2h-33 + L2h-26 + make_sec Coords& 重载 — pdb2ss.cpp 首次成功迁移 |
+| `cd7c928` | L2h-14 — SOIalign.h 坐标临时数组 → Coords |
+| `1f12dc6` | L2h-13 — TMscore_main 坐标临时数组 → Coords |
+
+### 下一步计划
+
+1. 排查问题 28（TMalign() `-dir` 路径 bad_alloc）
+2. 尝试 qTMclust.cpp、biounitasym.cpp（依赖链可能简单）
+3. MMalign.h 整体规划（39 处 NewArray，内部耦合严重，建议独立阶段）
+4. USalign.cpp 其余函数（MMalign、mTMalign、SOIalign、flexalign、search_databases）
+5. 阶段 10 清理旧重载 + 删除 NewArray/DeleteArray 模板
+
+---
+
+## 2026-05-26 printf → fcout 格式化输出重构
+
+| 指标 | 数值 |
+|---|---|
+| 方案文档 | `2026-05-25-printf-to-cout-via-cprint.md` |
+| Commit 数 | 3（F1+F2 / F3 / F4-F10 + .c_str() 清理） |
+| 修改文件 | 8（basic_fun.h + USalign.cpp + NWalign.h + TMscore.h + flexalign.h + TMalign.h + TMalign.cpp + qTMclust.cpp + MMalign.cpp） |
+| 完成任务 | 全项目 96 处 printf → fcout，零 printf 残留；追加清理 fcout 参数中多余的 .c_str() |
+
+### 背景
+
+此前 P-3（2026-05-15）尝试用 Python 脚本自动化 printf → cout 替换失败，格式化的 106 处 printf 被列为"设计明确不做"。2026-05-25 重新评估，制定了 fcout 包装方案：用 C++ 模板包装 `snprintf` → `std::cout`，格式字符串原封不动，确保输出逐字节一致。
+
+方案选型排除了 `std::format`（需 C++20，老服务器不兼容）和 `operator<<`（状态污染、人工重写工作量大），选定 fcout 作为务实的折中方案。
+
+### 执行计划：10 步×8 文件×96 处
+
+| 步骤 | 文件 | 函数 | 数量 |
+|------|------|------|------|
+| F1 | `basic_fun.h` | —（新增 fcout + to_cstr） | 0 |
+| F2 | `USalign.cpp` | `main()` | 3 |
+| F3 | `NWalign.h` | `output_NWalign_results()` | 12 |
+| F4 | `TMscore.h` | `output_TMscore_results()` | 24 |
+| F5 | `flexalign.h` | `output_flexalign_results()` | 19 |
+| F6 | `TMalign.h` | `output_results()` | 21 |
+| F7 | `TMalign.h` | `output_mTMalign_results()` | 13 |
+| F8 | `TMalign.cpp` | `main()` | 1 |
+| F9 | `qTMclust.cpp` | `main()` | 1 |
+| F10 | `MMalign.cpp` | `main()` | 2 |
+
+每步完成后：编译 → 开发人员手动运行回归测试 → 全部 PASS → commit。遵循"人机协作，逐步验证"原则。
+
+### 追加工作：.c_str() 清理
+
+fcout 参数中 `std::string` 的 `.c_str()` 调用不再需要（`to_cstr` 自动处理），在所有 fcout 调用点清理掉多余的 `.c_str()`。
+
+### 关键技术决策
+
+- **命名**：最终定名 `fcout`（formatted cout），简洁、C++ 风格
+- **无 `fcerr`**：源码中无 `fprintf(stderr, ...)` 调用，仅需一个 `fcout`
+- **sprintf 不替换**：8 处 `sprintf(buf, ...)` 不涉及输出流，保持原样
+
+### 未来迁移路径
+
+当所有目标环境升级到 GCC 12+（支持 C++20），fcout 可脚本化迁移到 `std::format`：
+`fcout("TM-score= %5.4f\n", TM1)` → `std::cout << std::format("TM-score= {:5.4f}\n", TM1)`
+格式字符串 `%` → `{:}` 是确定性映射，无需重新理解业务语义。
+
+---
+
 ## 2026-05-20 日终状态：全体遗漏项修复 + 最终审计
 
 ### 今日完成汇总
@@ -15,7 +292,7 @@
 
 | # | 类别 | 状态 |
 |---|------|------|
-| 1 | printf/fprintf | ❌ P-3 已取消（106处格式化输出保留） |
+| 1 | printf/fprintf | ✅ fcout 包装方案（96处 printf → fcout，零残留，2026-05-26） |
 | 2 | sprintf | ❌ P-3 已取消 |
 | 3 | strcmp → operator== | ✅ 全项目清零 |
 | 4 | atoi/atof → safe_stoi/safe_stod | ✅ 全项目完成 |
@@ -954,7 +1231,8 @@ aa9c9aa add citation to license
 
 | 项目 | 数量 | 原因 |
 |------|------|------|
-| printf/fprintf/sprintf | 106 处 | P-3 已取消 |
+| printf/fprintf | 96 处 | ✅ 2026-05-26 fcout 包装方案完成 |
+| sprintf | 8 处 | 保持原样（不涉及输出流） |
 | 二级指针 → vector | ~347 处 | L2-h 延后性能优化 |
 | Kabsch.h 循环变量内联 | 15 处 | L0-9 永久跳过 |
 | se_main/NWalign_main 方向翻转 | — | 问题 15 栈溢出 |
@@ -1382,3 +1660,116 @@ usalign_modify/                              # 主仓库 (main, 已 push)
 ### 同样适用
 
 NWalign_main 当前仍有相同的正向桥接模式，可以应用相同的精简方案。
+
+---
+
+## 2026-05-25 全部核心函数签名统一 string& + 消除 .c_str() workaround
+
+### 改动范围
+
+在问题 15 根因确认（正向桥接为罪魁祸首，`const std::string&` 签名本身安全）后，将所有受影响的函数一次性统一：
+
+| 函数 | 文件 | 改动 |
+|------|------|------|
+| `se_main` | `se.h` | 删除正向桥接，签名 `char*` → `string&`，唯一重载 |
+| `NWalign_main` | `NWalign.h` | 同上（体内 trace_back 调用保留 `.c_str()`，因子函数仍有指针运算） |
+| `soi_se_main` | `SOIalign.h` | 签名 `char*` → `string&`（原本无桥接） |
+| `TMalign_main` | `TMalign.h` | 签名 4 参数统一 `string&`（seqx, seqy, secx, secy） |
+| `CPalign_main` | `TMalign.h` | 同上 |
+| `SOIalign_main` | `SOIalign.h` | 同上 |
+| `flexalign_main` | `flexalign.h` | 同上 |
+
+全部调用点的 `.c_str()` workaround 去除（除 `qTMclust.cpp`——`seq_vec` 是 `vector<vector<char>>`，P2 遗留）。
+
+### 修改文件（9 个）
+
+`se.h`, `NWalign.h`, `SOIalign.h`, `TMalign.h`, `flexalign.h`, `MMalign.h`, `USalign.cpp`, `MMalign.cpp`, `TMalign.cpp`
+
+### 测试结果
+
+- ✅ 14 个功能回归 PASS
+- ✅ 4 个独立程序回归 PASS（TMscore 6 / HwRMSD 5 / MMalign 4 / pdb2ss 2）
+- ✅ USalign + 3 个独立程序编译通过
+
+### Commit 记录
+
+```
+0288a83 删除NWalign_main中的正向桥接模式，改签名为 const std::string&
+976086f refactor(se): se_main 签名 char*→string&，消除问题15的桥接层和 workaround
+（TMalign_main 等统一签名改动由用户自行提交）
+```
+
+---
+
+## P-3 回顾：printf → cout 格式化替换讨论（2026-05-25）
+
+### 当时为什么取消
+
+P-3（格式化 printf → snprintf+cout）在 2026-05-15 执行中被取消，两个直接原因：
+
+**问题 8（严重）**：Python 脚本正则 `\bprintf\(` 误匹配了 `sprintf(`，损坏了 4 个 .h 文件（TMalign.h, NWalign.h, TMscore.h, flexalign.h），需从旧 commit 恢复，导致之前的部分修改丢失（問題 14）。
+
+**问题 12（严重）**：当次会话所有修改未分步 commit，P-3 损坏文件后无法精确回退到 P-2 之后的状态。
+
+更深层的原因：
+- **snprintf 桥接方案**每处都要写 `char buf[256]` + `snprintf` + `cout`，散落大量 C buffer，风格收益低
+- **纯 cout 操纵器方案**`setfill`/`setprecision`/`fixed` 是全局持久状态，跨函数互相污染。回归测试逐字节比对，一个空格差异就 FAIL，调试成本极高
+
+### 纯 cout 操纵器的状态污染问题
+
+```
+std::cout << setfill('0') << setw(4) << 1;   // "0001"
+//              ↑ setfill 设为 '0'，之后永久生效
+
+std::cout << setw(4) << 2;                   // "0002" —— 被污染了！
+```
+
+所有流操纵器中只有 `setw` 是调用后自动重置，`setfill`、`setprecision`、`fixed`/`scientific` 全部永久生效——跨函数、跨文件，直到程序退出或手动恢复。USalign 的 output_results 函数有几十行格式化输出，每个调 `setfill` 的地方都要加 `<< setfill(' ')` 恢复，漏一处 → 回归测试 FAIL。
+
+### printf vs cout 机制差异
+
+| | printf | cout |
+|------|--------|------|
+| 格式指定 | 格式字符串自描述，每次独立 | 流操纵器修改全局状态，跨调用持久 |
+| 状态隔离 | 天然隔离 | setfill/setprecision/fixed 全局持久 |
+| 逐字节对齐 | 字符串不变即一致 | 需逐字节验证，边界值可能不同 |
+
+### 当前可行的替代方案
+
+**方案 A：`std::format` (C++20)**
+
+```cpp
+std::cout << std::format("TM-score= {:5.4f}\n", TM1);
+```
+- 格式字符串近似 printf，无状态持久，编译期类型安全
+- 本项目 GCC 14.2 + `-std=c++20` 已验证可用
+- 代价：要求 C++20，老环境不支持
+
+**方案 B：`cprint` 包装（无外部依赖，不要求 C++20）**
+
+```cpp
+#include <cstdio>
+#include <string>
+#include <iostream>
+
+inline const char* to_cstr(const std::string& s) { return s.c_str(); }
+inline const char* to_cstr(const char* s)         { return s; }
+template<typename T> auto to_cstr(const T& val) -> const T& { return val; }
+
+template<typename... Args>
+void cprint(const char* fmt, const Args&... args) {
+    int size = std::snprintf(nullptr, 0, fmt, to_cstr(args)...);
+    std::string buf(size, '\0');
+    std::snprintf(&buf[0], size + 1, fmt, to_cstr(args)...);
+    std::cout << buf;
+}
+```
+
+- 格式字符串原封不动，输出 100% 一致，零调试成本
+- `to_cstr` 自动处理 `std::string` → `.c_str()`，消除 UB（`std::string` 是非平凡类型，通过 C 变参传递是未定义行为）
+- 106 处改动纯机械替换 `printf(` → `cprint(`、`fprintf(stderr,` → `cprint(`
+- 15 行代码放在 `basic_fun.h`，零外部依赖
+
+### 结论
+
+当初如果先封装 `cprint` 再做全局替换，P-3 不会取消。`std::format` 是更现代的方案，但需要 C++20；`cprint` 是最务实的方案，无版本要求。两者都比当年的 snprintf 桥接干净，也比纯 cout 操纵器安全。```

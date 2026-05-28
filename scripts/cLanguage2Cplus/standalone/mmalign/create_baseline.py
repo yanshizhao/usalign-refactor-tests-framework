@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-MMalign 基线创建脚本
-切换到干净的 master 分支，提取未修改源码编译原始版 MMalign，运行全部用例，输出保存到 baseline/。
-脚本结束后恢复运行前所在分支。
+MMalign baseline creation script
+Switch to the clean master branch, extract unmodified source code, compile the original MMalign, run all test cases, and save output to baseline/.
+Restores the branch that was active before running.
 """
 import subprocess, os, shutil, sys, tempfile
 from pathlib import Path
@@ -29,7 +29,7 @@ def checkout(branch):
 
 
 def extract_master_sources(tmpdir: str):
-    """从 master 分支提取所有 .cpp .h 源码到临时目录"""
+    """Extract all .cpp and .h source files from the master branch to a temporary directory"""
     result = subprocess.run(
         ["git", "ls-tree", "--name-only", "-r", "master"],
         capture_output=True, text=True, cwd=str(USALIGN_DIR)
@@ -91,17 +91,17 @@ def run_baseline(exe_path: str):
             out_file = BASELINE_DIR / f"{name}.out"
             out_file.write_text(content, encoding="utf-8")
 
-            # MMalign -o complex1.sup 会生成 complex1.sup 和 complex1.sup.pml
+            # MMalign -o complex1.sup produces complex1.sup and complex1.sup.pml
             sup_file = workdir / "complex1.sup"
             if sup_file.exists():
                 shutil.move(str(sup_file), str(BASELINE_DIR / f"{name}.sup"))
 
-            # MMalign -m matrix.txt 会生成矩阵文件
+            # MMalign -m matrix.txt produces a matrix file
             matrix_file = workdir / "matrix.txt"
             if matrix_file.exists():
                 shutil.move(str(matrix_file), str(BASELINE_DIR / f"{name}.matrix.txt"))
 
-            # 清理 .pml 文件（不参与比对）
+            # Clean up .pml files (not included in comparison)
             for pml in workdir.glob("*.pml"):
                 pml.unlink()
 

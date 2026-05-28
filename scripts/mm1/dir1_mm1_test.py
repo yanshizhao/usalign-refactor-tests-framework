@@ -190,7 +190,7 @@ def run_usalign(work_dir, command, timeout=120):
 # ============================================================
 def run_regression_tests(cases):
     """Each format comparison counted separately. Returns (passed, warned, failed)."""
-    print(f"\n[Step 2] Regression tests: {len(cases)} cases 脳 2 formats")
+    print(f"\n[Step 2] Regression tests: {len(cases)} cases x 2 formats")
     print("-" * 60)
     passed, warned, failed = 0, 0, 0
     for case in cases:

@@ -3,15 +3,15 @@ import subprocess, os, sys, re
 from pathlib import Path
 
 """
-性能基线生成脚本（Performance Baseline Creator）
-功能：
-  1. 切换到干净的 master 分支，编译原始（未修改）版 US-align 可执行文件
-  2. 从 testcases_performance.txt 读取所有性能测试用例
-  3. 对每个用例重复运行若干次（默认 5 次），并提取每次的 #Total CPU time
-  4. 计算每个用例的平均耗时（秒），保存到 perf_baseline/baseline.csv 中
-  5. 提供命令行调试信息（CWD、CMD），并在提取失败时输出警告和程序末尾输出
-  6. 自动处理 -dir/-dir2 的路径转换，确保列表文件能被正确找到
-注意：该脚本应在修改源代码之前运行一次，以建立性能参考基线。
+Performance baseline creation script (Performance Baseline Creator)
+Features:
+  1. Switch to the clean master branch, compile the original (unmodified) US-align executable
+  2. Read all performance test cases from testcases_performance.txt
+  3. Run each case multiple times (default 5), extracting #Total CPU time from each run
+  4. Calculate the average time (seconds) for each case and save to perf_baseline/baseline.csv
+  5. Print command-line debugging info (CWD, CMD), and output warnings and program tail on extraction failure
+  6. Automatically handle -dir/-dir2 path conversion to ensure list files can be found correctly
+Note: This script should be run once before modifying the source code to establish a performance reference baseline.
 """
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
@@ -38,7 +38,7 @@ def checkout(branch):
 
 def compile():
     print("Compiling original US-align from master...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-o", EXE, str(SRC)]).returncode != 0:
+    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", EXE, str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 def extract_time(output: str) -> float:

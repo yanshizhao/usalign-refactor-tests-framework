@@ -1,7 +1,7 @@
 # TMscore standalone program test cases
-# 来源于 TMscore.cpp print_help() 中的 6 个 Example usages
-# 格式: <name> <working_dir> <arguments...>
-# <working_dir> 相对于 data/ 目录
+# Sourced from the 6 Example usages in TMscore.cpp print_help()
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
 
 tmscore_basic          help  model.pdb native.pdb -outfmt -1
 tmscore_complex        help  modelComplex.pdb nativeComplex.pdb -c -outfmt -1

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-TMscore 基线创建脚本
-切换到干净的 master 分支，提取未修改源码编译原始版 TMscore，运行全部用例，输出保存到 baseline/。
-脚本结束后恢复运行前所在分支。
+TMscore baseline creation script
+Switch to the clean master branch, extract unmodified source code, compile the original TMscore, run all test cases, and save output to baseline/.
+Restores the branch that was active before running.
 """
 import subprocess, os, shutil, sys, tempfile
 from pathlib import Path
@@ -29,7 +29,7 @@ def checkout(branch):
 
 
 def extract_master_sources(tmpdir: str):
-    """从 master 分支提取所有 .cpp .h 源码到临时目录"""
+    """Extract all .cpp and .h source files from the master branch to a temporary directory"""
     result = subprocess.run(
         ["git", "ls-tree", "--name-only", "-r", "master"],
         capture_output=True, text=True, cwd=str(USALIGN_DIR)
@@ -91,7 +91,7 @@ def run_baseline(exe_path: str):
             out_file = BASELINE_DIR / f"{name}.out"
             out_file.write_text(content, encoding="utf-8")
 
-            # TMscore -o TM_sup 会生成 TM_sup.pdb 和 TM_sup.pml
+            # TMscore -o TM_sup produces TM_sup.pdb and TM_sup.pml
             sup_pdb = workdir / "TM_sup.pdb"
             if sup_pdb.exists():
                 shutil.move(str(sup_pdb), str(BASELINE_DIR / f"{name}.pdb"))
@@ -99,7 +99,7 @@ def run_baseline(exe_path: str):
             if sup_pdb1.exists():
                 shutil.move(str(sup_pdb1), str(BASELINE_DIR / f"{name}.pdb1"))
 
-            # 清理 .pml 文件（不参与比对）
+            # Clean up .pml files (not included in comparison)
             for pml in workdir.glob("*.pml"):
                 pml.unlink()
 
