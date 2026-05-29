@@ -8,10 +8,10 @@ Features:
   1. Switch to the clean master branch, compile the original (unmodified) US-align executable (USalign_orig.exe)
   2. Read all functional test cases from testcases_functional.txt
   3. Execute each case sequentially, saving the full output (stdout and stderr) to
-     the baseline/ directory as the “golden standard” for subsequent regression tests
+     the baseline/ directory as the "golden standard" for subsequent regression tests
   4. Automatically set the correct working directory for each case, ensuring all structure files can be found
   5. For cases with -dir/-dir2 options, automatically convert list file paths to absolute paths
-  6. Print “Baseline created.” prompt after completion
+  6. Print "Baseline created." prompt after completion
 Note: This script should be run only once before modifying the source code, to establish immutable expected output.
 """
 
@@ -39,7 +39,7 @@ def checkout(branch):
 
 def compile():
     print("Compiling original US-align from master...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", EXE, str(SRC)]).returncode != 0:
+    if subprocess.run(["g++", "-O3", "-lm", "-static", "-o", EXE, str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 

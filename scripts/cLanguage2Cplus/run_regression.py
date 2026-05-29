@@ -44,7 +44,7 @@ def checkout(branch):
 
 def compile():
     print("Compiling modified US-align from USalign-beta...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", str(EXE), str(SRC)]).returncode != 0:
+    if subprocess.run(["g++", "-O3", "-lm", "-static", "-o", str(EXE), str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 
@@ -138,8 +138,8 @@ def _diff_files(base_filename, mod_filename, tag, extra_note=""):
     curr = CURRENT / mod_filename
     diff = DIFFS / f"{tag}.diff"
     try:
-        btext = strip_cpu_time(base.read_text(encoding="utf-8", errors="replace"))
-        ctext = strip_cpu_time(curr.read_text(encoding="utf-8", errors="replace"))
+        btext = clean_slash(strip_cpu_time(base.read_text(encoding="utf-8", errors="replace")))
+        ctext = clean_slash(strip_cpu_time(curr.read_text(encoding="utf-8", errors="replace")))
         if btext == ctext:
             print(f"  PASS{extra_note}")
             if diff.exists():

@@ -43,7 +43,7 @@ def checkout(branch):
 
 def compile():
     print("Compiling modified US-align from USalign-beta...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", str(EXE), str(SRC)]).returncode != 0:
+    if subprocess.run(["g++", "-O3", "-lm", "-static", "-o", str(EXE), str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 def extract_time(output: str) -> float:
