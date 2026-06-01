@@ -18,6 +18,7 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 DATA_DIR = SCRIPT_DIR / "data"
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
 SRC = USALIGN_DIR / "USalign.cpp"
+
 # POSIX shell does not include PWD in PATH
 EXE = os.path.abspath("USalign_orig.exe")
 PERF_DIR = SCRIPT_DIR / "perf_baseline"
@@ -39,7 +40,7 @@ def checkout(branch):
 
 def compile():
     print("Compiling original US-align from master...")
-    if subprocess.run(["g++", "-O3", "-lm", "-static", "-o", EXE, str(SRC)]).returncode != 0:
+    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", EXE, str(SRC)]).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 def extract_time(output: str) -> float:

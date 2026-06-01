@@ -1070,3 +1070,22 @@ MMalign_search xa/ya=Coords      → TMalign_main(Coords&,Coords&) → 同上
 flexalign_main xa/ya=double**    → TMalign_main(double**,double**) → 包装器(拷贝) → 真实现
 CPalign_main xa/ya=double**      → TMalign_main(double**,double**) → 包装器(拷贝) → 真实现
 ```
+
+---
+
+### 12.10 执行状态追踪（2026-05-30 更新）
+
+| 阶段 | 函数 | 状态 | 完成日期 | 备注 |
+|------|------|:--:|---------|------|
+| Wave 1-2 | 10 子函数 Coords& 重载 + DP 矩阵重载 | ✅ | 2026-05-28 | 自底向上拓扑排序 |
+| Wave 3 | `getCloseK` 翻转 | ✅ | 2026-05-28 | SOIalign.h |
+| Wave 3 | `se_main` 翻转 | ✅ | 2026-05-28 | 删除 double** 包装器 |
+| Wave 3 | **`TMalign_main` 翻转** | ✅ | **2026-05-29** | 半翻转：8/10 子函数走 Coords&，DP_iter/get_initial5 保留 double**。14/14 PASS |
+| Wave 3 | `flexalign_main` 翻转 | ✅ | 2026-05-30 | 全翻转：Coords& → 真实现，double** → 薄包装器。14/14 PASS |
+| Wave 3 | `TMalign_dimer_main` 翻转 | ✅ | 2026-05-30 | 半翻转：8/10 子函数走 Coords&，DP_iter_dimer/get_initial5_dimer 保留 double**。14/14 PASS |
+| Wave 3 | `SOIalign_main` 翻转 | ✅ | 2026-05-30 | 半翻转：SOI_iter/CPalign_main 保留 double**，其余走 Coords& |
+| Wave 3 | `soi_se_main` 翻转 | ✅ | 2026-05-30 | 全翻转：无 SVD 迭代，dist 直接走 Coords& 重载 |
+| Wave 4 | 清理（删旧重载 + NewArray/DeleteArray） | 🔄 | 进行中 | se/NWalign/TMscore/ya_ext 清零；剩余 39/36 待处理 |
+
+**详细计划**：见 `2026-05-14-refactor-progress-log.md` 2026-05-30 章节。
+**半翻转方法论**：见 `2026-05-29-tmalign-subfunc-flip-test.md`。

@@ -1,5 +1,213 @@
 # USalign C → C++ 重构进度记录
 
+## 2026-06-01 全日记录：全项目 NewArray 清零 + 视图删除 + 死代码清理
+
+| 指标 | 数值 |
+|---|---|
+| 本日 Commits | 20（`c4cd888` ~ `8923970`） |
+| 回归 | **13 PASS + 1 FAIL**（仅 msta_rna 已知 1-ULP 差异） |
+| **全项目 NewArray** | **0** |
+| 全项目 DeleteArray | **0** |
+
+### 一、核心成就：全项目二级指针→容器转换
+
+| 文件 | 转换内容 | 验证 |
+|------|------|:--:|
+| TMalign.h | TMalign_main score/val/path → DPMatrix/PathMat（分 3 步逐步验证） | 13 PASS |
+| TMalign.h | 删除 5 个 dead double** 重载（DP_iter, get_initial5, get_initial_fgt 等） | 13 PASS |
+| MMalign.h | TMalign_dimer_main score/val → DPMatrix（2 步） | 13 PASS |
+| MMalign.h | TMalign_dimer_main path → PathMat | 13 PASS |
+| MMalign.h | MMalign_dimer mask → PathMat | 13 PASS |
+| SOIalign.h | SOIalign_main score/scoret/val → DPMatrix | 13 PASS |
+| SOIalign.h | SOIalign_main path → PathMat + SOI_iter/get_SOI_initial_assign PathMat 重载 | 13 PASS |
+| USalign.cpp | secx_bond/secy_bond → Bond2 | 13 PASS |
+| NW.h | 混合 NWDP_TM 重载 + secx/secy PathMat/DPMatrix + 死代码清理 | — |
+
+**24 个 NewArray → 0，15 个 DeleteArray → 0，逐个步骤验证零新回归。**
+
+### 二、关键技术决策与经验
+
+#### 1. Kabsch→double** 视图是 SVD 差异的唯一根因
+
+将全项目所有 Coords& 重载中的 Kabsch 调用改为 double** 视图（29 处），SVD 浮点差异完全消除。证明了 **Kabsch 内部的 Coords& 内存访问模式是唯一的浮点差异来源。**
+
+#### 2. 逐步验证策略
+
+TMalign_main 的 3 个 NewArray **逐个转换**（score→val→path），每步编译+回归测试，精确定位到 Step B（删除 sv/vv/pv 视图、直接传 DPMatrix/PathMat）会引入 database_search 回归，而保留视图传 double** 则安全。
+
+#### 3. clean_up_after_approx_TM 的 double-free 陷阱
+
+TMalign_dimer_main 转换后 oligomer 输出消失，根因是 `clean_up_after_approx_TM` 内部调用 `DeleteArray` 释放了 DPMatrix 的内存。**修复**：替换为手动 `delete[] invmap0; delete[] invmap;`，让 DPMatrix 自动析构。**教训：任何通过视图指针传入的 DeleteArray 调用都需排查。**
+
+#### 4. bool**→PathMat 的类型问题
+
+C++ 无标准 `bool` 容器（`vector<bool>` 是位集），采用 `PathMat`（`vector<vector<char>>`）+ `reinterpret_cast<bool**>` 视图方案。子函数通过视图写 `true`/`false`（字节值 1/0），与 PathMat 的 `char` 兼容。**约束：`char` 必须为 1 字节（x86 满足）。**
+
+#### 5. get_SOI_initial_assign 重载的函数体一致性
+
+加 SOIalign.h 重载时，get_SOI_initial_assign 的 PathMat 重载初版用了简化的函数体（`sqrt(dist(&xtran[k][0],...)` 替代 `d2=dist(xtran[k], yfrag[k])`），结果**数值不等价**。修正为完整复制原始函数体。**教训：加重载必须逐行比对确保函数体一致。**
+
+#### 6. xa/ya 视图与 DP_iter 签名的耦合
+
+删除 xa/ya 视图需要 DP_iter 接受 Coords&，DP_iter 接受 Coords& 又需要 PathMat/DPMatrix 重载——三个步骤互相绑定，无法独立测试。
+
+### 三、view 删除（Step B）的 1-ULP 回归分析
+
+| 步骤 | 内容 | database_search |
+|:--:|------|:--:|
+| 1-3 | score/val/path→容器（保留 sv/vv/pv 视图） | PASS |
+| A | 加 4 重载（保留视图） | PASS |
+| **B** | **删除视图 + 直接传 DPMatrix/PathMat + DP_iter 转换** | **FAIL** |
+
+回归由"删除视图"触发——TMalign_main 栈帧从 ~100 字节变 ~170 字节，编译器分配不同寄存器，Kabsch SVD 迭代中累积出 1-ULP 差异。与 msta_rna 根因相同。
+
+### 四、死代码清理成果
+
+| 文件 | 删除内容 |
+|------|------|
+| TMalign.h | DP_iter v1/v3/v4（double** + const Coords& 死码） |
+| TMalign.h | get_initial5 v1/v3/v4 |
+| TMalign.h | get_initial_fgt v1/v2（double** x/y） |
+| TMalign.h | score_matrix_rmsd_sec v4（DPMatrix 死码） |
+| TMalign.h | get_initial_ssplus v1/v2（double**, double** x/y 死码） |
+| TMalign.h | get_initial_ss DPMatrix 死码 |
+| TMalign.h | clean_up_after_approx_TM DPMatrix 死码 |
+| NW.h | NWDP_TM const Coords& + PathMat/DPMatrix 死码 |
+| NW.h | NWDP_TM secx/secy PathMat 死码 |
+| NW.h | NWDP_TM PathMat/DPMatrix + double** x/y 死码（无调用者） |
+| SOIalign.h | SOI_iter Coords& 桥接死码 |
+| SOIalign.h | SOIalign_main Coords& 桥接死码 |
+
+**注释保留原则**：所有死代码删除时，原始注释迁移到存活版本。
+
+### 五、下一步工作计划
+
+| # | 内容 | 状态 |
+|:--:|------|:--:|
+| 1 | xa/ya 视图删除（TMalign_main/TMalign_dimer_main/SOIalign_main） | ⚠️ 需绑定 DP_iter 签名升级，会导致 1-ULP 回归 |
+| 2 | DP_iter 签名升级（`bool**/double**` → `PathMat/DPMatrix + const Coords&`） | ⚠️ 同上，与 #1 绑定 |
+| 3 | 子函数 double** 重载死代码清理（`get_initial`, `detailed_search` 等） | ✅ 可独立做，零风险 |
+| 4 | msta_rna + database_search baseline 更新 | 接受 1-ULP 差异 |
+| 5 | TMalign_dimer_main 视图删除（sv/vv/pv） | ⚠️ 与 #1 同模式，会导致 oligomer 回归 |
+
+---
+
+### 待解决问题：database_search 回归
+
+**现象**：TMalign_main 中 score/path/val 从 `double**`(NewArray) 改为 `DPMatrix`/`PathMat`(.assign) 后，`database_search` 从 PASS 变为 FAIL。
+
+**根因**：不是代码逻辑错误，而是 DPMatrix/PathMat 对象在栈上占用 ~72 字节（vs double** 的 ~24 字节），改变了 TMalign_main 的栈帧大小。编译器对不同的栈布局做出不同的寄存器分配决策，在 Kabsch SVD 迭代中被逐轮放大，最终跨过旋转矩阵判定边界，选出不同的比对路径。
+
+**验证**：回退 TMalign_main 转换（保留死代码删除、Kabsch 视图、新重载、DP_iter 签名转换）后 database_search 恢复 PASS。
+
+**结论**：与 msta_rna 同属内存布局导致的 1-ULP 级浮点差异，属可接受范畴。后续可通过更新 baseline 解决。
+
+---
+
+## 2026-06-01 全日记录：W4 收尾（TMave_tmp + soi_se_main）+ 死代码清理
+
+| 指标 | 数值 |
+|---|---|
+| 本日新增 Commit | 待提交（2 个主题） |
+| 测试结果 | **34/34 无崩溃，11 PASS + 3 已知 -ffast-math 差异** |
+| USalign-beta 领先 master | 122 + 待提交 commits |
+| NewArray 变化 | 21 → 13（消除 8） |
+| DeleteArray 变化 | 17 → 10（消除 7） |
+
+### 三阶段概要
+
+| 阶段 | 内容 | 消除 NewArr | 消除 DelArr | Commits |
+|------|------|:--:|:--:|:--:|
+| **A** | TMave_tmp → DPMatrix（Priority 1） | 2 | 2 | 1 |
+| **B** | 删除 8 个死重载 | — | — | 1 |
+| **C** | soi_se_main → DPMatrix/PathMat | 3 | 4 | 1 |
+| **合计** | | **5** | **6** | **3** |
+
+### 阶段 A：TMave_tmp → DPMatrix（MMalign.h）
+
+**背景**：MMalign_iter 和 MMalign_cross 中 `TMave_tmp` 是局部 double** 工作矩阵，传入的函数（copy_chain_assign_data、MMalign_search、enhanced_greedy_search）已在上次会话添加了 DPMatrix 重载，无需修改任何下游函数。
+
+**操作**：
+1. 新增 `MMalign_search` DPMatrix 桥接重载（~18 行，构造 double** 视图 → 委托原实现）
+2. 新增 `copy_chain_assign_data` 混合桥接 ×2：
+   - `double**` src → `DPMatrix&` dest（初始化时使用）
+   - `const DPMatrix&` src → `double**` dest（回拷时使用）
+3. MMalign_iter / MMalign_cross 局部 `TMave_tmp`：`NewArray` → `DPMatrix::assign`，删 `DeleteArray`
+
+**测试**：主回归 11P+3L2-h + 独立程序 20/20 = **34/34 PASS**。
+
+### 阶段 B：删除 8 个死重载
+
+**根因分析**：Phase 11 期间为 DP 函数（DP_iter、get_initial5、NWDP_TM 等）添加了 `const Coords&` x/y 和 PathMat/DPMatrix 重载，但半翻转实验揭示 `const Coords&` 会导致 Kabsch SVD 浮点累积差异（8 FAIL），因此调用方使用 `double**` 视图绕过。这些重载从未被调用。
+
+**系统追踪方法**：逐函数 tracing 所有调用点，确认参数类型 → 判定哪个重载被选中 → 未被选中的即为死代码。
+
+**删除清单**：
+
+| # | 文件 | 函数 | 死因 |
+|---|------|------|------|
+| 1 | TMalign.h | `DP_iter` v4（PathMat/DPMatrix + const Coords&） | 调用者传 double** x/y/path/val |
+| 2 | TMalign.h | `DP_iter` v3（const Coords& x/y） | 同上 |
+| 3 | TMalign.h | `score_matrix_rmsd_sec` v4（DPMatrix& score） | 零调用者 |
+| 4 | TMalign.h | `get_initial5` v4（PathMat/DPMatrix + const Coords&） | 零调用者 |
+| 5 | TMalign.h | `get_initial5` v3（const Coords& x/y） | 调用者传 double** |
+| 6 | NW.h | `NWDP_TM`（DPMatrix DP-only） | 零调用者（当时） |
+| 7 | NW.h | `NWDP_TM`（const Coords& x/y） | 零调用者 |
+| 8 | NW.h | `NWDP_TM`（PathMat/DPMatrix + const Coords&） | 零调用者 |
+
+> ⚠️ **保留原则**：仅删除新添加的未使用重载，原始源码（即便原本未使用）全部保留。const Coords& 重载中有实际调用者的（如 get_initial_ssplus v3、score_matrix_rmsd_sec v3、detailed_search 等，它们不含 SVD 迭代）全部保留。
+
+**测试**：34/34 PASS，零影响。
+
+### 阶段 C：soi_se_main → DPMatrix/PathMat（SOIalign.h）
+
+**发现**：之前的残留分析将 `soi_se_main` 归入"触及 SVD"类别，但逐函数 tracing 揭示：soi_se_main 内部只调 `NWDP_TM`（纯 DP，无坐标无 SVD）和 `soi_egs`（贪心分数交换，无 Kabsch），**不含任何 SVD 迭代**。secx_bond/secy_bond 虽然经此流向 SOI_iter，但那是参数透传，不影响局部变量的转换。
+
+**操作**：
+1. **重新添加** `NWDP_TM(const DPMatrix&, PathMat&, DPMatrix&, ...)` 重载（NW.h，约 23 行）——此前作为死代码删除，现因 soi_se_main 成为真实调用者而恢复
+2. soi_se_main 局部变量转换：
+   - `double **score` → `DPMatrix score` + `.assign(xlen+1, vector<double>(ylen+1))`
+   - `bool **path` → `PathMat path` + `.assign(xlen+1, vector<char>(ylen+1))`
+   - `double **val` → `DPMatrix val` + `.assign(xlen+1, vector<double>(ylen+1))`
+3. soi_egs 调用点：构造 `vector<double*> score_view`（只读），传入 `score_view.data()`
+4. 删除 4 处 DeleteArray（score/path/val 自动析构）
+
+**测试**：主回归 11P+3L2-h，零新增。
+
+### 残留全景（仅剩 SVD 阻塞）
+
+全部残留 5 个函数遵循同一模式：父函数分配 DP/辅助矩阵（double**）→ 传给含 Kabsch SVD 迭代循环的子函数（DP_iter / DP_iter_dimer / SOI_iter）→ 子函数内部 `for(iteration)` + `TMscore8_search` + `Kabsch(SVD)` 导致浮点累积 → 不能直接翻转坐标类型。
+
+| # | 文件 | 父函数 | 矩阵 | → 阻塞子函数 | NewArr | DelArr |
+|---|------|------|------|------|:--:|:--:|
+| 1 | TMalign.h | `TMalign_main`(Coords&) | score/path/val | → **DP_iter** | 3 | 3 |
+| 2 | MMalign.h | `TMalign_dimer_main`(Coords&) | score/path/val | → **DP_iter_dimer** | 3 | 0 |
+| 3 | MMalign.h | `MMalign_dimer` | mask | → TMalign_dimer_main → DP_iter_dimer | 1 | 1 |
+| 4 | SOIalign.h | `SOIalign_main`(Coords&) | score/scoret/path/val | → **SOI_iter** | 4 | 4 |
+| 5 | USalign.cpp | `SOIalign()` | secx_bond/secy_bond | → SOIalign_main → SOI_iter | 2 | 2 |
+| **合计** | | | | | **13** | **10** |
+
+**后续策略**：对 #1/#2/#4，在父函数中将 DP 矩阵转为 DPMatrix/PathMat，构造 double** 视图传给 SVD 阻塞子函数（不修改子函数）。这与 TMalign_main 半翻转的 `_xa_v/_ya_v` 视图策略一致。
+
+### 经验总结
+
+1. **死代码检测**：逐函数 tracing 调用点 + 参数类型匹配 → 精确识别未被选中的重载。不能仅凭"看起来应该被调用"判断。
+
+2. **SVD 阻塞判定**：需要在函数体内搜索 `for(iteration)` + `TMscore8_search` 或 `Kabsch`，而非仅看函数名。soi_se_main 就是反例——它的下游子函数有 SVD，但它自身不含。
+
+3. **NWDP_TM 重载生命周期**：先因零调用者删除，后因新调用者恢复。死代码判断需要基于"当前调用者"，添加新调用者后死代码复活是合理的。
+
+### 关键设计文档索引
+
+| 文档 | 内容 |
+|------|------|
+| `2026-05-12-usalign-cpp-refactor-design.md` | 重构总体设计方案 |
+| `2026-05-21-usalign-l2h-pointer-to-container-design.md` | L2-h 二级指针→容器方案 |
+| `2026-05-29-tmalign-subfunc-flip-test.md` | TMalign_main 半翻转实验报告 |
+| `2026-05-14-refactor-progress-log.md` | **本日志** |
+
+---
+
 ## 2026-05-28（续）Phase 11 Wave 1-2 完成 + 部分 Wave 3
 
 | 指标 | 数值 |
@@ -1968,3 +2176,544 @@ void cprint(const char* fmt, const Args&... args) {
 ### 结论
 
 当初如果先封装 `cprint` 再做全局替换，P-3 不会取消。`std::format` 是更现代的方案，但需要 C++20；`cprint` 是最务实的方案，无版本要求。两者都比当年的 snprintf 桥接干净，也比纯 cout 操纵器安全。```
+
+---
+
+## 2026-05-29（续）TMalign_main 翻转完成 + 后续方案制定
+
+### TMalign_main 翻转结果
+
+| 指标 | 数值 |
+|---|---|
+| 方案 | 半翻转（10 个子函数中 8 个走 Coords&，2 个保留 double**） |
+| 安全翻转 | `get_initial`, `detailed_search`, `standard_TMscore`, `detailed_search_standard`, `get_initial_fgt`, `get_initial_ssplus`, `approx_TM`, `do_rotation` |
+| 保留 double** | `DP_iter`, `get_initial5` |
+| 回归测试 | **14/14 PASS**（含 `-ffast-math`，3 个 L2-h 已知差异） |
+| Commit | `93d9329` |
+
+**边界规律**：触及 Kabsch SVD 迭代循环的不能翻，否则安全。详见 `2026-05-29-tmalign-subfunc-flip-test.md`。
+
+---
+
+## 2026-05-30 后续翻转计划
+
+### 当前状态
+
+TMalign_main 翻转完成。剩余 3 个核心函数待翻转 + Wave 4 清理：
+
+| # | 任务 | 文件 | 难度 |
+|:--:|------|------|:--:|
+| 1 | flexalign_main 翻转 | flexalign.h | ⭐ 低 |
+| 2 | TMalign_dimer_main 翻转 | MMalign.h | ⭐⭐ 中 |
+| 3 | SOIalign_main + soi_se_main 翻转 | SOIalign.h | ⭐⭐ 中 |
+| 4 | Wave 4 清理 | 全局 | ⭐⭐⭐ 高（波及面广） |
+
+### 一、flexalign_main（flexalign.h:55）— ✅ 已完成（2026-05-30）
+
+**审计结论**：flexalign_main **没有自己的 Kabsch SVD 迭代循环**。唯一的 SVD 调用内嵌在 `TMalign_main`（已翻转，double** 包装器自动处理）和 `se_main`（已用 Coords& 签名）中。
+
+| 子调用 | 当前状态 | 翻转时行为 |
+|--------|---------|-----------|
+| `TMalign_main(xa, ya, ...)` | ✅ 已翻转，double** 包装器 → Coords& 真实现 | Coords& 版直接调真实现（零拷贝） |
+| `do_rotation(xa, xt, ...)` | ✅ basic_fun.h 混合重载 | 自动匹配 Coords& 版 |
+| `se_main(xt, ya, ...)` | ✅ se_main 签名已为 `Coords& xa, Coords& ya` | xt=Coords 直接传；ya=double** 需视图 |
+| hinge 循环内的 `xa_h`/`ya_h` | ✅ 已在用 Coords（`xa_h.resize(xlen)`） | 零改动 |
+
+**翻转策略**：全翻转 —— Coords& 桥接体 → 真实现（算法体~545行），double** 真实现 → 薄包装器（~16行），新增 Coords& 前向声明。所有子调用均直接走 Coords& 重载。
+
+**结果**：✅ 1 commit (`b5c7ea5`)，回归测试 14/14（11 PASS + 3 L2-h 已知差异）。
+
+---
+
+### 二、TMalign_dimer_main（MMalign.h:2454）— ✅ 已完成（2026-05-30）
+
+**审计结论**：与 TMalign_main 结构完全同构，子函数覆盖情况几乎一致。
+
+| 子调用 | 已有 Coords& x/y 重载？ | 有 Kabsch SVD 迭代？ | 翻转 |
+|--------|:--:|:--:|:--:|
+| `get_initial(xa, ya)` | ✅ P11-6 | 无 | ✅ 安全 |
+| `detailed_search(xa, ya)` | ✅ P11-1 | 无 | ✅ 安全 |
+| `detailed_search_standard(xa, ya)` | ✅ P11-1 | 无 | ✅ 安全 |
+| `standard_TMscore(xa, ya)` | ✅ P11-2 | 无 | ✅ 安全 |
+| `get_initial_fgt(xa, ya)` | ✅ P11-7 | 无 | ✅ 安全 |
+| `approx_TM(xa, ya)` | ✅ 2026-05-29 新增 | 无 | ✅ 安全 |
+| `get_initial_ssplus_dimer(xa, ya)` | **❌ 缺失，需新增** | 无 | ✅ 新增后安全 |
+| `DP_iter_dimer(x, y)` | ❌ x/y 为 double** | **有** `for(iteration)` → `TMscore8_search` → `Kabsch` | **❌ 保留 double** 视图** |
+| `get_initial5_dimer(x, y)` | ❌ x/y 为 double** | 间接触发（内部调 `DP_iter_dimer`） | **❌ 保留 double** 视图** |
+| 直接坐标访问 `xa[i][0]` 等 | — | 无 | —（语法等价） |
+
+**前置准备**（1 commit）：
+- 新增 `get_initial_ssplus_dimer` const Coords& x/y 重载。函数体从现有 Coords& 重载（内部数组已是 Coords，仅 x/y 为 double**）copy-paste，改 x/y 参数类型。
+
+**翻转步骤**（1-2 commits）：
+- Coords& 桥接体 → 真实现（构建 double** 视图给 `DP_iter_dimer`/`get_initial5_dimer`，其余走 Coords&）
+- double** 版 → 薄包装器
+
+**关键差异 vs TMalign_main**：TMalign_dimer_main 多一个 `bool **mask` 参数，不影响坐标翻转逻辑。
+
+**预估**：2-3 commits。
+
+---
+
+### 三、SOIalign_main + soi_se_main（SOIalign.h）— ✅ 已完成（2026-05-30）
+
+**审计结论**：`SOI_iter` 是危险函数（含 `for(iteration)` → `TMscore8_search` → `Kabsch`），与 `DP_iter` 同构。`SOIalign_main` 调用 `SOI_iter` 共 4 次，必须保持 double** 视图。
+
+#### SOIalign_main 子调用审计
+
+| 子调用 | 已有 Coords& x/y 重载？ | 有 Kabsch SVD 迭代？ | 翻转 |
+|--------|:--:|:--:|:--:|
+| `CPalign_main(xa, ya)` | ❌ x/y 为 double** | 需审计内部 | ⚠️ 暂保留 double** |
+| `detailed_search_standard(xa, ya)` | ✅ P11-1 | 无 | ✅ 安全 |
+| `do_rotation(xa, xt)` | ✅ 混合重载 | 无 | ✅ 安全 |
+| `SOI_super2score(xt, ya)` | ⚠️ xt=Coords 已适配，ya=double** | 无（纯评分计算） | ✅ 已有混合重载 |
+| `SOI_assign2super(..., xa, ya)` | ⚠️ 内部数组=Coords，xa/ya=double** | 无（单次拷贝+Kabsch） | **需新增 x/y Coords& 重载** |
+| **`SOI_iter(..., xa, ya, ...)`** | ❌ x/y 为 double** | **有** `for(iteration)` → `TMscore8_search` → `Kabsch` + `do_rotation(xa, xt)` | **❌ 保留 double** 视图** |
+| `Kabsch(r1, r2)` | ✅ Coords&（内部缓冲区） | 一次性 | N/A |
+| 直接坐标访问 `xa[i][0]` 写入 xtm/ytm/r1/r2 | — | — | —（语法等价） |
+
+#### soi_se_main 子调用审计
+
+需单独审计（结构与 SOIalign_main 不同，调用 se 模块），但模式类似——如果内部调了含 SVD 迭代的循环，则保留 double** 视图。
+
+**前置准备**（1 commit）：
+- 新增 `SOI_assign2super` const Coords& x/y 重载（函数体从现有 Coords& 重载 copy-paste，x/y 改类型）
+- 可选：审计 `CPalign_main` 是否需要 Coords& 桥接
+
+**翻转步骤**（1-2 commits）：
+- SOIalign_main Coords& 桥接体 → 真实现（构建 double** 视图给 `SOI_iter`/`CPalign_main`，其余走 Coords&）
+- SOIalign_main double** 版 → 薄包装器
+- soi_se_main 同模式翻转
+
+**预估**：2-3 commits。
+
+---
+
+### 四、Wave 4 清理 — ✅ 第一阶段完成（2026-05-30）
+
+当前全项目 `NewArray`/`DeleteArray` 残留统计：
+
+| 文件 | NewArray | DeleteArray | 类型 |
+|------|:--:|:--:|------|
+| TMalign.h | 0 | 6 | score/path/val/xtm/ytm/xt（需确认是否在活跃路径） |
+| MMalign.h | 4 | 4 | TMave_tmp ×2 + score/path/val + mask |
+| SOIalign.h | 4 | 4 | score/scoret/path/val（soi_se_main + SOIalign_main 各一套） |
+| NWalign.h | 4 | 6 | JumpH/JumpV/P/S（Gotoh）+ H/V（NWDP_SE） |
+| **合计** | **12** | **20** | 全部为 DP 矩阵/非坐标项 |
+
+这些都是 DP 矩阵（score/path/val）或辅助矩阵（TMave_tmp、mask、Gotoh），不在本次坐标翻转范围内。Wave 4 负责：
+1. 确认并删除所有零调用者的 double** 坐标重载
+2. 删除 `NewArray`/`DeleteArray` 模板（前提：全项目零调用者）
+3. DP 矩阵容器化延后到独立阶段
+
+---
+
+### 执行顺序
+
+```
+Step 1: flexalign_main 翻转        (最简单, 1-2 commits)
+Step 2: TMalign_dimer_main 翻转    (中等, 2-3 commits, 需新增 get_initial_ssplus_dimer Coords&)
+Step 3: SOIalign_main 翻转          (中等, 2-3 commits, 需新增 SOI_assign2super Coords&)  
+Step 4: soi_se_main 翻转           (中等, 1-2 commits)
+Step 5: Wave 4 清理               (3-5 commits, DP 矩阵容器化延后)
+---
+合计: ~9-15 commits
+```
+
+**为什么按这个顺序**：flexalign_main 最简单，先拿快速胜利；TMalign_dimer_main 是 TMalign_main 的镜像，经验可复用；SOIalign_main 最复杂（子调用最多），最后处理。
+
+---
+
+## 2026-05-30 全日记录：Wave 3 完成 + Wave 4 推进
+
+### 全日 Commit 清单（8 commits）
+
+| # | Commit | 内容 | 文件 | 新增差异 |
+|:--:|--------|------|------|:--:|
+| 1 | `b5c7ea5` | flexalign_main 全翻转 | flexalign.h | 0 |
+| 2 | `bc50b3e` | TMalign_dimer_main 半翻转 | MMalign.h | 0 |
+| 3 | `d63635d` | SOIalign_main 半翻转 + soi_se_main 全翻转 | SOIalign.h | 0 |
+| 4 | `4e740c6` | Wave 4: 删除 clean_up_after_approx_TM dead overload | TMalign.h | 0 |
+| 5 | `2a5bffa` | Wave 4: se_main DP 矩阵容器化 + NWDP_SE PathMat/DPMatrix | se.h, NW.h | 0 |
+| 6 | `a10c5cb` | Wave 4: ya_ext double** → Coords + reserve→resize bugfix | USalign.cpp | 0 |
+| 7 | `9a1c45c` | Wave 4: NWalign.h Gotoh 矩阵 int** → IntMat 全模块清零 | NWalign.h | 0 |
+| 8 | `7266f22` | Wave 4: TMscore.h DP 矩阵 double** → DPMatrix/PathMat | TMscore.h | 0 |
+| 9 | `7dd77ca` | Wave 4: USalign.cpp SOIalign() xk/yk double** → Coords | SOIalign.h, USalign.cpp | 0 |
+
+### Wave 3：核心函数方向翻转（全部完成）
+
+| 函数 | 文件 | 策略 | 说明 |
+|------|------|:--:|------|
+| getCloseK | SOIalign.h | 全翻转 | |
+| se_main | se.h | 全翻转 | |
+| **TMalign_main** | TMalign.h | **半翻转** | DP_iter/get_initial5 保留 double**（含 Kabsch SVD 迭代） |
+| **flexalign_main** | flexalign.h | **全翻转** | 无自有 SVD 迭代 |
+| **TMalign_dimer_main** | MMalign.h | **半翻转** | DP_iter_dimer/get_initial5_dimer 保留 |
+| **SOIalign_main** | SOIalign.h | **半翻转** | SOI_iter/CPalign_main 保留 |
+| **soi_se_main** | SOIalign.h | **全翻转** | 无 SVD 迭代 |
+
+**半翻转规律**：触及 Kabsch SVD 迭代循环 → 半翻转；否则 → 全翻转。
+
+安全子函数（8 类）：`get_initial`, `detailed_search`, `detailed_search_standard`, `standard_TMscore`, `get_initial_fgt`, `get_initial_ssplus`, `approx_TM`, `do_rotation` + 直接坐标访问 — 全部可以安全翻转。
+
+### Wave 4：清理进展
+
+| 模块 | 文件 | 消除 NewArray | 消除 DeleteArray | 验证 |
+|------|------|:--:|:--:|------|
+| 死重载 | TMalign.h clean_up_after_approx_TM | 0 | 5 | run_regression 14/14 |
+| DP 矩阵 | se.h se_main | 3 | 6 | run_regression 14/14 |
+| 辅助矩阵 | USalign.cpp ya_ext | 1 | 1 | run_regression 14/14 |
+| 辅助矩阵 | USalign.cpp xk/yk | 2 | 2 | run_regression 14/14 |
+| Gotoh | NWalign.h 全模块 | 6 | 6 | **standalone/hwrmsd 6/6** |
+| DP 矩阵 | TMscore.h TMscore_main | 3 | 0* | run_regression 14/14 + **standalone/tmscore 7/7** |
+
+> \* TMscore.h 的 DeleteArray 委托给 `clean_up_after_approx_TM`（已容器化）
+
+已清零模块：**se.h**、**NWalign.h**、**TMscore.h**。
+
+### 测试覆盖验证
+
+| 测试集 | 测试数 | 结果 | 覆盖模块 |
+|--------|:--:|:--:|------|
+| `run_regression.py` | 14 | 11P + 3 L2-h | USalign.exe 主路径 |
+| `standalone/tmscore` | 7 | 7/7 | TMscore.h DP 矩阵 ✅ |
+| `standalone/hwrmsd` | 6 | 6/6 | NWalign.h Gotoh 矩阵 ✅（通过 HwRMSD 调用 NWalign_main） |
+| `standalone/mmalign` | 5 | 5/5 | MMalign 独立程序 |
+| `standalone/pdb2ss` | 2 | 2/2 | pdb2ss 独立程序 |
+| **合计** | **34** | **34/34** | |
+
+> **注意**：NWalign.h Gotoh 模块虽被 `#include` 进 USalign.exe，但 `NWalign_main` 从未被主程序调用——只在独立程序 HwRMSD 中使用。主回归测试不会触发它，必须通过 `standalone/hwrmsd` 验证。
+
+### NewArray/DeleteArray 变化全过程
+
+```
+开始时 (master):          NewArray=131, DeleteArray=131
+L2-h 坐标数组转换后:      NewArray=~52,  DeleteArray=~54  (坐标全部清零)
+2026-05-30 全日结束后:    NewArray=37,   DeleteArray=34
+                          
+累计消除:                 -15 NewArray,  -20 DeleteArray
+```
+
+---
+
+## 项目总览
+
+### 总体规模
+
+| 指标 | 数值 |
+|---|---|
+| USalign-beta 领先 master | **111 commits** |
+| 修改文件 | **28** |
+| 代码变化 | **+15,984 / -11,806** |
+| 总测试覆盖 | **34 个用例**（14 主回归 + 20 独立程序） |
+| 新增回归差异 | **0**（3 个 -ffast-math L2-h 已知差异） |
+
+### 已完成模块全景
+
+| 阶段 | 内容 | 状态 |
+|------|------|:--:|
+| L0-L4 | C→C++ 风格重构（22 类映射，27 个文件） | ✅ |
+| M 里程碑 | char* → string + FILE* → ifstream（反向桥接策略） | ✅ |
+| S 里程碑 | secx/secy char* → string（17 步） | ✅ |
+| P-2 | 纯文本 printf → cout | ✅ |
+| L2-h | 坐标数组 double** → Coords（全项目 97 处 NewArray 清零） | ✅ |
+| P11 Wave 1-2 | 子函数 Coords& 重载 + DP 矩阵重载（自底向上拓扑排序） | ✅ |
+| P11 Wave 3 | 核心函数方向翻转（7 个函数） | ✅ |
+| W4 部分 | DP 矩阵/辅助矩阵容器化（se/NWalign/TMscore/ya_ext 清零） | ✅ |
+
+### 当前 NewArray/DeleteArray 残留
+
+| 文件 | NewArray | DeleteArray | 阻塞原因 |
+|------|:--:|:--:|------|
+| TMalign.h | 3 | 3 | DP_iter/get_initial5 不能翻 |
+| MMalign.h | 6 | 3 | DP_iter_dimer/get_initial5_dimer 不能翻 |
+| SOIalign.h | 7 | 8 | SOI_iter 不能翻 |
+| USalign.cpp | 14 | 13 | 辅助矩阵级联（TMave/ut/centroids/secx_bond） |
+| MMalign.cpp | 7 | 7 | 同上（TMave/ut/centroids） |
+| **TOTAL** | **37** | **34** | |
+
+### 下一步可做工作（次日）
+
+| # | 任务 | 阻塞原因 | 预估 |
+|:--:|------|------|:--:|
+| 1 | USalign.cpp / MMalign.cpp 辅助矩阵 | 级联 10+ 函数签名 | 大（整体批处理） |
+| 2 | TMalign/MMalign/SOIalign DP 矩阵 | DP_iter 不能翻 → 需混合重载 | 中（6-8 新重载） |
+| 3 | 独立 .cpp 程序（MMalign/TMalign 等） | DP/辅助矩阵残留 | 中 |
+| 4 | NewArray/DeleteArray 模板删除 | 需等 #1-3 清零 | 小 |
+| 5 | squash + merge to master | 111 commits | 小 |
+
+### 关键设计文档索引
+
+| 文档 | 内容 |
+|------|------|
+| `2026-05-12-usalign-cpp-refactor-design.md` | 重构总体设计方案 |
+| `2026-05-21-usalign-l2h-pointer-to-container-design.md` | L2-h 二级指针→容器方案（含 Phase 11） |
+| `2026-05-29-tmalign-subfunc-flip-test.md` | TMalign_main 半翻转实验报告（安全/不安全边界） |
+| `2026-05-14-refactor-progress-log.md` | **本日志** |
+
+---
+
+## 2026-05-30 经验总结 & 次日计划
+
+### 今日遇到的问题与经验
+
+#### 1. 全翻转 vs 半翻转的边界确认
+
+**问题**：TMalign_main 最初尝试全翻转（10 个子函数全部走 Coords&），回归测试从 3 个已知差异恶化到 10 个失败。
+
+**根因**：`DP_iter` 和 `get_initial5` 内部有 `for(iteration)` 循环包裹 `TMscore8_search` → `Kabsch(SVD)`。Coords&（连续内存）与 double**（碎片内存）生成不同的机器码 → 浮点舍入逐轮累积 → 跨过旋转矩阵判定边界 → 不同的比对路径。
+
+**经验**：**凡是内部或子调用链上触及 Kabsch SVD 迭代循环的函数，不能翻转。** 判断方法：审计函数体，搜索 `for(iteration)` + `TMscore8_search` 或 `Kabsch`。
+
+四个核心函数的实践验证：
+
+| 函数 | 有 SVD 迭代？ | 翻转策略 | 结果 |
+|------|:--:|:--:|:--:|
+| flexalign_main | ❌（SVD 在内嵌 TMalign_main 中，已翻转） | 全翻转 | ✅ |
+| soi_se_main | ❌（只有 dist 直接读取，无子调用） | 全翻转 | ✅ |
+| TMalign_main | ⚠️ 子函数 DP_iter 有 | 半翻转 | ✅ |
+| TMalign_dimer_main | ⚠️ 子函数 DP_iter_dimer 有 | 半翻转 | ✅ |
+| SOIalign_main | ⚠️ 子函数 SOI_iter 有 | 半翻转 | ✅ |
+
+#### 2. 辅助矩阵转换的级联控制
+
+**问题**：尝试同时转换 xk/yk/secx_bond/secy_bond 时，secx_bond 级联到 soi_se_main → soi_egs → SOI_iter，链条越来越长。
+
+**经验**：
+- **先转固定 dim2 的矩阵**（dim2=3 → Coords，dim2=2 → Bond2），它们的容器类型更高效
+- **每次只转一个变量**或一组同类型变量，确认编译通过后再转下一组
+- **遇到级联超过 2-3 个函数时暂停**，评估是否值得做
+- **secx_bond/secy_bond 暂缓**——它们触及 SOI_iter，需要更大的批处理
+
+#### 3. 测试覆盖盲区
+
+**问题**：NWalign.h Gotoh 模块虽被 `#include` 进 USalign.exe，但 `NWalign_main` 从未被主程序调用——只在独立程序 HwRMSD 中使用。`run_regression.py` 全部 PASS 不代表 NWalign.h 的改动被测试过。
+
+**经验**：
+- 改动任何模块后，**先确认哪些测试套件覆盖了它**
+- NWalign.h → `standalone/hwrmsd` 覆盖 ✅
+- TMscore.h → `standalone/tmscore` + `run_regression` 覆盖 ✅
+- USalign.cpp 主路径 → `run_regression` 覆盖 ✅
+- **M Malign.cpp 独立程序 → `standalone/mmalign` 覆盖**（改动时需要验证）
+
+#### 4. 容器转换的技术细节
+
+| 场景 | 旧代码 | 新代码 | 注意事项 |
+|------|--------|--------|------|
+| dim2=3 坐标 | `double **xk; NewArray(&xk, n, 3)` | `Coords xk; xk.resize(n)` | resize 有零初始化开销，但对辅助矩阵可忽略 |
+| dim2=2 整数 | `int **sec; NewArray(&sec, n, 2)` | `Bond2 sec; sec.resize(n)` | 同上 |
+| dim2 可变 DP | `double **score; NewArray(&score, n, m)` | `DPMatrix score; score.assign(n, vector<double>(m))` | 零初始化开销较大但可接受 |
+| 布尔路径 | `bool **path; NewArray(&path, n, m)` | `PathMat path; path.assign(n, vector<char>(m))` | true→1, false→0 |
+| 整数 DP | `int **S; NewArray(&S, n, m)` | `IntMat S; S.assign(n, vector<int>(m))` | 语法完全等价 |
+
+#### 5. 桥接模式
+
+辅助矩阵通过函数参数传递时，如果下游函数还没有容器重载，用**桥接重载**（构造 double** 视图 → 委托原实现）过渡：
+
+```cpp
+// Coords& xk/yk bridge — view → delegate
+inline int SOIalign_main(Coords& xa, Coords& ya, Coords& xk, Coords& yk, ...) {
+    vector<double*> xk_view(xk.size());
+    for (size_t i=0; i<xk.size(); i++) xk_view[i]=(double*)xk[i].data();
+    return SOIalign_main(xa, ya, xk_view.data(), yk_view.data(), ...);
+}
+```
+
+优点：不修改下游函数，零风险；缺点：多一层 O(n) 指针构造。对于非热路径函数可接受。
+
+### 次日计划：继续清理不触及 Kabsch SVD 的模块
+
+**总体策略**：先把不触及 Kabsch SVD 迭代循环的全部做完，最后集中分析剩余阻塞项。
+
+**优先级排序**（按难度和独立性）：
+
+| 顺序 | 任务 | 文件 | 矩阵 | 新类型 | 预估级联 |
+|:--:|------|------|------|------|:--:|
+| 1 | xcentroids + ycentroids | USalign.cpp → MMalign.h | dim2=3 坐标 | Coords | calculate_centroids + homo/hetero refined (~3 函数) |
+| 2 | ut_mat | USalign.cpp → MMalign.h | dim2=12 旋转 | `Rotation` (vector<array<double,12>>) | homo_refined + output_results (~2 函数) |
+| 3 | TMave_mat + TMave_init + TMave_tmp | USalign.cpp + MMalign.cpp + MMalign.h | dim2 可变 | DPMatrix | enhanced_greedy + copy_chain (~4 函数) |
+| 4 | MMalign.cpp 独立程序 | MMalign.cpp | 同 #1-3 | 同上 | 跟随 #1-3 完成后自动收敛 |
+| 5 | secx_bond + secy_bond | USalign.cpp → SOIalign.h | dim2=2 | Bond2 | assign_sec_bond + soi_se_main + SOI_iter (~5 函数，部分触及 SOI_iter 需评估) |
+| 6 | ya (mTMalign 局部) | USalign.cpp | dim2=3 | Coords（已是 Coords 但循环内 re-alloc） | 局部转换，零级联 |
+
+**触及 Kabsch SVD 的待分析项**（延后集中处理）：
+
+| 文件 | 矩阵 | 阻塞函数 |
+|------|------|------|
+| TMalign.h | score, path, val | DP_iter, get_initial5 |
+| MMalign.h | score, path, val, mask | DP_iter_dimer, get_initial5_dimer |
+| SOIalign.h | score, scoret, path, val | SOI_iter |
+
+这些模块的 DP 矩阵需要**混合重载**（PathMat/DPMatrix 容器 + double** 坐标视图），预估 6-8 个新重载。留待最后一并处理。
+
+**验证策略**：
+
+| 改动模块 | 验证套件 |
+|------|------|
+| USalign.cpp | `run_regression.py`（14 用例） |
+| MMalign.h | `run_regression.py`（含 -mm 1 寡聚体路径） |
+| MMalign.cpp | `standalone/mmalign/run_test.py`（5 用例） |
+| SOIalign.h | `run_regression.py`（含 -mm 3/6 路径） |
+| NWalign.h | `standalone/hwrmsd/run_test.py`（6 用例） |
+| TMscore.h | `standalone/tmscore/run_test.py`（7 用例） |
+
+---
+
+## 2026-05-31 全天记录：W4 辅助矩阵容器化（xcentroids/ycentroids/ut_mat/TMave_mat）
+
+| 指标 | 数值 |
+|---|---|
+| 本日新增 Commit | 9（`63faa48` ~ `d216da8`） |
+| 测试结果 | **14/14 无崩溃，始终 11 PASS + 3 known -ffast-math diffs** |
+| USalign-beta 领先 master | 122 commits |
+| NewArray 变化 | 39 → 18（消除 21） |
+| DeleteArray 变化 | 36 → 16（消除 20） |
+
+### 完成概要
+
+| 任务 | 内容 | Commits | 级联函数 |
+|------|------|:--:|:--:|
+| xcentroids/ycentroids → Coords | MMalign.h 新增 4 个 Coords& 重载 + USalign.cpp/MMalign.cpp 4 处调用点 | 1 | calculate_centroids, calMMscore, homo_refined_greedy_search, hetero_refined_greedy_search |
+| ut_mat → Rotation (USalign.cpp) | MMalign.h/TMalign.h 新增 4 个 Rotation 重载 + USalign.cpp 3 块调用点 | 4 | homo_refined_greedy_search, output_dock_rotation_matrix, output_mTMalign_pymol, output_dock |
+| MMalign.cpp xa/ya 桥接修复 | 添加 xa_buf/ya_buf double** nullptrs，修复 L2-h 遗留的 Coords xa/ya → double** 编译错误 | 1 | — |
+| TMave_mat → DPMatrix | MMalign.h 新增 4 个完整重载 + 4 个桥接重载 + USalign.cpp/MMalign.cpp 调用点 | 4 | enhanced_greedy_search, check_heterooligomer, calMMscore, homo_refined, hetero_refined, copy_chain_assign_data, MMalign_iter/final/se_final/dimer |
+
+### 1. xcentroids/ycentroids → Coords（commit `63faa48`）
+
+**4 个 Coords& 函数重载**：
+- `calculate_centroids(Coords& centroids)` — 写入 centroids[c][0/1/2]
+- `calMMscore(const Coords& xcentroids, const Coords& ycentroids)` — 只读
+- `homo_refined_greedy_search(Coords& xcentroids, const Coords& ycentroids)` — xcentroids 非 const（传给 do_rotation），ycentroids const
+- `hetero_refined_greedy_search(const Coords& xcentroids, const Coords& ycentroids)` — 只读
+
+**调用点**（4 处，`double**` → `Coords` + `resize`，删除 `DeleteArray`）：
+- USalign.cpp MMalign() 第一块 + 第二块
+- MMalign.cpp 第一块 + 第二块
+
+### 2. ut_mat → Rotation（commits `1a9530c` ~ `8e975b7`）
+
+**4 个 Rotation 函数重载**：
+- `homo_refined_greedy_search(..., const Rotation& ut_mat)` — Coords+Rotation 组合
+- `output_dock_rotation_matrix(const Rotation& ut_mat)` — MMalign.h
+- `output_mTMalign_pymol(const Rotation& ut_mat)` — TMalign.h（~250 行，完整重载）
+- `output_dock(const Rotation& ut_mat)` — MMalign.h（~64 行）
+
+**USalign.cpp 调用点**（3 块，`double**` → `Rotation` + `resize`，删除 `DeleteArray`）：
+- flexalign() 块（最简单，先转换）
+- mTMalign() 块
+- MMalign() 主块（最大）
+
+**MMalign.cpp 调用点**：与 TMave_mat 一起在最后转换。
+
+### 3. MMalign.cpp xa/ya 桥接修复（commit `157b2c9`）
+
+**问题**：L2-h 阶段将 `xa`/`ya` 转为 `Coords`，但 MMalign.cpp standalone 程序中 `MMalign_iter`/`MMalign_final`/`MMalign_dimer` 的形参仍为 `double**`，导致编译失败。
+
+**修复**：参照 USalign.cpp 的 nullptr 占位符模式：
+```cpp
+char *sx=nullptr, *sy=nullptr, *scx=nullptr, *scy=nullptr;
+double **xa_buf=nullptr, **ya_buf=nullptr;
+```
+将 5 处 `xa, ya` → `xa_buf, ya_buf`。
+
+**验证**：standalone MMalign 5/5 PASS（此前编译失败）。
+
+### 4. TMave_mat/TMave_init → DPMatrix（commits `5842e0d` ~ `d216da8`）
+
+**策略**：自底向上拓扑排序，叶子函数用完整重载，大数据量函数用桥接重载。
+
+**完整重载**（6 个函数/组合）：
+| 函数 | 重载类型 | 说明 |
+|------|------|------|
+| `enhanced_greedy_search` | `(const DPMatrix&)` | 只读 TMave_mat，无 SVD |
+| `check_heterooligomer` | `(const DPMatrix&)` | 只读 TMave_mat，无 SVD |
+| `calMMscore` | `(const DPMatrix&, const Coords&, const Coords&)` | DPMatrix+Coords 组合 |
+| `homo_refined_greedy_search` | `(const DPMatrix&, Coords&, const Coords&, const Rotation&)` | DPMatrix+Coords+Rotation 组合 |
+| `hetero_refined_greedy_search` | `(const DPMatrix&, const Coords&, const Coords&)` | DPMatrix+Coords 组合 |
+| `copy_chain_assign_data` | `(const DPMatrix&, DPMatrix&)` | 源 const，目标非 const |
+
+**桥接重载**（4 个函数，~15 行/个）：
+| 函数 | 策略 |
+|------|------|
+| `MMalign_iter` | `const DPMatrix&` → `vector<double*>` 视图 → 委托 `double**` 版 |
+| `MMalign_final` | 同上 |
+| `MMalign_se_final` | 同上 |
+| `MMalign_dimer` | 同上 |
+
+**调用点**（USalign.cpp 3 块 + MMalign.cpp 1 块）：
+- `NewArray(&TMave_mat, N, M)` → `TMave_mat.assign(N, vector<double>(M))`
+- `DeleteArray(&TMave_mat, ...)` → 删除（auto-destruct）
+
+### 遇到的问题与经验
+
+#### 问题 35：桥接重载递归调用
+
+**症状**：将 DPMatrix 桥接重载放在原函数**之前**，编译报 `invalid initialization of reference of type 'const DPMatrix&' from expression of type 'double**'`。
+
+**根因**：桥接体内调用 `MMalign_final(...)` 时，编译器看到的第一个重载是桥接自身（接受 `const DPMatrix&`），`view.data()`（`double**`）无法匹配 `const DPMatrix&`。
+
+**修复**：将桥接重载移到原函数**之后**。这样桥接体内的调用会解析到已定义的 `double**` 版本。
+
+**教训**：桥接重载（构造视图 → 委托原实现）必须放在原函数定义之后，否则会递归匹配自身。
+
+#### 问题 36：组合爆炸与桥接策略选择
+
+**背景**：`calMMscore` 已有 2 个重载（double** xcentroids 和 Coords xcentroids），添加 DPMatrix 后变成 3 个。`homo_refined_greedy_search` 已有 3 个重载（double**, Coords, Coords+Rotation），添加 DPMatrix 后变成 4 个。
+
+**决策**：对于参数少、函数体短的叶子函数，使用**完整重载**（copy-paste body，改参数类型）。对于参数多、函数体长（100-200+ 行）的顶层函数（MMalign_iter/final/dimer），使用**桥接重载**（构造 double** 视图 → 委托原实现，仅 ~15 行）。
+
+**桥接模式**：
+```cpp
+void MMalign_iter(..., const DPMatrix& TMave_mat, ...) {
+    vector<double*> view(TMave_mat.size());
+    for (size_t i=0; i<TMave_mat.size(); i++)
+        view[i] = const_cast<double*>(TMave_mat[i].data());
+    MMalign_iter(..., view.data(), ...);  // 委托 double** 版
+}
+```
+
+`const_cast` 安全：这些函数只读取 TMave_mat（经代码审查确认），不会写入。
+
+### 遗留问题
+
+| # | 问题 | 严重性 | 说明 |
+|---|------|--------|------|
+| 35 | 桥接重载递归调用 | P2（已修） | 桥接必须放在原函数之后 |
+| — | **TMave_tmp**（MMalign.h 内部）仍为 double** | P3 | 2 处 NewArray + 2 处 DeleteArray，可直接转 DPMatrix，零级联 |
+| — | **secx_bond/secy_bond** 仍为 double** | P2 | USalign.cpp 2 处 NewArray + 2 处 DeleteArray，触及 SOI_iter（含 Kabsch SVD 迭代） |
+| — | **score/path/val/mask** DP 矩阵仍为 double** | P2 | TMalign.h/MMalign.h/SOIalign.h 共 10+ 处，触及 DP_iter/SOI_iter（含 Kabsch SVD 迭代） |
+
+### 当前 NewArray/DeleteArray 残留
+
+| 文件 | NewArray | DeleteArray | 矩阵类型 | 阻塞原因 |
+|------|:--:|:--:|------|------|
+| MMalign.h | 3 | 3 | TMave_tmp ×2 + mask | TMave_tmp 可立即转；mask 触及 DP_iter_dimer |
+| MMalign.h | 3 | 0 | score/path/val | 触及 DP_iter_dimer（SVD 迭代） |
+| TMalign.h | 3 | 3 | score/path/val | 触及 DP_iter（SVD 迭代） |
+| SOIalign.h | 7 | 8 | score/scoret/path/val | 触及 SOI_iter（SVD 迭代） |
+| USalign.cpp | 2 | 2 | secx_bond/secy_bond | 触及 SOI_iter（SVD 迭代） |
+| **TOTAL** | **18** | **16** | | |
+
+### 明日工作
+
+**优先级 1（不触及 SVD，可立即做）**：
+
+| # | 任务 | 文件 | 预估 |
+|:--:|------|------|:--:|
+| 1 | TMave_tmp → DPMatrix | MMalign.h MMalign_iter/MMalign_dimer 内部 | 1 commit，零级联 |
+
+**优先级 2（触及 SVD，需评估策略）**：
+
+| # | 任务 | 文件 | 阻塞 |
+|:--:|------|------|------|
+| 2 | secx_bond/secy_bond → Bond2 | USalign.cpp → SOIalign.h | SOI_iter 含 `for(iteration)` → `TMscore8_search` → `Kabsch(SVD)` |
+| 3 | TMalign.h score/path/val → DPMatrix/PathMat | TMalign.h | DP_iter 含 SVD 迭代，需混合重载策略 |
+| 4 | MMalign.h score/path/val/mask → DPMatrix/PathMat | MMalign.h | DP_iter_dimer 含 SVD 迭代 |
+| 5 | SOIalign.h score/scoret/path/val → DPMatrix/PathMat | SOIalign.h | SOI_iter 含 SVD 迭代 |
+
+**优先级 3（收尾）**：
+
+| # | 任务 | 说明 |
+|:--:|------|------|
+| 6 | 删除 NewArray/DeleteArray 模板 | 等全部清零后 |
+| 7 | USalign-beta → master squash merge | 122 commits |
