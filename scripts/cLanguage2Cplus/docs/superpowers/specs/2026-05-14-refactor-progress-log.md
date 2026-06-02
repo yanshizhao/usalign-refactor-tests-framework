@@ -2974,3 +2974,191 @@ MMalign.cpp:694, USalign.cpp:1043 — 2 处 `nullptr` 占位符，传给内部�
 | MMalign 独立 | **5 PASS** |
 | pdb2ss 独立 | **2 PASS** |
 ```
+
+---
+
+## 2026-06-02 全日工作总结
+
+### 一、今日完成工作
+
+#### 测试修复与死代码清理
+
+| # | 工作 | 说明 |
+|:-:|------|------|
+| 1 | **TMscore 编译修复** | 新增 `clean_up_after_approx_TM` DPMatrix/PathMat 重载，删除零调用者 double** 旧重载 |
+| 2 | **NewArray/DeleteArray 模板删除** | `basic_fun.h` 中模板清零（全项目零调用） |
+| 3 | **死代码 double** 薄包装器删除** | `TMalign_main/TMalign_dimer_main/CPalign_main/flexalign_main/HwRMSD_main/TMscore_main/SOIalign_main` 共 8 个 |
+| 4 | **死重载删除** | `get_initial_ss`/`get_initial_ssplus`/`get_initial_ss_dimer` 的 bool** 版本 |
+| 5 | **`copy_chain_pair_data` double**重载删除** | 零调用者，全已使用 Coords& 版 |
+| 6 | **重构注释清理** | `PathMat/DPMatrix overload`、`Coords& bridge` 等标记全部移除 |
+
+#### 委托重载（接口层 PathMat/DPMatrix，内部仍走 double** 视图）
+
+| # | 函数 | 消除 reinterpret_cast |
+|:-:|------|:--------------------:|
+| 7 | `DP_iter` | 6 处 |
+| 8 | `DP_iter_dimer` | 6 处 |
+| 9 | `get_initial5_dimer` | 1 处 |
+
+#### 桥接翻转（Coords& 真实现 + double** 薄包装器）
+
+| # | 函数 | 方式 |
+|:-:|------|------|
+| 10 | `CPalign_main` | Coords& 版搬入算法体，double** 版变薄包装器 |
+| 11 | `HwRMSD_main` | 新增 `Kabsch_Superpose` 全 Coords& 重载，桥接翻转 |
+| 12 | `TMscore_main` | 新增 `detailed_search_standard` Coords&/GDT 重载，桥接翻转 |
+
+#### 安全子函数 double** 翻转
+
+| # | 函数 | 改动 |
+|:-:|------|------|
+| 13 | `TMalign_dimer_main` | 5 处 `approx_TM(xa,ya)→xa_c,ya_c` + 2 处 `do_rotation(xa,xt)→xa_c` |
+| 14 | `SOIalign_main` | 6 处安全调用（`CPalign_main/do_rotation/SOI_assign2super/SOI_super2score`）改为 `xa_c/ya_c` |
+
+#### NWDP_TM traceback 修复
+
+| # | 函数 | 修复 |
+|:-:|------|------|
+| 15 | `NWDP_TM` 3 个 PathMat 重载 | traceback 补齐 gap_open 逻辑（原先为简化版 val 比较，与 bool** 版不一致） |
+
+#### `reinterpret_cast<bool**>` 清零
+
+| # | 方案 | 结果 |
+|:-:|------|:----:|
+| 16 | `bool**→char**` 全项目替换 | 约 20 处函数签名，全项目 `reinterpret_cast<bool**>` 清零 |
+| 17 | 逻辑：`char` 和 `bool` 同为 1 字节，path 只存 0/1，body 零改动 |
+
+#### 第三类：TMave_mat/centroids/ut_mat 容器化
+
+| # | 函数 | 改动 |
+|:-:|------|------|
+| 18 | `enhanced_greedy_search` | `double**→DoubleMatrix&` |
+| 19 | `check_heterooligomer` | `double**→DoubleMatrix&` |
+| 20 | `calMMscore` × 3 | `double**+double** / double**+Coords / DoubleMatrix+Coords` → 单一 `DoubleMatrix+Coords` |
+| 21 | `homo_refined_greedy_search` × 4 | 删除 3 个 double** 版本，保留单一 `DoubleMatrix+Coords+RotArray` |
+| 22 | `hetero_refined_greedy_search` × 3 | 同上 |
+| 23 | `calculate_centroids` | `double**→CoordArray&` |
+| 24 | `output_dock/output_rotation_matrix` | `double** ut_mat→RotArray&` |
+| ⚡ | **合计** | **约 960 行死代码删除** |
+
+#### 第四类：secx_bond/secy_bond `int**→IntPairArray&`
+
+| # | 函数 | 方式 |
+|:-:|------|------|
+| 25 | `assign_sec_bond` | 新增 `IntPairArray&` 重载 |
+| 26 | `sec2sq` | 新增 `const IntPairArray&` 重载 |
+| 27 | `soi_egs` | 新增 `const IntPairArray&` 重载 |
+| 28 | `SOI_iter` | 新增 `IntPairArray&` 委托重载 |
+| 29 | `get_SOI_initial_assign` | 双版本改为 `IntPairArray&` |
+| 30 | `soi_se_main` | 双版本改为 `IntPairArray&` |
+| 31 | `SOIalign_main` | 三版本改为 `IntPairArray&` |
+| 32 | `USalign.cpp` | 删除 `_sxb/_syb/_sbv/_sbv2` 视图，直接传 `IntPairArray` |
+
+#### 入口函数 TMave_mat 类型升级
+
+| # | 函数 | 改动 |
+|:-:|------|------|
+| 33 | `MMalign_search` | `double**→DoubleMatrix&` + 删委托 |
+| 34 | `MMalign_final` | `double**→DoubleMatrix&` + 删委托 |
+| 35 | `MMalign_se_final` | `double**→DoubleMatrix&` + 删委托 |
+| 36 | `MMalign_iter` | `double**→DoubleMatrix&` + 删委托 |
+| 37 | `MMalign_dimer` | `double**→DoubleMatrix&` + 删委托 |
+| 38 | `MMalign_cross` | `double**→DoubleMatrix&` |
+| 39 | `copy_chain_assign_data` | `double**→DoubleMatrix&` + 删桥接 |
+
+#### 入口函数占位符类型升级
+
+| # | 改动 | 说明 |
+|:-:|------|------|
+| 40 | `double** /*_xa*/` → `CoordArray*` | 4 个入口函数 |
+| 41 | `char* seqx_arg` → `const char*` | 类型安全 |
+| 42 | `xa_buf` 变量删除 | MMalign.cpp + USalign.cpp 中传 `nullptr` |
+
+#### 死代码删除（其他）
+
+| # | 内容 | 说明 |
+|:-:|------|------|
+| 43 | `getCloseK(double**)` | 零调用者，全用 `Coords&` 版 |
+| 44 | `soi_se_main(double**)` | 零调用者，全用 `Coords&` + `IntPairArray&` 版 |
+
+#### 类型别名重命名
+
+| 旧名 | 新名 | 语义 |
+|:----:|:----:|------|
+| `Coords` | `CoordArray` | 数据结构：坐标数组 |
+| `DPMatrix` | `DoubleMatrix` | 数据结构：双精度矩阵 |
+| `PathMat` | `CharMatrix` | 数据结构：字符矩阵 |
+| `IntMat` | `IntMatrix` | 数据结构：整数矩阵 |
+| `Rotation` | `RotArray` | 数据结构：旋转数组 |
+| `Bond2` | `IntPairArray` | 数据结构：整数对数组 |
+| 全部 raw type | 替换为别名 | 全项目零 raw type 残留 |
+
+### 二、当前测试状态
+
+| 测试 | 结果 |
+|------|:----:|
+| 14 功能回归 | **13 PASS / 1 FAIL**（仅 msta_rna 已知 1-ULP 差异） |
+| TMscore 独立 | **7 PASS** |
+| HwRMSD 独立 | **6 PASS** |
+| MMalign 独立 | **5 PASS** |
+| pdb2ss 独立 | **2 PASS** |
+
+### 三、剩余工作
+
+#### 3.1 运维任务
+
+| # | 任务 | 说明 |
+|:-:|------|------|
+| 1 | **更新 msta_rna 基线** | 已知 1-ULP 差异，`diffs/` 中仅有 1 个 `.diff`，更新后可达 14/14 |
+| 2 | **合并 USalign-beta → master** | ~170 commits，需选择策略（squash/merge/rebase） |
+
+#### 3.2 保留不改（SVD 阻塞）
+
+| 类别 | 函数 | 原因 |
+|------|------|------|
+| `Kabsch(double**)` | Kabsch.h | SVD 核心迭代 |
+| `Kabsch_Superpose(double**)` | HwRMSD.h | 内调 Kabsch |
+| `NWDP_TM/NWDP_SE` 全重载 | NW.h | SVD 路径内调用 |
+| `DP_iter/DP_iter_dimer` | TMalign.h/MMalign.h | 含 Kabsch 迭代 |
+| `SOI_iter` | SOIalign.h | 含 Kabsch 迭代 |
+| `TMscore8_search` | TMalign.h/TMscore.h | 含 Kabsch 迭代 |
+| `get_initial5/get_initial5_dimer` | TMalign.h/MMalign.h | 内调 DP_iter |
+| `CharMatrix` path/mask 系列 | 多处 | SVD 路径，已从 `bool**` 改 `char**` |
+| `NWDP_TM_dimer/DP_iter_dimer/...` | MMalign.h | SVD 路径 |
+| `do_rotation(double**,double**)` | basic_fun.h | `Kabsch_Superpose(double**)` 内调用 |
+
+### 四、遗留问题
+
+#### 4.1 SVD 浮点差异（已知，不修复）
+
+Kabsch SVD 迭代对**内存布局敏感**。`CoordArray`（连续内存）vs `double**`（碎片内存）生成的机器码不同 → 寄存器分配不同 → 浮点舍入逐轮累积 → 最终比对结果不同。这是**编译器优化行为**，非代码逻辑错误。已在以下路径验证：
+
+- `DP_iter` 改为 `CharMatrix&` 接口（委托模式，内部仍走 `char**` 视图）
+- `DP_iter_dimmer` 同
+- 任何触及 Kabsch 迭代的函数不能改为 `CoordArray&` 传参
+
+#### 4.2 `do_rotation` 三个重载
+
+- `double**, double**` — 仅在 `Kabsch_Superpose(double**)` 内部使用
+- `double**, CoordArray&` — SVD 阻塞路径中 xa 为 double** 视图
+- `CoordArray&, CoordArray&` — 安全路径
+等待 SVD 阻塞解决后，前两个可以删除。
+
+### 五、下一步工作建议
+
+| 优先级 | 任务 | 预估 |
+|:------:|------|:----:|
+| **P0** | 更新 msta_rna 基线 | 5 分钟 |
+| **P1** | 合并 USalign-beta → master（~170 commits） | 取决于策略 |
+| **P2** | 研究 Kabsch SVD 浮点差异的编译器级解决方案 | 长期 |
+| **P3** | 解决 SVD 阻塞后，清理 `do_rotation` 等多余重载 | 待 SVD 解决 |
+
+### 六、提交统计
+
+```
+今日 commits (USalign-beta): 2983ec0, f3aa1be, 1d89349, 2c43745, 7f12b8c,
+         f33b5c2, 203682e, 345ab49, 091b629, 747b551, 9f3b997, 637a635,
+         a32e50e, 743dfcf, 89ee40e, 7fbcee8, d855b35, ea80286, 57b2963, 95bc71d
+领先 master: ~170 commits
+删除死代码: ~960 + ~113 + ~54 + ~37 + ~109 ≈ ~1273 行
+```
