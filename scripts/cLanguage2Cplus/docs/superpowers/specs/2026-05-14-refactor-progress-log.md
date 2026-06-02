@@ -2882,3 +2882,95 @@ Step 7: SOIalign_main do_rotation line 1211         xa → xa_c
 Step 8: SOIalign_main do_rotation line 1304         xa → xa_c
 Step 9: SOIalign_main SOI_super2score line 1041    需先加重载
 ```
+
+---
+
+## 2026-06-02 最终审计：源码中剩余二级指针全览
+
+### 已完成
+
+| 工作 | 状态 |
+|------|:----:|
+| C→C++ 风格重构（22 类映射） | ✅ 全覆盖 |
+| NewArray/DeleteArray 清零 | ✅ 模板已删除 |
+| `reinterpret_cast<bool**>` 清零 | ✅ `bool**` → `char**` 全项目替换 |
+| 死代码 `double**` 薄包装器删除 | ✅ 8 个已删除 |
+| 死重载删除（`get_initial_ss`/`get_initial_ssplus`/`get_initial_ss_dimer`） | ✅ 3 个已删除 |
+| 核心函数翻转（TMalign_main/dimer/SOIalign/flexalign） | ✅ |
+| 外部桥接翻转（CPalign_main/HwRMSD_main/TMscore_main） | ✅ |
+| mask 类型升级 `bool**` → `PathMat&` | ✅ |
+| `NWDP_TM` PathMat traceback 修复 | ✅ |
+
+### 剩余二级指针分类
+
+#### 第一类：`char**` path/mask（SVD 阻塞，已验证不可改）
+
+由 `PathMat`（`vector<vector<char>>`）提供数据，经 `char**` 视图传给 SVD 阻塞路径：
+
+| 函数 | 文件 | 参数 |
+|------|------|------|
+| `NWDP_TM` | NW.h | `char **path` |
+| `NWDP_TM_dimer` | MMalign.h | `char **path, char **mask` |
+| `DP_iter_dimer` | MMalign.h | `char **path, char **mask` |
+| `DP_iter` | TMalign.h | `char **path` |
+| `get_initial5` | TMalign.h | `char **path` |
+| `get_initial5_dimer` | MMalign.h | `char **path, char **mask` |
+| `get_initial_ssplus_dimer` | MMalign.h | `char **path, char **mask` |
+| `NWDP_SE` ×4 | NW.h | `char **path` |
+| `SOI_iter` | SOIalign.h | `char **path` |
+| `get_SOI_initial_assign` | SOIalign.h | `char **path` |
+
+#### 第二类：`double**` 坐标参数（SVD 阻塞路径内部）
+
+在核心算法体内部由 `_xa_v`/`_ya_v` 视图提供，已验证不可改为 `Coords&`：
+
+| 函数 | 参数 |
+|------|------|
+| `Kabsch(double**, double**, ...)` | `x, y` |
+| `Kabsch_Superpose(..., double**, double**)` | `xa, ya` |
+| `NWDP_TM(..., double**, double**)` | `x, y` |
+| `DP_iter(..., double**, double**)` | `x, y` |
+| `DP_iter_dimer(..., double**, double**)` | `x, y` |
+| `get_initial5_dimer(..., double**, double**)` | `x, y` |
+
+#### 第三类：`double**` TMave_mat/centroids/ut_mat（MMalign 打分函数）
+
+数据源已改为 `DPMatrix`/`Rotation`/`Coords`，**可进一步改为容器引用**：
+
+| 函数 | 参数 |
+|------|------|
+| `enhanced_greedy_search(double **TMave_mat, ...)` | TMave_mat |
+| `calMMscore(double **TMave_mat, ..., double **xcentroids, ...)` | TMave_mat + centroids |
+| `check_heterooligomer(double **TMave_mat, ...)` | TMave_mat |
+| `homo_refined_greedy_search(double **TMave_mat, ..., double **xcentroids, double **ycentroids, ..., double **ut_mat)` | TMave_mat + centroids + ut_mat |
+| `hetero_refined_greedy_search(double **TMave_mat, ..., double **xcentroids, double **ycentroids, ...)` | TMave_mat + centroids |
+| `calculate_centroids(..., double **centroids)` | centroids |
+| `MMalign_iter/final/dimer(..., double **TMave_mat, ...)` | TMave_mat |
+| `output_mTMalign_pymol/output_dock_rotation_matrix(..., double **ut_mat)` | ut_mat |
+
+#### 第四类：`int**` secx_bond/secy_bond（SOIalign SSE 边界）
+
+数据源已改为 `Bond2`（`vector<array<int,2>>`），**可改为 `Bond2&`**：
+
+| 函数 | 参数 |
+|------|------|
+| `assign_sec_bond(int **secx_bond, ...)` | `secx_bond` |
+| `SOI_iter(..., int **secx_bond, int **secy_bond, ...)` | `secx_bond, secy_bond` |
+| `soi_egs(..., int **secx_bond, int **secy_bond, ...)` | `secx_bond, secy_bond` |
+| `get_SOI_initial_assign(..., int **secx_bond, int **secy_bond, ...)` | `secx_bond, secy_bond` |
+| `SOIalign_main(..., int **secx_bond, int **secy_bond, ...)` | `secx_bond, secy_bond` |
+
+#### 第五类：`double** xa_buf/ya_buf = nullptr`（占位符）
+
+MMalign.cpp:694, USalign.cpp:1043 — 2 处 `nullptr` 占位符，传给内部覆写缓冲区的函数，**无需处理**。
+
+### 测试状态
+
+| 测试 | 结果 |
+|------|:----:|
+| 14 功能回归 | **13 PASS / 1 FAIL**（仅 msta_rna 已知） |
+| TMscore 独立 | **7 PASS** |
+| HwRMSD 独立 | **6 PASS** |
+| MMalign 独立 | **5 PASS** |
+| pdb2ss 独立 | **2 PASS** |
+```
