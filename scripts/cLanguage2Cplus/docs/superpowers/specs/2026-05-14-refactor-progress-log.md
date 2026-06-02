@@ -2717,3 +2717,168 @@ void MMalign_iter(..., const DPMatrix& TMave_mat, ...) {
 |:--:|------|------|
 | 6 | 删除 NewArray/DeleteArray 模板 | 等全部清零后 |
 | 7 | USalign-beta → master squash merge | 122 commits |
+
+---
+
+## 2026-06-02 全日记录：TMscore 编译修复 + 全项目 NewArray/DeleteArray 清零 + 剩余工作清单
+
+| 指标 | 数值 |
+|---|---|
+| 本日 Commits | 0（工作区待提交） |
+| 修改文件 | `TMalign.h`（新增 DPMatrix 重载 + 删除 double** 死重载） |
+| 主回归 14 用例 | **13 PASS / 1 FAIL**（仅 msta_rna 已知 1-ULP 差异） |
+| 独立程序 TMscore | **7 PASS** ✅（之前编译失败，现已修复） |
+| 独立程序 HwRMSD | **6 PASS** |
+| 独立程序 MMalign | **5 PASS** |
+| 独立程序 pdb2ss | **2 PASS** |
+| 全项目 NewArray 调用 | **0** |
+| 全项目 DeleteArray 调用 | **0** |
+
+### 修复：clean_up_after_approx_TM 缺少 DPMatrix/PathMat 重载
+
+**问题**：`TMscore.h` 中 `score`/`path`/`val` 已被重构为 `DPMatrix`/`PathMat`，但调用 `clean_up_after_approx_TM` 时只有 `double**`/`bool**` 重载，导致 TMscore 独立程序编译失败。
+
+**修复**（TMalign.h:4633）：
+```cpp
+void clean_up_after_approx_TM(int *invmap0, int *invmap,
+    DPMatrix& /*score*/, PathMat& /*path*/, DPMatrix& /*val*/,
+    Coords& xtm, Coords& ytm, Coords& xt, Coords& r1, Coords& r2,
+    const int xlen, const int /*minlen*/ = 0)
+{
+    delete [] invmap0;
+    delete [] invmap;
+    // score/path/val are DPMatrix/PathMat — auto-destruct
+}
+```
+
+随后删除零调用者的 `double**` 旧重载（含最后 3 处 `DeleteArray` 调用），全项目 `NewArray`/`DeleteArray` 运行时调用清零。
+
+### 当前状态总览（2026-06-02）
+
+#### 测试状态
+
+| 测试项 | 结果 |
+|-------|:----:|
+| **14 功能回归** | **13 PASS / 1 FAIL**（`msta_rna` 已知 1-ULP 差异） |
+| **TMscore 独立** | **7 PASS** ✅ |
+| **HwRMSD 独立** | **6 PASS** |
+| **MMalign 独立** | **5 PASS** |
+| **pdb2ss 独立** | **2 PASS** |
+
+#### 全项目 NewArray/DeleteArray
+
+**0 处运行时调用**。仅 `basic_fun.h:43,49` 模板定义残留（零调用者）。
+
+#### 剩余工作分类
+
+##### 第一类：清理死代码（低风险，可独立做）
+
+| # | 任务 | 文件 | 预估 |
+|:-:|------|------|:---:|
+| 1 | 删除 `NewArray`/`DeleteArray` 模板（零调用者） | basic_fun.h | ~10 行 |
+| 2 | 删除 `Kabsch(double**, double**, ...)` 死重载（所有调用者传 Coords） | Kabsch.h:16 | ~300 行（整个函数体） |
+| 3 | 删除 `score_fun8(double**, double**, ...)` 死重载（所有调用者传 Coords） | TMalign.h:16 | ~45 行 |
+| 4 | 删除 `score_fun8_standard(double**, double**, ...)` 死重载（所有调用者传 Coords） | TMalign.h:62 | ~45 行 |
+| 5 | 删除 `approx_TM(double**, ...)` 死重载（所有调用者传 Coords） | TMalign.h:4554 | ~30 行 |
+
+##### 第二类：View 桥接翻转（需逐个验证浮点等价）
+
+这 3 处是 Coords& 桥接 → double** 委托，可翻转为 Coords& 真实现 + double** 薄包装器：
+
+| # | 函数 | 文件 | 行号 |
+|:-:|------|------|:---:|
+| 6 | `HwRMSD_main(Coords&, ...)` | HwRMSD.h:306-323 | ~18 行桥接 |
+| 7 | `CPalign_main(Coords&, ...)` | TMalign.h:5590-5608 | ~18 行桥接 |
+| 8 | `TMscore_main(Coords&, ...)` | TMscore.h:1521-1540 | ~20 行桥接 |
+
+##### 第三类：内部 double** 视图（SVD 阻塞，不可翻转）
+
+这 3 处是核心算法内部的 double** 视图，因 Kabsch SVD 迭代对内存布局敏感（Coords& 会改变浮点累积路径），**保留现状为正确做法**：
+
+| # | 函数 | 文件 | 行号 |
+|:-:|------|------|:---:|
+| 9 | `TMalign_main` 内部 `_xa_v`/`_ya_v` | TMalign.h:4970-4975 | ⏸️ 保留 |
+| 10 | `TMalign_dimer_main` 内部 `_xa_v`/`_ya_v` | MMalign.h:3530-3535 | ⏸️ 保留 |
+| 11 | `SOIalign_main` 内部 `_xa_v`/`_ya_v` | SOIalign.h:938-943 | ⏸️ 保留 |
+
+##### 第四类：项目管理
+
+| # | 任务 | 状态 |
+|:-:|------|:----:|
+| 12 | 更新 `msta_rna` 基线（接受 1-ULP 差异） | ⏳ 待做 |
+| 13 | 合并 `USalign-beta` → `master`（122+ commits） | ⏳ 待决策 |
+
+#### 建议优先级
+
+```
+P0:  1. 删除 NewArray/DeleteArray 模板          (basic_fun.h, 安全可立即做)
+P1:  2~5. 删除 4 个死 double** 重载             (Kabsch/score_fun8/score_fun8_standard/approx_TM)
+P1:  6~8. 翻转 3 个 view 桥接                   (HwRMSD_main/CPalign_main/TMscore_main)
+P2:  12. 更新 msta_rna 基线
+P3:  13. 合并 USalign-beta → master
+```
+
+---
+
+## 2026-06-02 审计：可翻转的 double** 坐标参数（按 Kabsch SVD 分类）
+
+### 核心发现
+
+`TMalign_main`、`TMalign_dimer_main`、`SOIalign_main` 三个 Coords& 真实现内部都创建了局部 double** 视图 `xa= _xa_v.data()`, `ya= _ya_v.data()`，用于向子函数传参。
+
+- **安全子函数**（内部无 Kabsch SVD 迭代循环，可安全使用 Coords&）：`get_initial`, `detailed_search`, `detailed_search_standard`, `standard_TMscore`, `approx_TM`, `get_initial_fgt`, `get_initial_ssplus`, `do_rotation`
+- **SVD 阻塞子函数**（内部 `for(iteration)` + `Kabsch(SVD)` 迭代，必须保留 double** 视图）：`DP_iter`, `DP_iter_dimer`, `get_initial5`, `get_initial5_dimer`, `SOI_iter`
+
+### 三个核心函数当前状态
+
+#### A) TMalign_main — 完全翻转 ✅
+所有 8 个安全子函数已全部使用 `xa_c/ya_c`（Coords&），SVD 阻塞子函数使用 `xa/ya`（double** 视图）。无剩余可翻转项。
+
+#### B) TMalign_dimer_main — 近似翻转 ✅
+- 6/6 个安全子函数已用 `xa_c/ya_c`（`approx_TM` 5 处 + `get_initial`/`detailed_search`/`standard_TMscore`/`get_initial_fgt`/`get_initial_ssplus` 等）
+- **仍有 2 处 `do_rotation(xa, xt, ...)` 未翻转**（lines 3959, 4079）—— `xa` 是 double** 视图，`xt` 是 Coords，现有混合重载 `basic_fun.h:880` 已高效处理，但可统一为 `xa_c` 以消除 double** 依赖
+
+#### C) SOIalign_main — 未完全翻转
+已有 `xa_c/ya_c` 的调用：
+- `SOI_assign2super(..., xa_c, ya_c, ...)` — line 1071 ✅
+- `detailed_search_standard(..., xa_c, ya_c, ...)` — line 1134 ✅
+
+仍用 `xa/ya` 视图的安全调用（均已存在 Coords& 重载，可直接改）：
+
+| # | 行号 | 当前 | 改为 | 理由 |
+|:-:|:---:|------|------|------|
+| 1 | 1006 | `CPalign_main(xa, ya, ...)` | `CPalign_main(xa_c, ya_c, ...)` | CPalign_main 无 Kabsch SVD |
+| 2 | 1040 | `do_rotation(xa, xt, ...)` | `do_rotation(xa_c, xt, ...)` | 纯矩阵乘法 |
+| 3 | 1085 | `SOI_assign2super(..., ya, xa, ...)` | `SOI_assign2super(..., ya_c, xa_c, ...)` | 坐标超定位，无 SVD |
+| 4 | 1156 | `do_rotation(xa, xt, ...)` | `do_rotation(xa_c, xt, ...)` | 同上 |
+| 5 | 1211 | `do_rotation(xa, xt, ...)` | `do_rotation(xa_c, xt, ...)` | 同上 |
+| 6 | 1304 | `do_rotation(xa, xt, ...)` | `do_rotation(xa_c, xt, ...)` | 同上 |
+
+需要新增重载才能翻转的：
+
+| # | 行号 | 当前 | 问题 |
+|:-:|:---:|------|------|
+| 7 | 1041 | `SOI_super2score(xt, ya, ...)` | `SOI_super2score` 只有 `Coords& + double**` 混合重载（line 461），无全 `const Coords&` 版 |
+
+### 分类汇总
+
+| 类别 | 数量 | 说明 |
+|:---:|:---:|------|
+| **可立即翻转**（已有 Coords& 重载，只改调用参数） | **8 处** | TMalign_dimer_main 2 处 + SOIalign_main 6 处 |
+| **需先加重载**（函数本身无双 Coords& 版） | **1 处** | `SOI_super2score` 需新增 `const Coords&, const Coords&` 重载 |
+| **SVD 阻塞**（必须保留 double** 视图） | **5 个函数** | `DP_iter`, `DP_iter_dimer`, `get_initial5`, `get_initial5_dimer`, `SOI_iter` |
+| **外部 view 桥接**（独立任务，第二类） | **3 处** | `HwRMSD_main(Coords&)`, `CPalign_main(Coords&)`, `TMscore_main(Coords&)` |
+
+### 执行策略（每步测试）
+
+```
+Step 1: TMalign_dimer_main do_rotation line 3959    xa → xa_c
+Step 2: TMalign_dimer_main do_rotation line 4079    xa → xa_c
+Step 3: SOIalign_main CPalign_main line 1006        xa, ya → xa_c, ya_c
+Step 4: SOIalign_main do_rotation line 1040         xa → xa_c
+Step 5: SOIalign_main SOI_assign2super line 1085    ya, xa → ya_c, xa_c
+Step 6: SOIalign_main do_rotation line 1156         xa → xa_c
+Step 7: SOIalign_main do_rotation line 1211         xa → xa_c
+Step 8: SOIalign_main do_rotation line 1304         xa → xa_c
+Step 9: SOIalign_main SOI_super2score line 1041    需先加重载
+```
