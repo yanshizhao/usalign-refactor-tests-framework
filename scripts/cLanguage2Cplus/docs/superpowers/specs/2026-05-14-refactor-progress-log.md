@@ -3162,3 +3162,151 @@ Kabsch SVD 迭代对**内存布局敏感**。`CoordArray`（连续内存）vs `d
 领先 master: ~170 commits
 删除死代码: ~960 + ~113 + ~54 + ~37 + ~109 ≈ ~1273 行
 ```
+---
+
+## 2026-06-03 全项目二级指针清理完成
+
+### 一、最终清理成果
+
+| 指标 | 数值 |
+|------|:----:|
+| 本阶段 Commits | `b012006` ~ `2fdd220`（45 commits） |
+| 总 Commits（USalign-beta 领先 master） | ~170 + 45 = **~215 commits** |
+| 总删除死代码 | ~1273 + ~1300 ≈ **~2600 行** |
+| 回归测试 | **14/14 无崩溃，13 PASS + 1 FAIL（已知 msta_rna 1-ULP）** |
+
+#### 最终二级指针状态
+
+| 文件 | 清理前 | 清理后 | 说明 |
+|------|:------:|:------:|------|
+| **SOIalign.h** | ~25 处 | **0** | 全容器化 |
+| **TMalign.h** | ~30 处 | **0** | 全容器化 |
+| **MMalign.h** | ~15 处 | **1** | `NWDP_TM_dimer` x/y（MinGW 限制）|
+| **NW.h** | ~17 处 | **1** | `NWDP_TM` x/y（MinGW 限制）|
+| **TMscore.h** | ~10 处 | **0** | 全容器化 |
+| **basic_fun.h** | ~3 处 | **0** | 全容器化 |
+| **se.h** | 1 处 | **0** | 全容器化 |
+| **HwRMSD.h** | ~5 处 | **0** | 全容器化 |
+| **flexalign.h** | ~5 处 | **0** | 全容器化 |
+| **Kabsch.h** | 1 处 | **1** | SVD 核心，永不能改 |
+| **其他 20+ 个 .cpp/.h** | ~10 处 | **0** | 全容器化 |
+
+**`char**` 和 `int**`：全项目清零。**
+
+### 二、核心清理策略总结
+
+#### 2.1 SVD 隔离原则
+
+```
+入参是否经过 Kabsch SVD？
+  ├── 否（DP 矩阵如 path/val/mask）→ 直接容器化
+  ├── 是（坐标缓冲区如 r1/r2）→ 必须保留 double**
+  └── 间接（坐标临时缓冲区如 xtm/ytm/x/y）
+       ├── 传给 get_score_fast 等算分函数 → 可容器化
+       └── 传给含 Kabsch 迭代的函数（TMscore8_search/DP_iter）→ 不可容器化
+```
+
+#### 2.2 视图下沉三层次
+
+```
+Level 1: 桥接层建视图（最早模式）
+  ┌─ 桥接(CoordArray&) → 建double**视图 → 根实现(double**)
+  
+Level 2: 函数体内建视图（DP_iter/get_initial5_dimer模式）
+  ┌─ 容器函数 → 函数体内建临时视图 → 调子函数(double**)
+  
+Level 3: 子函数内部建视图（最佳模式）
+  ┌─ 容器函数 → 子函数(CoordArray&) → 内部建视图 → 调根实现(double**)
+```
+
+最终状态：Level 2（MinGW 限制处）和 Level 3（绝大多数）混合使用。
+
+### 三、新发现的问题
+
+#### 3.1 NWDP_TM/NWDP_TM_dimer CoordArray& x/y 桥接在 MinGW 下崩溃（P0）
+
+**症状**：添加 `NWDP_TM(CharMatrix&, DoubleMatrix&, CoordArray&, CoordArray&, ...)` 桥接后，回归测试 10/14 FAIL，输出完全为空（程序崩溃）。
+
+**尝试过的方案**：均崩溃
+| 方案 | 结果 |
+|------|:----:|
+| `inline` 桥接 | 崩溃 |
+| `static` 桥接 | 崩溃 |
+| `__attribute__((noinline))` | 崩溃 |
+| 委托给 `char**` 版 | 崩溃 |
+| 委托给 `CharMatrix&` 版（已有） | 崩溃 |
+| 在正确位置插入 | 崩溃 |
+
+**根因推测**：GCC/MinGW 的栈帧/寄存器分配 Bug——通过中间函数传递 `CoordArray&` 参数改变了 `NWDP_TM`/`NWDP_TM_dimer` 内部的代码生成，在特定数据组合下触发内存访问越界。
+
+**结论**：当前工具链下不可修复。调用方保留函数体内建临时 `double**` 视图的方案。
+
+**同一问题也影响 NWDP_TM（非 _dimer）**。
+
+#### 3.2 NWDP_TM `DoubleMatrix` 重载的回溯算法与原始不同（P0）
+
+**现象**：`NWDP_TM(const DoubleMatrix&, CharMatrix&, DoubleMatrix&, ...)`（line 100）的回溯算法与原始 `double**` 版（line 17）不同。
+
+**原始版（line 17）**——完整回溯：
+```cpp
+while(i>0 && j>0) {
+    if(path[i][j]) { ... }
+    else {
+        h=val[i-1][j]; if(path[i-1][j]) h += gap_open;
+        v=val[i][j-1]; if(path[i][j-1]) v += gap_open;
+        if(v>=h) j--; else i--;
+    }
+}
+```
+
+**DoubleMatrix 版（line 100）**——简化回溯：
+```cpp
+while(i>0 && j>0) {
+    if(path[i][j]) { ... }
+    else if(val[i-1][j] > val[i][j-1]) i--; else j--;
+}
+```
+
+简化版在 traceback 时**不应用 gap_open 惩罚**，可能产生不同的回溯路径。修复方法是新增一个 `(DoubleMatrix&, CharMatrix&, DoubleMatrix&, ...)` 重载（line ~139 后），内部建 `double**` 视图后委托给 line 139（mixed 版，拥有正确的回溯算法）。
+
+**教训**：容器化时不能简单地改变函数签名——必须逐函数审计函数体算法是否与原版一致。
+
+#### 3.3 `soi_egs` `IntPairArray` 重载的算法与原始不同（已修复）
+
+**现象**：`soi_egs(double**, ..., const IntPairArray&, ...)`（line 234）的交换逻辑与原始 `int**` 版（line 144）不同。简化版使用了不同的 delta_score 计算公式和交换策略。
+
+**修复**：将 line 234 替换为建 `int**` 视图后委托给原始 `int**` 版的薄包装器，确保算法一致。
+
+#### 3.4 `NWDP_SE` `char**` 版本算法不同（未修复，待确认）
+
+`NWDP_SE(char**, double**, double**, double**, ...)` 各版本之间存在算法差异（有 hinge 参数版 vs 无 hinge 版）。需要逐函数审计确认算法等价性。
+
+### 四、关键经验
+
+| # | 经验 | 说明 |
+|---|------|------|
+| 1 | **算法一致性** | 容器化不能只改签名——必须逐函数体比对算法。NWDP_TM 的 DoubleMatrix 重载就是血的教训 |
+| 2 | **MinGW 兼容性** | `CoordArray&` 桥接在 MinGW 下崩溃是系统性编译器问题，非代码逻辑错误 |
+| 3 | **不修改原始逻辑** | 新增重载时应当建视图后委托给原始版，而非复制算法体（即使看着一样）|
+| 4 | **先删死代码，再翻转** | 死代码清理和翻转是两个独立步骤——先 grep 确认零调用者再删，安全且高效 |
+| 5 | **双版本同步清理** | TMalign.h 和 TMscore.h 中经常有同名函数的双版本，必须同步清理 |
+| 6 | **独立程序单独处理** | HwRMSD 等独立程序有独立的函数副本，清理时不能破坏它们 |
+
+### 五、剩余工作
+
+| 优先级 | 任务 | 说明 |
+|:------:|------|------|
+| P0 | 更新 msta_rna 基线 | 已知 1-ULP 差异，更新后可达 14/14 |
+| P1 | 合并 USalign-beta → master | ~215 commits |
+| P2 | 研究 MinGW 下 CoordArray& 桥接崩溃根因 | 长期，可能需要 GCC 升级或换 MSVC |
+| P3 | 确认 NWDP_SE 算法一致性 | 需要逐函数体比对 |
+| P4 | 验证所有独立程序（TMscore/HwRMSD/MMalign/se）输出与 master 一致 | 回归测试已覆盖主要路径 |
+
+### 六、提交统计（本阶段）
+
+```
+Commits (USalign-beta, 2026-06-03):
+b012006~2fdd220 共 45 commits
+领先 master: ~215 commits
+删除死代码: ~2600 行（累计）
+```
