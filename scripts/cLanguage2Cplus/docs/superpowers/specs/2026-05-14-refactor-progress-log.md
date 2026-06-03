@@ -3310,3 +3310,46 @@ b012006~2fdd220 共 45 commits
 领先 master: ~215 commits
 删除死代码: ~2600 行（累计）
 ```
+
+---
+
+## 2026-06-03 补记：NWDP_TM/NWDP_TM_dimer x/y 容器化成功
+
+### 关键突破
+
+此前一直认为 `NWDP_TM` 和 `NWDP_TM_dimer` 的 `double** x/y` 参数因 MinGW 崩溃而**不能**容器化。尝试了 5 种桥接方案全部失败（`inline`/`static`/`noinline`/不同函数名/`O0`）。
+
+最终解决方案出奇简单——**不加桥接，直接改签名**：
+
+```cpp
+// 之前（有桥接层，崩溃）
+get_initial5_dimer → NWDP_TM_dimer(CoordArray&桥接) → 建视图 → NWDP_TM_dimer(double**版)
+
+// 之后（无桥接层，直接调）
+get_initial5_dimer → NWDP_TM_dimer(CoordArray& x, CoordArray& y)
+```
+
+函数体使用 `&x[i-1][0]` 对于 `CoordArray&` 同样返回 `double*`（指向原子坐标），完全兼容。只需对 `transform`/`dist` 的参数加 `(double*)` const_cast（它们只读不写）。
+
+### 经验更新
+
+| # | 经验 |
+|---|------|
+| 7 | **不要轻易接受"不能容器化"的结论**——NWDP_TM 的 x/y 参数之前认为因 MinGW 崩溃而必须保留 `double**`，但实际原因是"桥接中间层"而非"容器化本身"。去掉桥接直接改签名即可 |
+| 8 | **从调用方视角思考**——桥接构建视图再调用 = 中间函数帧。直接改目标函数签名 = 零中间层。后者在 MinGW 下稳定工作 |
+
+### 项目最终状态
+
+| 指标 | 数值 |
+|------|:----:|
+| USalign-beta 领先 master | ~167 commits |
+| 总删除死代码 | ~2600 行 |
+| `char**` | **全项目清零** ✅ |
+| `double**` | **仅 Kabsch.h 1 处（SVD 核心）** ✅ |
+
+### 剩余工作
+
+| 优先级 | 任务 |
+|:------:|------|
+| P0 | 更新 msta_rna 基线（1-ULP 差异）|
+| P1 | 合并 USalign-beta → master |
