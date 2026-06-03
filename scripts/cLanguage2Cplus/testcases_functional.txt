@@ -9,6 +9,6 @@ tmscore_resid          help            model.pdb native.pdb -TMscore 1 -outfmt -
 tmscore_seqalign       help            model.pdb native.pdb -TMscore 5 -outfmt -1 -m -
 complex_chainid        help            modelComplex.pdb nativeComplex.pdb -TMscore 2 -outfmt -1 -m -
 complex_chainmap       help            modelComplex.pdb nativeComplex.pdb -TMscore 6 -outfmt -1 -m -
-msta_rna               MSTATest        -dir .\ list.txt -suffix .pdb -mm 4 -mol RNA -outfmt -1 -m -
-all_vs_all             MSTATest        -dir .\ list.txt -suffix .pdb -outfmt -1 -m -
-database_search        .               1mba.pdb -dir2 smallDB smallDB\list.txt -suffix .pdb -fast -outfmt -1 -m -
+msta_rna               MSTATest        -dir . list.txt -suffix .pdb -mm 4 -mol RNA -outfmt -1 -m -
+all_vs_all             MSTATest        -dir . list.txt -suffix .pdb -outfmt -1 -m -
+database_search        smallDB         1mba.pdb -dir2 . list.txt -suffix .pdb -fast -outfmt -1 -m -

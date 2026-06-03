@@ -18,7 +18,8 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 DATA_DIR = SCRIPT_DIR / "data"
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
 SRC = USALIGN_DIR / "USalign.cpp"
-EXE = "USalign_orig.exe"
+# POSIX shell does not include PWD in PATH
+EXE = os.path.abspath("USalign_orig.exe")
 PERF_DIR = SCRIPT_DIR / "perf_baseline"
 RUNS = 5
 
@@ -52,7 +53,8 @@ def run_benchmarks():
         with open("testcases_performance.txt", "r", encoding="utf-8") as tf:
             for line in tf:
                 line = line.strip()
-                if not line or line.startswith("#"): continue
+                if not line or line.startswith("#"):
+                    continue
                 name, workdir_rel, args_str = line.split(maxsplit=2)
                 workdir = (DATA_DIR / workdir_rel).resolve()
                 args_list = args_str.split()
@@ -64,7 +66,8 @@ def run_benchmarks():
                 for run_idx in range(RUNS):
                     proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
                     t = extract_time(proc.stdout + proc.stderr)
-                    if t == 0.0: print(f"  Warning: run {run_idx+1} failed to extract time.")
+                    if t == 0.0:
+                        print(f"  Warning: run {run_idx+1} failed to extract time.")
                     total += t
                 avg = round(total / RUNS, 3)
                 csv.write(f"{name},{avg}\n")

@@ -2,7 +2,7 @@
 import subprocess, os, shutil, sys, re
 from pathlib import Path
 
-“””
+"""
 Baseline file creation script (Baseline Creator)
 Features:
   1. Switch to the clean master branch, compile the original (unmodified) US-align executable (USalign_orig.exe)
@@ -13,14 +13,15 @@ Features:
   5. For cases with -dir/-dir2 options, automatically convert list file paths to absolute paths
   6. Print “Baseline created.” prompt after completion
 Note: This script should be run only once before modifying the source code, to establish immutable expected output.
-“””
+"""
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 DATA_DIR = SCRIPT_DIR / "data"
 BASELINE = SCRIPT_DIR / "baseline"
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
 SRC = USALIGN_DIR / "USalign.cpp"
-EXE = "USalign_orig.exe"
+# POSIX shell does not include PWD in PATH
+EXE = os.path.abspath("USalign_orig.exe")
 
 
 def current_branch():
