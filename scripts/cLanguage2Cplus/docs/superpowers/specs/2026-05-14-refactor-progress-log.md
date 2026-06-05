@@ -3351,5 +3351,47 @@ get_initial5_dimer → NWDP_TM_dimer(CoordArray& x, CoordArray& y)
 
 | 优先级 | 任务 |
 |:------:|------|
-| P0 | 更新 msta_rna 基线（1-ULP 差异）|
-| P1 | 合并 USalign-beta → master |
+| P0 | `make_sec` `char*→string&` + 调用者升级（3步）|
+| P1 | 删除MMalign_iter/MMalign_final死`char*`参数 |
+| P2 | 更新 msta_rna/all_vs_all/database_search 基线 |
+| P3 | 合并 USalign-beta → master |
+| P4 | u[3][3]/t[3] → Vec3/RotMat 容器化 |
+
+---
+
+## 2026-06-05 全日记录：指针容器化收尾阶段
+
+| 指标 | 数值 |
+|:----|:-----:|
+| 本日 Commits | **15**（P0+P1+double*清理+桥接删除+find_max_frag+Kabsch+score_fun8+TMscore8_search+dist_list+dot）|
+| 领先 master | **~330 commits** |
+| 回归测试 | **11 PASS + 3 已知 FAIL**（零新增回归）|
+| 独立程序测试 | **HwRMSD 6PASS + TMscore 7PASS + MMalign 5PASS + pdb2ss 2PASS = 20PASS** ✅ |
+
+### 已完成清理（本日）
+
+| 步骤 | 内容 | 文件 | Commit |
+|:----:|:-----|:----|:------|
+| **P0** | 核心代码int*清零（sec2sq/smooth/aln2invmap/print_*签名升级 + NWDP_TM_dimer翻转 + 局部变量vector化 + 修复内存泄漏） | 7 files | `6ff2e77` |
+| **P1** | 独立程序int*清零（NWalign+HwRMSD签名升级 + 全调用点.data()移除） | 6 files | `9f5d437` |
+| **double*** | 清理ut_tmc_mat/TMave_list/dist_list的new[]/delete[] | 2 files | `a9c50cc` |
+| **桥接** | 删除NW.h/MMalign.h中6个int*逆向桥接（死代码） | 2 files | `530015e` |
+| **int*收尾** | find_max_frag最后2个int*→int& | 1 file | `f613d7b` |
+| **Kabsch** | double* rms→double& + 全21处调用点更新 | 7 files | `5a0392e` |
+| **score_fun8** | double* score1→double& | 2 files | `0551865` |
+| **TMscore8_search** | double* Rcomm→double& + 全调用点更新 | 4 files | `2855c79` |
+| **dot** | 新增const array<double,3>&重载 | 1 file | `3c68ffa` |
+| **dist_list** | double*→vector<double>& + 移除.data() | 2 files | `675a61d` |
+
+### 关键发现：MMalign_iter/MMalign_final的char*参数全是死代码
+
+审计`MMalign_iter`→`MMalign_search`→`MMalign_final`调用链发现：所有`char *seqx, *seqy, *secx, *secy`参数在函数体内从未被使用——函数内部创建了本地`std::string`变量替代。这些参数从调用者传空指针`nullptr`进来，纯属冗余。
+
+### 剩余清理计划
+
+| 步 | 内容 | 风险 |
+|:--:|:-----|:----:|
+| S1 | `make_sec` char*→string& + 已用string的调用者 | 低 |
+| S2 | MMalign.h make_sec调用者 vector<char>→string | 低 |
+| S3 | qTMclust.cpp make_sec调用者 vector<char>→string级联 | 中 |
+| S4 | 删除MMalign_iter/MMalign_final死char*参数 | 低 |
