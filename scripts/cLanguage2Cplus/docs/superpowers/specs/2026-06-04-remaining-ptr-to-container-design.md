@@ -499,44 +499,42 @@ Option C: 两项并行推进
 | 指标 | 值 |
 |:----|:----:|
 | 领先 master | **~330 commits** |
-| `new int[]` / `delete[]` | **零** ✅ |
-| `double**` / `int**` / `char**` | **零** ✅ |
-| `new double[]` / `delete[]` | **零** ✅（已清理）|
-| `int*` 残存 | **仅 `find_max_frag` 2个输出单值**（改为`int&`）✅ |
-| `double*` 残存 | **6处函数参数**（已升级`double&`/`vector<double>&`）|
-| `char*` 残存 | **`make_sec` + MMalign_iter死参数**（待清理）|
-| `double*` 桥接 `dist_list` | 已升级为 `vector<double>&` ✅ |
-| `int*` 逆向桥接 | 已全部删除 ✅ |
+| `new[]` / `delete[]` | **零** ✅ |
+| `int*` | **零** ✅（仅 `find_max_frag` 2个输出单值改为`int&`）|
+| `double*`（非const） | **零** ✅ |
+| `char*`（非argv, 非const） | **零** ✅ |
+| `double**` / `int**` / `char**` / `bool**` | **零** ✅ |
+| `int*` 逆向桥接 | 全部删除 ✅ |
+| `reinterpret_cast` | **零** ✅ |
+| Vec3/RotMat 类型别名 | 已添加 ✅ |
+| Vec3/RotMat 重载 | transform/do_rotation/Kabsch/NWDP_TM/NWDP_TM_dimer/get_score_fast/calMMscore ✅ |
+| 已迁移 Vec3/RotMat 调用者 | adjust_dimer/homo/hetero_refined/get_initial5 ✅ |
 | 回归测试 | 11P+3F（3 FAIL 为已知 `-ffast-math` 浮点符号噪声） |
 
-### 已完成清理（2026-06-05）
+### 已完成清理（2026-06-05 全日）
 
 | 阶段 | 内容 | Commits |
 |:----|:------|:-------:|
-| **P0** | 核心代码 `int*` 清零（sec2sq/smooth/aln2invmap/print_*签名升级 + NWDP_TM_dimer翻转 + 局部变量vector化 + 修复SOIalign.h内存泄漏） | `6ff2e77` |
-| **P1** | 独立程序 `int*` 清零（NWalign+HwRMSD签名升级 + 全调用点`.data()`移除） | `9f5d437` |
-| **double*** | 清理残留 `double* new[]/delete[]`（ut_tmc_mat/TMave_list/dist_list） | `a9c50cc` |
-| **桥接层** | 删除NW.h/MMalign.h中6个`int*`逆向桥接 | `530015e` |
-| **int*收尾** | `find_max_frag` 最后2个 `int*→int&` | `f613d7b` |
-| **double*升级** | `Kabsch rms→double&` + `score_fun8 score1→double&` + `TMscore8_search Rcomm→double&` + `dist_list→vector<double>&` + `dot`新增`array&`重载 | `5a0392e`~`675a61d` |
+| **P0** | 核心代码 `int*` 清零 + NWDP_TM_dimer翻转 + 局部变量vector化 | `6ff2e77` |
+| **P1** | 独立程序 `int*` 清零 + `.data()`移除 | `9f5d437` |
+| **double*** | 清理 `new double[]/delete[]` | `a9c50cc` |
+| **桥接** | 删除6个 `int*` 逆向桥接 | `530015e` |
+| **char*/string** | `make_sec` char*→string& + MMalign链char*→string& | `bbdea39`~`80cfb11` |
+| **double*升级** | Kabsch/score_fun8/TMscore8_search rms→double& + dist_list→vector& | `5a0392e`~`675a61d` |
+| **P4 Vec3/RotMat** | 类型别名 + 7个核心函数Vec3重载 + 4个调用者迁移 | `c9bf65e`~`24f1ff7` |
 
-### 剩余清理计划
+### 下一步（P4 剩余）
 
-| 步骤 | 内容 | 影响范围 |
-|:----:|:-----|:--------:|
-| **S1** | `make_sec` `char*→string&` + 已用`std::string`的调用者更新 | TMalign.h + USalign/TMalign/HwRMSD/pdb2ss |
-| **S2** | MMalign.h `make_sec`调用者`vector<char>→string` | MMalign.h |
-| **S3** | qTMclust.cpp `make_sec`调用者`vector<char>→string`级联 | qTMclust.cpp |
-| **S4** | 删除MMalign_iter/MMalign_final死`char*`参数 | MMalign.h + USalign/MMalign.cpp |
+剩余约 **11 个函数**需要添加 Vec3/RotMat 重载才能完成全部迁移：
 
-### 剩余 `int*`（核心代码 8 处）
-
-| 文件 | 函数 | 说明 |
-|:----|:-----|:------|
-| **SOIalign.h:59** | `sec2sq(fwdmap, invmap)` | 被已改造的 `soi_egs` 调用 |
-| **MMalign.h:5** | `print_assign_list(assign1_list)` | 调试输出 |
-| **MMalign.h:3160** | `output_dock(assign1_list)` | 输出函数 |
-| **TMalign.h:593** | `smooth(sec)` | SSE 边界平滑 |
+| 函数 | 文件 |
+|:-----|:-----|
+| `detailed_search` / `detailed_search_standard` | TMalign.h |
+| `standard_TMscore` / `approx_TM` | TMalign.h |
+| `DP_iter` / `get_initial_fgt` / `get_initial_ssplus` | TMalign.h |
+| `CPalign_main` / `copy_t_u` | TMalign.h |
+| `get_initial5_dimer` | MMalign.h |
+| `SOI_iter` / `get_SOI_initial_assign` / `SOI_assign2super` | SOIalign.h |
 | **TMalign.h:993** | `find_max_frag(start, end)` | 输出单值（非数组，可保留） |
 | **flexalign.h:37** | `aln2invmap(invmap)` | 工具函数 |
 | **se.h:31-32** | `m1=nullptr; m2=nullptr` | 影子变量需清理 |

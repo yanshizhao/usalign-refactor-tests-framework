@@ -3351,11 +3351,44 @@ get_initial5_dimer → NWDP_TM_dimer(CoordArray& x, CoordArray& y)
 
 | 优先级 | 任务 |
 |:------:|------|
-| P0 | `make_sec` `char*→string&` + 调用者升级（3步）|
-| P1 | 删除MMalign_iter/MMalign_final死`char*`参数 |
+| P4 | 剩余11个函数添加Vec3/RotMat重载 + 迁移调用者 |
 | P2 | 更新 msta_rna/all_vs_all/database_search 基线 |
 | P3 | 合并 USalign-beta → master |
-| P4 | u[3][3]/t[3] → Vec3/RotMat 容器化 |
+
+---
+
+### 2026-06-05 后续记录：P4 Vec3/RotMat 改造启动
+
+| 指标 | 数值 |
+|:----|:-----:|
+| 新增 Commits | **10**（S1~S3 + P4a~P4i）|
+| 领先 master | **~345 commits** |
+| 回归测试 | **11 PASS + 3 已知 FAIL**（零新增回归）|
+| `reinterpret_cast` | **零** ✅ |
+
+### P4 完成进度
+
+| 阶段 | 内容 | Commit |
+|:----:|:------|:------:|
+| **P4a** | Vec3/RotMat 类型别名 + transform/do_rotation 签名升级 | `c9bf65e` |
+| **P4b** | Kabsch Vec3/RotMat 重载（桥接）| `465f13f` |
+| **P4c** | 清理reinterpret_cast，改用相同函数体重载 | `b166654` |
+| **P4d** | homo_refined_greedy_search 迁移 | `9fe3b7b` |
+| **P4e** | Kabsch 复制函数体的 Vec3/RotMat 重载 | `a3e3f87` |
+| **P4f** | adjust_dimer_assignment 迁移 | `b080721` |
+| **P4g** | NWDP_TM_dimer Vec3/RotMat 重载 | `50e4638` |
+| **P4h** | NWDP_TM Vec3/RotMat 重载 | `12e689a` |
+| **P4i** | get_score_fast + calMMscore 重载 + hetero_refined 迁移 | `24f1ff7` |
+
+### Vec3/RotMat 重载状态
+
+| 函数 | 状态 |
+|:-----|:----:|
+| transform / do_rotation | ✅ Vec3主版本 + double[3]向后兼容 |
+| Kabsch | ✅ double[3] + Vec3重载 |
+| NWDP_TM / NWDP_TM_dimer | ✅ double[3] + Vec3重载 |
+| get_score_fast / calMMscore | ✅ double[3] + Vec3重载 |
+| detailed_search / DP_iter / copy_t_u 等 ~11个 | ❌ 待添加重载 |
 
 ---
 
