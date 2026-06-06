@@ -540,12 +540,51 @@ Option C: 两项并行推进
 | **se.h:31-32** | `m1=nullptr; m2=nullptr` | 影子变量需清理 |
 | **SOIalign.h:7** | `print_invmap(invmap)` | 调试输出 |
 
-### 下步计划
+### 三波执行计划（2026-06-06 更新）
+
+整体策略：**分波次推进**，每波 3-5 个函数，每步独立编译验证。
+
+#### 当前已有 Vec3/RotMat 重载
+
+| 函数 | 文件 | 状态 |
+|:-----|:----|:----:|
+| `Kabsch` | Kabsch.h | ✅ |
+| `transform` / `do_rotation` | basic_fun.h | ✅ |
+| `NWDP_TM` / `NWDP_TM_dimer` | NW.h / MMalign.h | ✅ |
+| `get_score_fast` / `calMMscore` | TMalign.h / MMalign.h | ✅ |
+| `copy_t_u` / `approx_TM` | TMalign.h | ✅ 第 1 波预加 |
+
+#### 第 1 波：叶子函数（无子依赖或子依赖已有重载）
+
+| 波次 | # | 函数 | 位置 | 大小 | 子调用依赖 |
+|:----:|:-:|:-----|:----:|:----:|:----------|
+| 1a | 1 | `TMscore8_search` | TMalign.h:86-247 | 162行 | `Kabsch`✅ `do_rotation`✅ |
+| 1a | 2 | `TMscore8_search_standard` | TMalign.h:251-412 | 162行 | 同上 |
+| 1a | 3 | `get_initial` | TMalign.h:654-682 | 29行 | `get_score_fast`✅ |
+| 1b | 4 | `detailed_search` | TMalign.h:422-444 | 23行 | `TMscore8_search`(#1) |
+| 1b | 5 | `detailed_search_standard` | TMalign.h:447-471 | 25行 | `TMscore8_search_standard`(#2) |
+| 1b | 6 | `standard_TMscore` | TMalign.h:2941-2980 | 40行 | `Kabsch`✅ `TMscore8_search_standard`(#5) |
+
+#### 第 2 波：中层函数
+
+| # | 函数 | 位置 | 大小 | 子调用依赖 |
+|:-:|:-----|:----:|:----:|:----------|
+| 7 | `DP_iter` | TMalign.h:1364-1415 | 52行 | `NWDP_TM`✅ `TMscore8_search`(#1) |
+| 8 | `get_initial_fgt` | TMalign.h:1121-1358 | 238行 | `get_score_fast`✅ `find_max_frag`(无t/u) |
+
+#### 第 3 波：入口函数迁移
+
+| # | 函数 | 改动内容 |
+|:-:|:-----|:---------|
+| 9 | `TMalign_main` | 签名 `t0[3],u0[3][3]`→`Vec3&,RotMat&` + 局部变量 |
+| 10 | 修复调用者 | `CPalign_main` `SOIalign_main` `MMalign_search` `flexalign_main` `USalign.cpp` 逐个修 |
+| 11 | 删除旧版 | 删除已无调用者的 `double[]` 旧版重载 |
+
+#### 每步执行流程
 
 ```
-P0 → 核心代码8处int*清零（~10 commits, 1-2小时）
-P1 → 独立程序10处int*清零（~10 commits）
-P2 → 更新3个baseline（msta_rna/all_vs_all/database_search）使回归全绿
-P3 → 合并 USalign-beta → master
-P4 → u[3][3]/t[3] → Vec3/RotMat 改造（方案已制定，约150处）
+1. 添加 Vec3/RotMat 重载（完整函数体复制，仅改签名 + 局部变量类型）
+2. 编译验证
+3. 回归测试（run_regression.py）
+4. 提交
 ```
