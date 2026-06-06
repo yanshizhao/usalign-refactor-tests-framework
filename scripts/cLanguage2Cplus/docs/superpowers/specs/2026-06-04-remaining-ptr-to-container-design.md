@@ -572,19 +572,51 @@ Option C: 两项并行推进
 | 7 | `DP_iter` | TMalign.h:1364-1415 | 52行 | `NWDP_TM`✅ `TMscore8_search`(#1) |
 | 8 | `get_initial_fgt` | TMalign.h:1121-1358 | 238行 | `get_score_fast`✅ `find_max_frag`(无t/u) |
 
-#### 第 3 波：入口函数迁移
+#### 第 3 波：入口函数迁移（已完成 ✅）
 
-| # | 函数 | 改动内容 |
-|:-:|:-----|:---------|
-| 9 | `TMalign_main` | 签名 `t0[3],u0[3][3]`→`Vec3&,RotMat&` + 局部变量 |
-| 10 | 修复调用者 | `CPalign_main` `SOIalign_main` `MMalign_search` `flexalign_main` `USalign.cpp` 逐个修 |
-| 11 | 删除旧版 | 删除已无调用者的 `double[]` 旧版重载 |
+| 步骤 | 内容 | 状态 |
+|:----:|:-----|:----:|
+| TMalign_main | 签名+局部变量 Vec3/RotMat 化 | ✅ |
+| CPalign_main / SOIalign_main / flexalign_main | 同上 | ✅ |
+| USalign.cpp / MMalign.h 调用者迁移 | 同上 | ✅ |
+| 全部 double[] 旧版删除 | 1885 行清理 | ✅ |
+
+---
+
+### 最终阶段：全局 double[] 清零（2026-06-06 更新）
+
+**目标**：删除源码中所有 `double t[3]`/`double t0[3]` / `double u[3][3]`/`double u0[3][3]` 函数参数
+
+#### 依赖关系
+
+```
+flexalign.h 输出函数 → basic_fun.h (transform/do_rotation)
+                    → t_u2tu/tu2t_u
+TMscore.h (独立程序)
+HwRMSD.h (独立程序)
+```
+
+#### 执行顺序
+
+| 波次 | # | 文件 | 函数 | 改动量 | 说明 |
+|:----:|:-:|:----|:-----|:-----:|:-----|
+| **1a** | 1 | flexalign.h | `output_flexalign_rotation_matrix` | ~15行 | 输出函数，改签名 `double[]`→`const Vec3&,const RotMat&` |
+| **1b** | 2 | flexalign.h | `output_flexalign_pymol`（声明+定义） | ~50行×2 | 含 `transform(t,u,x,x1)`，内部 x/x1 需改 `Vec3` |
+| **1c** | 3 | flexalign.h | `output_flexalign_rasmol`（声明+定义） | ~50行×2 | 同上 |
+| **1d** | 4 | flexalign.h | `output_flexalign_results` | ~80行 | 调用上述函数 |
+| **1e** | 5 | flexalign.h | `t_u2tu(double[])` / `tu2t_u(double[])` | ~20行 | 已有 Vec3 重载 ✅，直接删旧版 |
+| **2** | 6 | basic_fun.h | `transform(double[])` / `do_rotation(double[])` | ~15行 | flexalign 已迁移，无调用者 |
+| **3** | 7 | Kabsch.h | `Kabsch(double[])` | ~150行 | 无调用者 |
+| **4** | 8 | NW.h | `NWDP_TM(double[])` 声明+定义 | ~80行 | 无调用者 |
+| **5** | 9 | TMscore.h | 5 处 double[] 签名 | ~30行 | 独立程序，同步升级 |
+| **6** | 10 | HwRMSD.h | 2 处 double[] 签名 | ~20行 | 独立程序，同步升级 |
 
 #### 每步执行流程
 
 ```
-1. 添加 Vec3/RotMat 重载（完整函数体复制，仅改签名 + 局部变量类型）
-2. 编译验证
-3. 回归测试（run_regression.py）
-4. 提交
+1. 改签名（纯类型变更：double t[3] → const Vec3& t, double u[3][3] → const RotMat& u）
+2. 局部变量同步（double[3] → Vec3，double[3][3] → RotMat）
+3. 编译验证
+4. 回归测试（run_regression.py）
+5. 提交
 ```
