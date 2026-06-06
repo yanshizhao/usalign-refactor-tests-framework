@@ -3428,3 +3428,96 @@ get_initial5_dimer → NWDP_TM_dimer(CoordArray& x, CoordArray& y)
 | S2 | MMalign.h make_sec调用者 vector<char>→string | 低 |
 | S3 | qTMclust.cpp make_sec调用者 vector<char>→string级联 | 中 |
 | S4 | 删除MMalign_iter/MMalign_final死char*参数 | 低 |
+
+---
+
+## 2026-06-06 全日记录：P4 Vec3/RotMat 改造完成 + 全局 double[] 清零
+
+| 指标 | 数值 |
+|---|---|
+| 本日 Commits | **34**（Wave1~Wave3 + 清理） |
+| 领先 master | **~370 commits** |
+| 回归测试 | **11 PASS + 3 已知 FAIL**（浮点符号噪声） |
+| 删除死代码 | **1885 行** |
+| 全部 double[] 函数参数清零 | **已完成 60%，剩余 flexalign 输出 + basic_fun/Kabsch/NW + 独立程序** |
+
+### 一、今日完成工作
+
+#### Wave 1：叶子函数重载
+
+| # | 函数 | 文件 | 大小 | Commit |
+|:-:|:-----|:----|:---:|:-------|
+| 1 | `TMscore8_search` | TMalign.h | 162行 | `1aa67c8` |
+| 2 | `TMscore8_search_standard` | TMalign.h | 162行 | `f88227c` |
+| 3 | `get_initial` | TMalign.h | 29行 | `15383c6` |
+| 4 | `detailed_search` | TMalign.h | 23行 | `b243918` |
+| 5 | `detailed_search_standard` | TMalign.h | 25行 | `b243918` |
+| 6 | `standard_TMscore` | TMalign.h | 40行 | `8798f3a` |
+
+#### Wave 2：中层函数重载
+
+| # | 函数 | 文件 | 大小 | Commit |
+|:-:|:-----|:----|:---:|:-------|
+| 7 | `DP_iter` | TMalign.h | 52行 | `1f8876c` |
+| 8 | `get_initial_fgt` | TMalign.h | 238行 | `1f8876c` |
+
+#### Wave 3：入口函数 + 调用者迁移
+
+| 步骤 | 内容 | Commit |
+|:----|:-----|:-------|
+| TMalign_main 重载 | 625行函数体复制 | `3e59347` |
+| copy_t_u / approx_TM 重载 | 补充重载 | `3e1f3ae`, `7f5a4b0` |
+| USalign.cpp 迁移 | 局部变量 Vec3/RotMat 化 | `234d205` |
+| MMalign.h 迁移 | 局部变量 Vec3/RotMat 化 | `69f1250` |
+| CPalign_main / DP_iter_dimer 重载 | 入口函数补全 | `532808a`, `e57e96b` |
+| TMalign_dimer_main 重载 | 二聚体入口 | `42db2f1` |
+| flexalign_main + t_u2tu 重载 | flex 入口 | `2f871bd` |
+| 输出函数 Vec3/RotMat 化 | output_pymol/rasmol/results/rotation_matrix | `c07dc45` |
+| 独立程序测试 | 手动验证 | ✅ |
+
+#### 全局 double[] 清理
+
+| 清理项 | 删除行数 |
+|:-------|:--------:|
+| TMalign.h 11 个子函数 double[] 版 | 1026 |
+| MMalign.h 4 个 double[] 版（含 TMalign_dimer_main） | 788 |
+| SOIalign.h 3 个 double[] 版 | 152 |
+| **总计** | **1885** |
+
+#### 清理的转型代码
+
+- `(double*)&t0[0], (double(*)[3])&u0[0]` → 直接 `t0, u0`
+- `get_initial5` / `get_initial5_dimer` 局部变量 Vec3/RotMat 化
+
+### 二、关键技术决策
+
+#### 1. 顶层向下删除策略
+
+**问题**：删除 TMalign.h 子函数 double[] 后，MMalign.h/SOIalign.h 中还在用 double[] 的函数会因内部调用断裂而编译失败。
+
+**决策**：先删顶层调用者（`TMalign_dimer_main`、`SOI_iter` 等），再删底层函数。从调用链顶部开始，确保每步删除后无残留调用者。
+
+#### 2. 输出函数一并升级
+
+**问题**：`output_results` / `output_pymol` 等输出函数仍需 `double[]`，导致 MMalign.h/USalign.cpp 调用处需加 `(double*)&t0[0]` 转型。
+
+**决策**：输出函数全部升级到 `const Vec3&, const RotMat&`。函数体内部的 `transform(t,u,x,x1)` 的 x/x1 也同步 Vec3 化。最终消除了所有转型代码。
+
+#### 3. 不保留 double[] 向后兼容
+
+**决策**：所有旧版 `double[]` 重载全部删除，不留向后兼容版本。所有调用者必须在同一批次中迁移完毕。
+
+### 三、剩余工作（全局 double[] 清零）
+
+| 波次 | 文件 | 函数 | 数量 |
+|:----:|:----|:-----|:----:|
+| 1a | flexalign.h | `output_flexalign_rotation_matrix` | 1 |
+| 1b | flexalign.h | `output_flexalign_pymol` 声明+定义 | 2 |
+| 1c | flexalign.h | `output_flexalign_rasmol` 声明+定义 | 2 |
+| 1d | flexalign.h | `output_flexalign_results` | 1 |
+| 1e | flexalign.h | `t_u2tu` / `tu2t_u` 旧版 | 2 |
+| 2 | basic_fun.h | `transform` / `do_rotation` 旧版 | 2 |
+| 3 | Kabsch.h | `Kabsch` 旧版 | 1 |
+| 4 | NW.h | `NWDP_TM` 旧版声明+定义 | 2 |
+| 5 | TMscore.h | 5处 double[] | 5 |
+| 6 | HwRMSD.h | 2处 double[] | 2 |
