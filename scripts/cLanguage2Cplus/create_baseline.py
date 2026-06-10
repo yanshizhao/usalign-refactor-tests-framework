@@ -45,8 +45,10 @@ def compile():
 
 
 def clean_slash(text: str) -> str:
-    """Remove redundant '/' prefix after 'Name of Structure_X:' in output"""
-    return re.sub(r'(Name of Structure_\d+:)\s*/', r'\1 ', text)
+    """Remove redundant '/' prefix in output paths (both 'Name of Structure_X:' and table columns)"""
+    text = re.sub(r'(Name of Structure_\d+:)\s*/', r'\1 ', text)
+    text = re.sub(r'(^|\t|> ?)/(?=[A-Z])', r'\1', text, flags=re.MULTILINE)
+    return text
 
 
 def run_baseline():
