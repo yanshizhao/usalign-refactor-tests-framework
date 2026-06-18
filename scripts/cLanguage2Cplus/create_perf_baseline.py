@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import subprocess, os, sys, re
+import subprocess, os, sys, re, platform
 from pathlib import Path
 
 """
@@ -20,7 +20,8 @@ USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
 SRC = USALIGN_DIR / "USalign.cpp"
 
 # POSIX shell does not include PWD in PATH
-EXE = os.path.abspath("USalign_orig.exe")
+EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
+EXE = os.path.abspath(f"USalign_orig{EXE_SUFFIX}")
 PERF_DIR = SCRIPT_DIR / "perf_baseline"
 RUNS = 5
 
@@ -40,7 +41,10 @@ def checkout(branch):
 
 def compile():
     print("Compiling original US-align from master...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", EXE, str(SRC)]).returncode != 0:
+    compile_cmd = ["g++", "-O3", "-ffast-math", "-o", EXE, str(SRC)]
+    if platform.system() == "Windows":
+        compile_cmd.insert(3, "-static")
+    if subprocess.run(compile_cmd).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 def extract_time(output: str) -> float:

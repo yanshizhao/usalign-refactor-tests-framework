@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import subprocess, os, shutil, sys, re
+import subprocess, os, shutil, sys, re, platform
 from pathlib import Path
 
 """
@@ -21,8 +21,9 @@ BASELINE = SCRIPT_DIR / "baseline"
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
 SRC = USALIGN_DIR / "USalign.cpp"
 
-# POSIX shell does not include PWD in PATH
-EXE = os.path.abspath("USalign_orig.exe")
+# Cross-platform executable: add .exe only on Windows
+EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
+EXE = os.path.abspath(f"USalign_orig{EXE_SUFFIX}")
 
 
 def current_branch():
@@ -40,14 +41,17 @@ def checkout(branch):
 
 def compile():
     print("Compiling original US-align from master...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", EXE, str(SRC)]).returncode != 0:
+    compile_cmd = ["g++", "-O3", "-ffast-math", "-o", EXE, str(SRC)]
+    if platform.system() == "Windows":
+        compile_cmd.insert(3, "-static")
+    if subprocess.run(compile_cmd).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 
 def clean_slash(text: str) -> str:
     """Remove redundant '/' prefix in output paths (both 'Name of Structure_X:' and table columns)"""
     text = re.sub(r'(Name of Structure_\d+:)\s*/', r'\1 ', text)
-    text = re.sub(r'(^|\t|> ?)/(?=[A-Z])', r'\1', text, flags=re.MULTILINE)
+    text = re.sub(r'(^|[\t >])/(?=[A-Z])', r'\1', text, flags=re.MULTILINE)
     return text
 
 

@@ -1,5 +1,7 @@
 """
-Build smallDB by randomly sampling PDB files from an I-TASSER template library on Windows
+Build smallDB by randomly sampling PDB files from an I-TASSER template library.
+Cross-platform (Windows / Linux / macOS).
+
 Usage:
     1. Place this script in the scripts/cLanguage2Cplus/ directory
     2. Modify SOURCE_DIR below to your I-TASSER library extraction path
@@ -12,8 +14,10 @@ import shutil
 import sys
 
 # ==================== Configuration ====================
-# Modify to your actual I-TASSER library extraction path (directory containing .pdb files)
-SOURCE_DIR = r"D:\qlab\us-align_modify\tests\data\PDB\PDB"
+# Modify to your actual I-TASSER library extraction path (directory containing .pdb files).
+# Example Windows: r"D:\I-TASSER\template\pdb"
+# Example Linux:   "/home/user/I-TASSER/template/pdb"
+SOURCE_DIR = "/path/to/I-TASSER/template/pdb"
 
 # The target directory is inferred automatically by the script; no modification needed
 NUM_STRUCTURES = 100

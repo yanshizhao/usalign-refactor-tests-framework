@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import subprocess, os, sys, re, csv
+import subprocess, os, sys, re, csv, platform
 from pathlib import Path
 
 """
@@ -22,7 +22,10 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 DATA_DIR = SCRIPT_DIR / "data"
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
 SRC = USALIGN_DIR / "USalign.cpp"
-EXE = SCRIPT_DIR / f"USalign_mod_{os.getpid()}.exe"
+
+# Cross-platform executable path: add .exe only on Windows
+EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
+EXE = SCRIPT_DIR / f"USalign_mod_{os.getpid()}{EXE_SUFFIX}"
 BASELINE_CSV = SCRIPT_DIR / "perf_baseline" / "baseline.csv"
 CURRENT_DIR = SCRIPT_DIR / "perf_current"
 CURRENT_CSV = CURRENT_DIR / "performance.csv"
@@ -43,7 +46,10 @@ def checkout(branch):
 
 def compile():
     print("Compiling modified US-align from USalign-beta...")
-    if subprocess.run(["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", str(EXE), str(SRC)]).returncode != 0:
+    compile_cmd = ["g++", "-O3", "-ffast-math", "-o", str(EXE), str(SRC)]
+    if platform.system() == "Windows":
+        compile_cmd.insert(3, "-static")
+    if subprocess.run(compile_cmd).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
 def extract_time(output: str) -> float:
