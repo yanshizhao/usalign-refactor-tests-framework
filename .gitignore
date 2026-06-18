@@ -18,4 +18,6 @@ scripts/cLanguage2Cplus/standalone/*/baseline/
 scripts/cLanguage2Cplus/standalone/*/current/
 scripts/cLanguage2Cplus/standalone/*/diffs/
 scripts/cLanguage2Cplus/data/sup*.pml
+scripts/cLanguage2Cplus/USalign_orig
+scripts/cLanguage2Cplus/USalign_mod_*
 USalign/
