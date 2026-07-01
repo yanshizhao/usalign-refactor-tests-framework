@@ -43,7 +43,8 @@ def compile():
     print("Compiling original US-align from master...")
     compile_cmd = ["g++", "-O3", "-ffast-math", "-o", EXE, str(SRC)]
     if platform.system() == "Windows":
-        compile_cmd.insert(3, "-static")
+        compile_cmd.insert(3, "-static-libgcc")
+        compile_cmd.insert(4, "-static-libstdc++")
     if subprocess.run(compile_cmd).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 

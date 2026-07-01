@@ -47,9 +47,10 @@ def checkout(branch):
 
 def compile():
     print("Compiling modified US-align from USalign-beta...")
-    compile_cmd = ["g++", "-O3", "-ffast-math", "-o", str(EXE), str(SRC)]
+    compile_cmd = ["g++", "-O3", "-ffast-math", "-fopenmp", "-o", str(EXE), str(SRC)]
     if platform.system() == "Windows":
-        compile_cmd.insert(3, "-static")   # static linking only on Windows
+        compile_cmd.insert(4, "-static-libgcc")
+        compile_cmd.insert(5, "-static-libstdc++")
     if subprocess.run(compile_cmd).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 

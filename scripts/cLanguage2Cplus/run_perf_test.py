@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import subprocess, os, sys, re, csv, platform
+import subprocess, os, sys, re, csv, platform, argparse
 from pathlib import Path
 
 """
@@ -28,8 +28,16 @@ EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
 EXE = SCRIPT_DIR / f"USalign_mod_{os.getpid()}{EXE_SUFFIX}"
 BASELINE_CSV = SCRIPT_DIR / "perf_baseline" / "baseline.csv"
 CURRENT_DIR = SCRIPT_DIR / "perf_current"
-CURRENT_CSV = CURRENT_DIR / "performance.csv"
 RUNS = 5
+
+# Parse -threads argument for USalign
+parser = argparse.ArgumentParser(description="US-align performance regression test")
+parser.add_argument("-threads", type=int, default=0,
+    help="Number of parallel threads for TMscore8_search (0=serial, default)")
+args = parser.parse_args()
+THREADS_ARG = ["-threads", str(args.threads)] if args.threads > 0 else []
+THREADS_TAG = f"_threads{args.threads}" if args.threads > 0 else ""
+CURRENT_CSV = CURRENT_DIR / f"performance{THREADS_TAG}.csv"
 
 def current_branch():
     result = subprocess.run(["git", "branch", "--show-current"], cwd=str(USALIGN_DIR), capture_output=True, text=True)
@@ -46,9 +54,10 @@ def checkout(branch):
 
 def compile():
     print("Compiling modified US-align from USalign-beta...")
-    compile_cmd = ["g++", "-O3", "-ffast-math", "-o", str(EXE), str(SRC)]
+    compile_cmd = ["g++", "-O3", "-ffast-math", "-fopenmp", "-o", str(EXE), str(SRC)]
     if platform.system() == "Windows":
-        compile_cmd.insert(3, "-static")
+        compile_cmd.insert(4, "-static-libgcc")
+        compile_cmd.insert(5, "-static-libstdc++")
     if subprocess.run(compile_cmd).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
