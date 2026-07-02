@@ -1,0 +1,2 @@
+[DIAG_PAR] i=0 j=0 BEFORE TMalign_main: xlen=146 ylen=363 mol_type=-509 Lnorm_tmp=741 fast_opt=0 trim_chain_count=0 seqx_len=146 seqy_len=363 secx_len=146 secy_len=363
+[DIAG_PAR] i=0 j=0 AFTER TMalign_main: TM4=0.102582 TM1=0.188049 TM2=0.374531 TMave=76.0135 Lnorm_tmp=741 seqxA_len=416 seqyA_len=416
