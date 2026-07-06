@@ -110,12 +110,14 @@ cLanguage2Cplus/                        # ★ 主回归测试框架
 ```bash
 cd cLanguage2Cplus
 
-# 1. 生成功能基线 — 从 master 编译 USalign，执行 14 个用例，保存输出到 baseline/
+# 1. 生成功能基线 — 从 master 编译 USalign，执行 15 个用例（单线程），保存输出到 baseline/
 python create_baseline.py
 
-# 2. 生成性能基线 — 从 master 编译 USalign，4 个用例各跑 5 次，保存到 perf_baseline/baseline.csv
+# 2. 生成性能基线 — 从 master 编译 USalign，5 个用例各跑 5 次（单线程），保存到 perf_baseline/baseline.csv
 python create_perf_baseline.py
 ```
+
+> 基线用例集（`testcases_baseline_functional.txt`、`testcases_baseline_performance.txt`）与回归用例集的主要区别是**不使用 `-threads` 参数**，即单线程运行。回归用例集（`testcases_functional.txt`、`testcases_performance.txt`）包含 `-threads` 参数，用于测试多线程并行加速的正确性。两者分别使用不同的用例配置文件，互不干扰。
 
 ### 3.2 开发迭代（修改源码后，反复执行）
 
@@ -142,12 +144,13 @@ python build_Small_DB.py
 
 | 项目 | 说明 |
 |------|------|
-| **用途** | 生成回归测试的黄金标准输出 |
+| **用途** | 生成回归测试的黄金标准输出（单线程） |
 | **编译源** | `master` 分支的 `../../../USalign/USalign.cpp` |
-| **产物** | `USalign_orig.exe` + `baseline/` 目录 (14 个 `.out` + `sup.pdb`) |
-| **输入** | `testcases_functional.txt` |
+| **产物** | `USalign_orig.exe` + `baseline/` 目录 (15 个 `.out` + `sup.pdb`) |
+| **输入** | `testcases_baseline_functional.txt`（不含 `-threads` 参数） |
 | **执行时机** | 修改源码前**仅执行一次** |
-| **工作原理** | 自动 checkout → `master`，编译原始版，逐条执行 14 个用例，捕获 stdout+stderr，经 `clean_slash()` 清洗后保存到 `baseline/` |
+| **工作原理** | 自动 checkout → `master`，编译原始版，逐条执行 15 个用例，捕获 stdout+stderr，经 `clean_slash()` 清洗后保存到 `baseline/` |
+| **与回归的区别** | 基线使用 `testcases_baseline_functional.txt`（单线程），回归使用 `testcases_functional.txt`（多线程 `-threads 2/4`） |
 
 ### 4.2 `run_regression.py` — 功能回归测试
 
@@ -166,12 +169,13 @@ python build_Small_DB.py
 
 | 项目 | 说明 |
 |------|------|
-| **用途** | 生成性能参考基线 |
+| **用途** | 生成性能参考基线（单线程） |
 | **编译源** | `master` 分支 |
 | **产物** | `USalign_orig.exe` + `perf_baseline/baseline.csv` |
-| **输入** | `testcases_performance.txt` |
+| **输入** | `testcases_baseline_performance.txt`（不含 `-threads` 参数） |
 | **参数** | 每个用例运行 **5 次**，取 `#Total CPU time` 平均值 |
 | **执行时机** | 修改源码前仅执行一次 |
+| **与回归的区别** | 基线使用 `testcases_baseline_performance.txt`（单线程），回归使用 `testcases_performance.txt`（多线程 `-threads 2/4`） |
 
 ### 4.4 `run_perf_test.py` — 性能回归测试
 

@@ -6,7 +6,8 @@ from pathlib import Path
 Performance baseline creation script (Performance Baseline Creator)
 Features:
   1. Switch to the clean master branch, compile the original (unmodified) US-align executable
-  2. Read all performance test cases from testcases_performance.txt
+  2. Read all performance test cases from testcases_baseline_performance.txt
+     (without -threads parameter, for single-thread baseline reference)
   3. Run each case multiple times (default 5), extracting #Total CPU time from each run
   4. Calculate the average time (seconds) for each case and save to perf_baseline/baseline.csv
   5. Print command-line debugging info (CWD, CMD), and output warnings and program tail on extraction failure
@@ -56,7 +57,7 @@ def run_benchmarks():
     if not PERF_DIR.exists(): PERF_DIR.mkdir(parents=True)
     with open(PERF_DIR / "baseline.csv", "w", newline='') as csv:
         csv.write("case,avg_time\n")
-        with open("testcases_performance.txt", "r", encoding="utf-8") as tf:
+        with open("testcases_baseline_performance.txt", "r", encoding="utf-8") as tf:
             for line in tf:
                 line = line.strip()
                 if not line or line.startswith("#"):

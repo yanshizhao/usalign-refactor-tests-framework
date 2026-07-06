@@ -97,12 +97,14 @@ cLanguage2Cplus/                        # ★ Main regression test framework
 ```bash
 cd cLanguage2Cplus
 
-# 1. Generate functional baseline — compile USalign from master, run 14 cases, save to baseline/
+# 1. Generate functional baseline — compile USalign from master, run 15 cases (single-thread), save to baseline/
 python create_baseline.py
 
-# 2. Generate performance baseline — compile USalign from master, 4 cases × 5 runs each, save to perf_baseline/baseline.csv
+# 2. Generate performance baseline — compile USalign from master, 5 cases × 5 runs each (single-thread), save to perf_baseline/baseline.csv
 python create_perf_baseline.py
 ```
+
+> Baseline test case files (`testcases_baseline_functional.txt`, `testcases_baseline_performance.txt`) differ from regression test cases by **not using the `-threads` parameter** (single-thread execution). Regression test case files (`testcases_functional.txt`, `testcases_performance.txt`) include `-threads` for multi-threaded parallel testing. The two sets use separate configuration files and do not interfere with each other.
 
 ### 3.2 Development Iteration (run after each source modification)
 
@@ -129,12 +131,13 @@ python build_Small_DB.py
 
 | Item | Description |
 |------|-------------|
-| **Purpose** | Generate gold-standard output for regression testing |
+| **Purpose** | Generate gold-standard output for regression testing (single-thread) |
 | **Compile source** | `../../../USalign/USalign.cpp` from `master` branch |
-| **Output** | `USalign_orig.exe` + `baseline/` directory (14 `.out` + `sup.pdb`) |
-| **Input** | `testcases_functional.txt` |
+| **Output** | `USalign_orig.exe` + `baseline/` directory (15 `.out` + `sup.pdb`) |
+| **Input** | `testcases_baseline_functional.txt` (without `-threads` parameter) |
 | **When to run** | **Once** before modifying source code |
-| **How it works** | Auto checkout → `master`, compile original, run 14 cases sequentially, capture stdout+stderr, clean via `clean_slash()` and save to `baseline/` |
+| **How it works** | Auto checkout → `master`, compile original, run 15 cases sequentially, capture stdout+stderr, clean via `clean_slash()` and save to `baseline/` |
+| **vs Regression** | Baseline uses `testcases_baseline_functional.txt` (single-thread); regression uses `testcases_functional.txt` (multi-thread `-threads 2/4`) |
 
 ### 4.2 `run_regression.py` — Functional Regression Runner
 
@@ -153,12 +156,13 @@ python build_Small_DB.py
 
 | Item | Description |
 |------|-------------|
-| **Purpose** | Generate performance reference baseline |
+| **Purpose** | Generate performance reference baseline (single-thread) |
 | **Compile source** | `master` branch |
 | **Output** | `USalign_orig.exe` + `perf_baseline/baseline.csv` |
-| **Input** | `testcases_performance.txt` |
+| **Input** | `testcases_baseline_performance.txt` (without `-threads` parameter) |
 | **Parameters** | Each case run **5 times**, average of `#Total CPU time` |
 | **When to run** | Once before modifying source code |
+| **vs Regression** | Baseline uses `testcases_baseline_performance.txt` (single-thread); regression uses `testcases_performance.txt` (multi-thread `-threads 2/4`) |
 
 ### 4.4 `run_perf_test.py` — Performance Regression Runner
 

@@ -6,7 +6,8 @@ from pathlib import Path
 Baseline file creation script (Baseline Creator)
 Features:
   1. Switch to the clean master branch, compile the original (unmodified) US-align executable (USalign_orig.exe)
-  2. Read all functional test cases from testcases_functional.txt
+  2. Read all functional test cases from testcases_baseline_functional.txt
+     (without -threads parameter, for single-thread baseline reference)
   3. Execute each case sequentially, saving the full output (stdout and stderr) to
      the baseline/ directory as the "golden standard" for subsequent regression tests
   4. Automatically set the correct working directory for each case, ensuring all structure files can be found
@@ -59,7 +60,7 @@ def clean_slash(text: str) -> str:
 def run_baseline():
     if not BASELINE.exists():
         BASELINE.mkdir(parents=True)
-    with open("testcases_functional.txt", "r", encoding="utf-8") as f:
+    with open("testcases_baseline_functional.txt", "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):

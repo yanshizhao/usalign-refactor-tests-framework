@@ -1,0 +1,5 @@
+perf_fast1 . 6bq1A.pdb 6b3rA.pdb -fast
+perf_fast2 . 7o7lA.pdb 7o7mA.pdb -fast
+perf_msta_rna MSTATest -dir . list.txt -suffix .pdb -mm 4 -mol RNA
+perf_database_search smallDB -dir . list.txt -suffix .pdb -fast
+perf_mmdock mmdock -dir1 . list.txt -suffix .pdb 4jhm.pdb1 -ter 1 -mm 2 -outfmt -1 -m -
