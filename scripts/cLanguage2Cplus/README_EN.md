@@ -290,6 +290,17 @@ Both executables are compiled from `../../../USalign/USalign.cpp`; the differenc
 | USalign source | `../../../USalign/USalign.cpp` (main entry) and all `.h` headers |
 | Git branches | `master` (original baseline) + `USalign-beta` (modified, 51 commits ahead of master) |
 
+### 7.1 Multi-Threading Support
+
+The main USalign program supports OpenMP parallel acceleration:
+
+- **Compile time**: Add `-fopenmp` flag (automatically included by `make`)
+- **Runtime**: Use `-threads N` to specify thread count, e.g., `-threads 4`
+
+Batch modes supporting `-threads`: `-dir`, `-dir1`, `-dir2`, `-dirpair`
+
+> **Note**: Standalone programs (TMscore, HwRMSD, MMalign, pdb2ss) **do not** support multi-threading. Neither `-fopenmp` nor `-threads` is needed for them.
+
 ## 8. Related Documents
 
 | Document | Path | Content |

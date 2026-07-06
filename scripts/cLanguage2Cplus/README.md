@@ -302,6 +302,17 @@ python build_Small_DB.py
 | USalign 源码 | `../../../USalign/USalign.cpp`（主入口）及全部 `.h` 头文件 |
 | Git 分支 | `master`（原始基线）+ `USalign-beta`（修改版，51 commits 领先 master） |
 
+### 7.1 多线程支持说明
+
+USalign 主程序支持 OpenMP 多线程加速，通过以下方式启用：
+
+- **编译时**：添加 `-fopenmp` 编译标志（`make` 命令自动包含）
+- **运行时**：通过 `-threads N` 参数指定线程数，如 `-threads 4`
+
+支持 `-threads` 的批量模式：`-dir`、`-dir1`、`-dir2`、`-dirpair`
+
+> **注意**：独立程序（TMscore、HwRMSD、MMalign、pdb2ss）**不支持**多线程，编译和运行时均无需 `-fopenmp` 和 `-threads`。
+
 ## 8. 关联文档
 
 | 文档 | 路径 | 内容 |
