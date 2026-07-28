@@ -10,7 +10,8 @@ USalign 的整体测试框架，用于验证对 [USalign](https://zhanggroup.org
 usalign-refactor-tests-framework/
 └── scripts/
     ├── cLanguage2Cplus/   ← USalign 通用回归与性能测试
-    └── mm1/               ← 寡聚体（-mm 1）批量目录模式测试
+    ├── mm1/               ← 寡聚体（-mm 1）批量目录模式测试
+    └── upgmatree/         ← 多结构比对（-mm 4 / MSTA）测试
 ```
 
 ## 子测试流程
@@ -28,6 +29,13 @@ usalign-refactor-tests-framework/
 
 - **测试类型**：功能回归 + Guard + Batch 交叉验证
 - **详细文档**：[scripts/mm1/README.md](scripts/mm1/README.md)
+
+### upgmatree
+
+验证 USalign `-mm 4`（MSTA: Multiple Structure Alignment）多结构比对流程。使用 HOMSTRAD 数据库 ABC_tran（ABC transporter）家族的 6 条蛋白质链，测试 UPGMA 树构建、多结构比对及输出文件生成。
+
+- **测试类型**：功能验证
+- **详细文档**：[scripts/upgmatree/README.md](scripts/upgmatree/README.md) | [English](scripts/upgmatree/README_EN.md)
 
 ---
 

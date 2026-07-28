@@ -10,7 +10,8 @@ A modular test framework for verifying that modifications to the [USalign](https
 usalign-refactor-tests-framework/
 └── scripts/
     ├── cLanguage2Cplus/   ← USalign general regression & performance tests
-    └── mm1/               ← Oligomer (-mm 1) batch directory mode tests
+    ├── mm1/               ← Oligomer (-mm 1) batch directory mode tests
+    └── upgmatree/         ← Multiple structure alignment (-mm 4 / MSTA) tests
 ```
 
 ## Sub-Test Workflows
@@ -28,6 +29,13 @@ Validates the combined functionality of USalign `-mm 1` (oligomer alignment) wit
 
 - **Test type**: Functional regression + Guard + Batch cross-validation
 - **Detailed documentation**: [scripts/mm1/README.md](scripts/mm1/README.md)
+
+### upgmatree
+
+Validates the USalign `-mm 4` (MSTA: Multiple Structure Alignment) workflow. Uses 6 protein chains from the HOMSTRAD ABC_tran (ABC transporter) family to test UPGMA tree construction, multiple structure alignment, and output file generation.
+
+- **Test type**: Functional validation
+- **Detailed documentation**: [scripts/upgmatree/README_EN.md](scripts/upgmatree/README_EN.md) | [中文](scripts/upgmatree/README.md)
 
 ---
 
