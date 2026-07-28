@@ -1,0 +1,69 @@
+      Code       Title
+
+[  1] 1b0ua      structureX:1b0u:   5 :A: 261 :A:histidine transport ATP-binding protein hisp:Salmonella typhimurium: 1.50: 18.5
+[  2] 1f3oa      structureX:1f3o:   2 :A: 232 :A:hypothetical ABC transporter ATP-binding protein mj0796:Methanococcus jannaschii: 2.7: 20.4
+[  3] 1g291      structureX:1g29:   1 :1: 240 :1:malk:Thermococcus litoralis: 1.90: 21.1
+[  4] 1g6ha      structureX:1g6h:   4 :A: 257 :A:ADP conformation of mj1267, an ATP- binding cassette of an ABC transporter:Escherichia coli: 1.6: 21.7
+[  5] 1f2ua      structureX:1f2u:   1 :A: 882 :B:rad50 ABC-ATPase:Pyrococcus furiosus: 1.6: 23.8
+[  6] 1e69a      structureX:1e69:   1 :A:1164 :A:chromosome segregation smc protein, putative:Thermotoga maritima: 3.1: 25
+
+
+1b0ua      --NKLHVIDLHKRYGG---HEVLK-GVSLQARAGDVISIIGSSGSGKSTFLRCINFLEKPS--------------
+1f3oa      ----IKLKNVTKTYKGEEIIYALK-NVNLNIKEGEFVSI-GPSGSGKST-LNIIGCLDKPT--------------
+1g291      -MAGVRLVDVWKVFG---EVTAVR-EMSLEVKDGEFMILLGPSGCGKTTTLRMIAGLEEPS--------------
+1g6ha      TMEILRTENIVKYFG---EFKALD-GVSISVNKGDVTLIIGPNGSGKSTLINVITGFLKAD--------------
+1f2ua      --MKLERVTVKNFR-------SHS-DTVVEFKE-GINLIIGQNGSGKSSLLDAILVGLYWPLRIKDIKKDEFTKV
+1e69a      --MRLKKLYLKGFK-------SFGRPSLIGFSD-RVTAIVGPNGSGKSNIIDAIKWVFGE--------KFDMIFA
+           =========|=========|=========|=========|=========|=========|=========|=====
+                    0010      0020      0030      0040      0050      0060      0070  
+
+1b0ua      -----------EGAIIVNG----QNINLVR-DKD-------------GQLKVADKNQLRLLRT-R-LTMVFQHFN
+1f3oa      -----------EGEVYIDN----IKTND------------------------LDDDELTKIRRDK-IGFVFQQFN
+1g291      -----------RGQIYIGD----KLVAD---PEK-------------GIFV-----PPKDR---D-IAMVFQSYA
+1g6ha      -----------EGRVYFEN----KDITNK---------------------------EPAELYHYG-IVRTFQTPQ
+1f2ua      ------GARDTYIDLIFEKDGTKYRITRRFLKGYSSGEIHAMKRLVGNEWKHVTEPSSKAISAFME---------
+1e69a      GSENLPPAGSAYVELVFEENGEEITVARELKRT---GENTYYLN---GSPV-----RLKDIRDRFA---------
+           ====|=========|=========|=========|=========|=========|=========|=========|
+               0080      0090      0100      0110      0120      0130      0140      0150 
+
+1b0ua      LWSHMTVLENVMEAPIQVL------------GLSKHDARERALKYLAKVGIDERAQG------------------
+1f3oa      LIPLLTALENVELPLIFKYR-----------GASGEERRKRALECL-KAELEERFAN------------------
+1g291      LYPHMTVYDNIAFPLKLR-------------KVPRQEIDQRVREVAELLGL-TELLN------------------
+1g6ha      PLKEMTVLENLLIGEICPGESPLNSLFYKKWIPKEEEMVEKAFKILEFLKL-SHLYD------------------
+1f2ua      ------KLIPYNIFLNAIYIRQGQIDAILESALAREAALSKIGELASEIFAEFTEGKYSEVVVRAEENKVRLFVV
+1e69a      ------GTGLGVDFY--SIVGQGQIDRIVN-------AYQRVNESFNRFISLLFFG--GEGRL-------EISIR
+           =========|=========|=========|=========|=========|=========|=========|=====
+                    0160      0170      0180      0190      0200      0210      0220  
+
+1b0ua      ------KYPVHLSGGQQQRVSIARALAME------PDVLLFDEPTSALDPELVGEVLRIMQQLAEE-GKTMVVVT
+1f3oa      ------HKPNQLSGGQQQRVAIARALANN------PPIILADEPTGALDSKTGEKI-QLLKKLNEEDGKTVVVVT
+1g291      ------RKPRELSGGQRQRVALGRAIVRK------PQVFLMDEPLSNLDAKLRVRMRAELKKLQRQLGVTTIYVT
+1g6ha      ------RKAGELSGGQMKLVEIGRALMTN------PKMIVMDEPIAGVAPGLAHDIFNHVLELKAK-GITFLIIE
+1f2ua      WEG-KERPLTFLSGGERIALGLAFRLAMSLYLAGEISLLILDEPTPYLDEERRRKLITIMERYLKKIP-QVILVS
+1e69a      KPGRRDQKLSLLSGGEKALVGLALLFALMEIKP--SPFYVLDEVDSPLDDYNAERFKRLLKENSKHT--QFIVIT
+           ====|=========|=========|=========|=========|=========|=========|=========|
+               0230      0240      0250      0260      0270      0280      0290      0300 
+
+1b0ua      HEMGFARHVSSHVIFLH--QGKIEEEGDPEQVFGNP-QSPRLQQFLKGSLKKLE*
+1f3oa      HDINVAR-FGERIIYLK--DGEVEREEKLRGF----------------------*
+1g291      HDQVEAMTMGDRIAVMN--RGVLQQVGSPDEVYDKP-ANTFVAGFI--------*
+1g6ha      HRLDIVLNYIDHLYVMF--NGQIIAEGRGEEEIKNVLSDPKVVEIYIGE-----*
+1f2ua      HDE-ELKDAADHVIRISLENGSSKVEVVS-------------------------*
+1e69a      HNK-IVMEAADLLHGVTMVNGVSAIVPVEV------------------------*
+           =========|=========|=========|=========|=========|====
+                    0310      0320      0330      0340      0350 
+
+
+
+Percentage identities:
+
+               [  1] [  2] [  3] [  4] [  5] [  6]
+
+  1-1b0ua      100.0  41.8  28.3  26.4  16.7  12.8
+  2-1f3oa       41.8 100.0  33.3  27.1  17.8  17.3
+  3-1g291       28.3  33.3 100.0  26.2  14.6  16.7
+  4-1g6ha       26.4  27.1  26.2 100.0  15.0  15.0
+  5-1f2ua       16.7  17.8  14.6  15.0 100.0  25.5
+  6-1e69a       12.8  17.3  16.7  15.0  25.5 100.0
+
+***************************************************************************
