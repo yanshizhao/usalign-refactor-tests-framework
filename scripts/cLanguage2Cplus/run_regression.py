@@ -24,7 +24,7 @@ CURRENT = SCRIPT_DIR / "current"
 DIFFS   = SCRIPT_DIR / "diffs"
 BASELINE= SCRIPT_DIR / "baseline"
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
-SRC = USALIGN_DIR / "USalign.cpp"
+SRC = [USALIGN_DIR / "USalign.cpp", USALIGN_DIR / "UPGMA.cpp"]
 
 # Cross-platform executable path: add .exe only on Windows
 EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
@@ -47,7 +47,7 @@ def checkout(branch):
 
 def compile():
     print("Compiling modified US-align from USalign-beta...")
-    compile_cmd = ["g++", "-O3", "-ffast-math", "-fopenmp", "-o", str(EXE), str(SRC)]
+    compile_cmd = ["g++", "-O3", "-ffast-math", "-fopenmp", "-o", str(EXE)] + [str(s) for s in SRC]
     if platform.system() == "Windows":
         compile_cmd.insert(4, "-static-libgcc")
         compile_cmd.insert(5, "-static-libstdc++")

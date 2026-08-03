@@ -175,7 +175,8 @@ def git_checkout(branch):
 def compile_usalign():
     env = os.environ.copy(); env["TMPDIR"] = "/tmp"
     result = subprocess.run(
-        ["g++", "-O3", "-ffast-math", "-static", "USalign.cpp", "-o", "USalign_dir1_mm1", "-lm"],
+        ["g++", "-O3", "-ffast-math", "-std=gnu++11", "-fopenmp", "-static",
+         "USalign.cpp", "UPGMA.cpp", "-o", "USalign_dir1_mm1", "-lm"],
         cwd=USALIGN_DIR, env=env, capture_output=True, text=True)
     if result.returncode != 0: print(f"[ERROR] Compilation failed:\n{result.stderr}"); sys.exit(1)
     print("  Compilation OK")

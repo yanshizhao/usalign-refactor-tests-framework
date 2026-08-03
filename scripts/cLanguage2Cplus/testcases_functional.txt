@@ -1,15 +1,15 @@
-standard_protein       .               101m.pdb 1mba.pdb -outfmt -1 -m - -threads 2
-multichain_split       .               4iaj.pdb1 4jhm.pdb1 -ter 1 -outfmt -1 -m - -threads 2
-oligomer               .               4iaj.pdb1 4jhm.pdb1 -mm 1 -outfmt -1 -m - -threads 2
-circular_permutation   .               1ajk.pdb 2ayh.pdb -mm 3 -outfmt -1 -m - -threads 2
-fully_non_seq          .               1eh1.pdb 1evv.pdb -mm 5 -atom PC4' -outfmt -1 -m - -threads 2
-semi_non_seq           .               1ajk.pdb 2ayh.pdb -mm 6 -outfmt -1 -m - -threads 2
-superposed_structure   .               101m.pdb 1mba.pdb -o sup -threads 2
-tmscore_resid          help            model.pdb native.pdb -TMscore 1 -outfmt -1 -m - -threads 2
-tmscore_seqalign       help            model.pdb native.pdb -TMscore 5 -outfmt -1 -m - -threads 2
-complex_chainid        help            modelComplex.pdb nativeComplex.pdb -TMscore 2 -outfmt -1 -m - -threads 2
-complex_chainmap       help            modelComplex.pdb nativeComplex.pdb -TMscore 6 -outfmt -1 -m - -threads 2
-msta_rna               MSTATest        -dir . list.txt -suffix .pdb -mm 4 -mol RNA -outfmt -1 -m - -threads 2
-all_vs_all             MSTATest        -dir . list.txt -suffix .pdb -outfmt -1 -m - -threads 2
-database_search        smallDB         1mba.pdb -dir2 . list.txt -suffix .pdb -fast -outfmt -1 -m - -threads 2
-mmdock                 mmdock          -dir1 . list.txt -suffix .pdb ../4jhm.pdb1 -ter 1 -mm 2 -outfmt -1 -m - -threads 2
+standard_protein       .               101m.pdb 1mba.pdb -outfmt -1 -m - -threads 4
+multichain_split       .               4iaj.pdb1 4jhm.pdb1 -ter 1 -outfmt -1 -m - -threads 4
+oligomer               .               4iaj.pdb1 4jhm.pdb1 -mm 1 -outfmt -1 -m - -threads 4
+circular_permutation   .               1ajk.pdb 2ayh.pdb -mm 3 -outfmt -1 -m - -threads 4
+fully_non_seq          .               1eh1.pdb 1evv.pdb -mm 5 -atom PC4' -outfmt -1 -m - -threads 4
+semi_non_seq           .               1ajk.pdb 2ayh.pdb -mm 6 -outfmt -1 -m - -threads 4
+superposed_structure   .               101m.pdb 1mba.pdb -o sup -threads 4
+tmscore_resid          help            model.pdb native.pdb -TMscore 1 -outfmt -1 -m - -threads 4
+tmscore_seqalign       help            model.pdb native.pdb -TMscore 5 -outfmt -1 -m - -threads 4
+complex_chainid        help            modelComplex.pdb nativeComplex.pdb -TMscore 2 -outfmt -1 -m - -threads 4
+complex_chainmap       help            modelComplex.pdb nativeComplex.pdb -TMscore 6 -outfmt -1 -m - -threads 4
+msta_rna               MSTATest        -dir . list.txt -suffix .pdb -mm 4 -mol RNA -outfmt -1 -m - -threads 4
+all_vs_all             MSTATest        -dir . list.txt -suffix .pdb -outfmt -1 -m - -threads 4
+database_search        smallDB         1mba.pdb -dir2 . list.txt -suffix .pdb -fast -outfmt -1 -m - -threads 4
+mmdock                 mmdock          -dir1 . list.txt -suffix .pdb ../4jhm.pdb1 -ter 1 -mm 2 -outfmt -1 -m - -threads 4

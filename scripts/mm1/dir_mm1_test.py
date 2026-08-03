@@ -181,7 +181,8 @@ def compile_usalign():
     env = os.environ.copy()
     env["TMPDIR"] = "/tmp"
     result = subprocess.run(
-        ["g++", "-O3", "-ffast-math", "-static", "USalign.cpp", "-o", "USalign_dir_mm1", "-lm"],
+        ["g++", "-O3", "-ffast-math", "-std=gnu++11", "-fopenmp", "-static",
+         "USalign.cpp", "UPGMA.cpp", "-o", "USalign_dir_mm1", "-lm"],
         cwd=USALIGN_DIR, env=env, capture_output=True, text=True
     )
     if result.returncode != 0:

@@ -21,7 +21,7 @@ Note: Run this script after modifying US-align source code to evaluate the impac
 SCRIPT_DIR = Path(__file__).parent.resolve()
 DATA_DIR = SCRIPT_DIR / "data"
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
-SRC = USALIGN_DIR / "USalign.cpp"
+SRC = [USALIGN_DIR / "USalign.cpp", USALIGN_DIR / "UPGMA.cpp"]
 
 # Cross-platform executable path: add .exe only on Windows
 EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
@@ -54,7 +54,7 @@ def checkout(branch):
 
 def compile():
     print("Compiling modified US-align from USalign-beta...")
-    compile_cmd = ["g++", "-O3", "-ffast-math", "-fopenmp", "-o", str(EXE), str(SRC)]
+    compile_cmd = ["g++", "-O3", "-ffast-math", "-fopenmp", "-o", str(EXE), str(USALIGN_DIR / "USalign.cpp"), str(USALIGN_DIR / "UPGMA.cpp")]
     if platform.system() == "Windows":
         compile_cmd.insert(4, "-static-libgcc")
         compile_cmd.insert(5, "-static-libstdc++")
