@@ -138,10 +138,14 @@ CASES = {
         ],
     },
     # ---- G5.1: molecule type mismatch (auto) ----
+    # mixed complex (3 protein + 1 RNA) vs 3-protein complex:
+    # protein chains pair normally, RNA chain has no same-type target -> unpaired hint
     "E2_type_mismatch": {
-        "cmd": [str(RNA_PDB), "complexA.pdb", "-mm", "1", "-ter", "0", "-outfmt", "2"],
+        "cmd": ["complexA_plusRNA.pdb", "complexB.pdb", "-mm", "1", "-ter", "0", "-outfmt", "2"],
         "asserts": [
+            ("contains", "Protein: 3 pair(s) aligned"),
             ("contains", "no chain of the same molecule type"),
+            ("contains", "(RNA)"),
         ],
     },
     # ---- G5.1: -mol protein pre-scan warning ----
@@ -160,14 +164,13 @@ CASES = {
         ],
     },
     # ---- G6.4: nonexistent chain id in chainmap ----
+    # 解析期零警告（步骤7）：无效映射明细统一在配对汇总展示
     "B4_nonexistent_chain": {
         "cmd": ["complexA.pdb", "complexB.pdb", "-mm", "1", "-ter", "0",
                 "-chainmap", "map_nonexist.txt", "-outfmt", "2"],
         "asserts": [
-            ("contains", "Warning! Cannot map chain X of structure 1 to chain A of structure 2"),
-            ("contains", "does not exist in structure 1"),
-            ("contains", "no valid chain mapping found in map_nonexist.txt"),
-            ("contains", "as if no -chainmap was specified"),
+            ("contains", "Chainmap: 1 entries specified, 0 valid, 3 free-matching pair(s)"),
+            ("contains", "Invalid mappings: X -> A (chain X does not exist in structure 1"),
         ],
     },
     # ---- G8.3: partial mapping + chain mismatch ----

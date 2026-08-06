@@ -41,13 +41,16 @@ def rewrite_atom(line, atom_serial, chain_id, resi_no):
             + "%4d" % resi_no + line[26:])
 
 
-def splice(files_chain_map, out_name, with_ter=True):
-    """Concatenate several .atm files into one PDB with rewritten chain IDs.
-    files_chain_map: ordered list of (atm_filename, new_chain_id)"""
+def splice(files_chain_map, out_name, with_ter=True, src_dir=None):
+    """Concatenate several .atm/.pdb files into one PDB with rewritten chain IDs.
+    files_chain_map: ordered list of (atm_filename, new_chain_id)
+    src_dir: source directory (default HOMSTRAD_RHODANESE); absolute paths pass through"""
+    if src_dir is None:
+        src_dir = HOMSTRAD_RHODANESE
     out_lines = []
     atom_serial = 0
     for atm_name, chain_id in files_chain_map:
-        src = os.path.join(HOMSTRAD_RHODANESE, atm_name)
+        src = atm_name if os.path.isabs(atm_name) else os.path.join(src_dir, atm_name)
         resi_no = 0
         prev_resi = None
         with open(src) as f:
@@ -121,6 +124,16 @@ def main():
         if not os.path.isfile(dst) or os.path.getmtime(src) != os.path.getmtime(dst):
             shutil.copy2(src, dst)
         print("copied %s -> %s" % (src, dst))
+
+    # ---- mixed complex: complexA (3 protein chains) + RNA chain (chain D) ----
+    # E2 type-mismatch case: protein chains pair normally, RNA chain has no
+    # same-type target -> unpaired hint (not 'No assignable chain' abort)
+    RNA_PDB = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "..", "mm1", "data",
+                                            "MSTATest", "US7351924051.pdb"))
+    if not os.path.isfile(RNA_PDB):
+        raise SystemExit("ERROR: RNA data not found: " + RNA_PDB)
+    splice([("1c25.atm", "A"), ("1e0ca1.atm", "B"), ("1e0ca2.atm", "C"),
+            (RNA_PDB, "D")], "complexA_plusRNA.pdb")
 
     # ---- chainmap files ----
     write_chainmap("map_full.txt", [("A", "A"), ("B", "B"), ("C", "C")])
