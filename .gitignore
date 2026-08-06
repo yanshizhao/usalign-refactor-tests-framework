@@ -21,3 +21,6 @@ scripts/cLanguage2Cplus/data/sup*.pml
 scripts/cLanguage2Cplus/USalign_orig
 scripts/cLanguage2Cplus/USalign_mod_*
 USalign/
+scripts/chainmap_local/current/
+scripts/chainmap_local/diffs/
+scripts/chainmap_local/feature_output/

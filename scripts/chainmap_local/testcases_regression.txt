@@ -1,0 +1,7 @@
+# chainmap local-constraint regression test cases
+# Format: name workdir(relative to data/) command...
+# Baseline generated from master branch, current from USalign-beta + changes
+# R1: no chainmap - output must be identical before/after changes
+r1_no_chainmap       .   complexA.pdb complexB.pdb -mm 1 -ter 0 -outfmt -1 -m -
+# R2: full mapping (3 pairs) - new semantics degrade to old full-constraint behavior
+r2_full_mapping      .   complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_full.txt -outfmt -1 -m -
