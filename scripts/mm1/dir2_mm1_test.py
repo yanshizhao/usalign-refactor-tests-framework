@@ -281,8 +281,10 @@ def run_batch_tests(batches, reg_map):
             for line in norm_output.splitlines():
                 stripped = line.strip()
                 if not stripped: continue
-                if stripped.startswith("#"):
+                if stripped.startswith("#PDBchain1"):
                     header = line; continue
+                if stripped.startswith("#"):
+                    continue  # skip pairing-summary lines (new -mm 1 output)
                 data_lines.append(line)
 
             if not header:
@@ -329,7 +331,7 @@ def run_batch_tests(batches, reg_map):
                     current_block = [line]
                     started = True
                 else:
-                    if started:
+                    if started and not line.strip().startswith("#"):
                         current_block.append(line)
             if started and current_block:
                 while current_block and is_non_business_line(current_block[-1]):

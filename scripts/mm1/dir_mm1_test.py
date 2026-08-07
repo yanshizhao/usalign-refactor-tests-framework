@@ -323,14 +323,20 @@ def compare_split_vs_baseline(case_name, fmt_str, reconstructed_text):
     return "PASS", None
 
 def split_and_diff_outfmt2(batch_output, case_lookup):
-    """Split outfmt 2 tabular output, reconstruct with header, diff vs baseline."""
+    """Split outfmt 2 tabular output, reconstruct with header, diff vs baseline.
+    Pairing-summary lines (# Chain pairing summary: block) are skipped:
+    they are new -mm 1 output not present in master baselines."""
     lines = batch_output.strip().splitlines()
     if len(lines) < 2: return ["outfmt 2 output too short"], [], []
 
     fails, warns, passes = [], [], []
     header = lines[0]
     for line in lines[1:]:
-        cols = line.strip().split()
+        stripped = line.strip()
+        if not stripped: continue
+        if stripped.startswith("#"):
+            continue  # skip pairing-summary lines (and any other # lines)
+        cols = stripped.split()
         if len(cols) < 2: continue
 
         p1 = parse_pdbchain(cols[0])
@@ -350,13 +356,19 @@ def split_and_diff_outfmt2(batch_output, case_lookup):
     return fails, warns, passes
 
 def split_and_diff_outfmt_m1(batch_output, case_lookup):
-    """Split outfmt -1 detailed output by blocks, diff vs baseline."""
+    """Split outfmt -1 detailed output by blocks, diff vs baseline.
+    Pairing-summary lines (# Chain pairing summary: block) are removed from
+    each block: they are new -mm 1 output not present in master baselines."""
     blocks = re.split(r'(?=Name of Structure_1:)', batch_output.strip())
     fails, warns, passes = [], [], []
 
     for block in blocks:
         if 'Name of Structure_1:' not in block:
             continue
+
+        # filter out pairing-summary lines (# ...) that were merged into the block tail
+        block_lines = [l for l in block.splitlines()
+                       if not l.strip().startswith("#")]
 
         m1 = re.search(r'Name of Structure_1:\s*(\S+)', block)
         m2 = re.search(r'Name of Structure_2:\s*(\S+)', block)
@@ -368,7 +380,7 @@ def split_and_diff_outfmt_m1(batch_output, case_lookup):
             fails.append(f"No baseline for pair ({p1}, {p2})")
             continue
 
-        reconstructed = block.strip() + "\n"
+        reconstructed = "\n".join(block_lines) + "\n"
         status, msg = compare_split_vs_baseline(case["name"], "outfmt-1", reconstructed)
         if status == "FAIL": fails.append(msg)
         elif status == "WARN": warns.append(msg)
