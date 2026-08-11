@@ -5,3 +5,7 @@
 r1_no_chainmap       .   complexA.pdb complexB.pdb -mm 1 -ter 0 -outfmt -1 -m -
 # R2: full mapping (3 pairs) - new semantics degrade to old full-constraint behavior
 r2_full_mapping      .   complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_full.txt -outfmt -1 -m -
+# R3: cross-chain adoption critical zone (regression for MMalign_dimer double-count bug)
+# crit_A/B: chain B y-offset differs by 8A -> real cross score in [iteration/2, iteration];
+# the double-count bug (cross ~2x) adopts a WORSE cross result (pairs A->A instead of B->B).
+r3_cross_critical    .   crit_A.pdb crit_B.pdb -mm 1 -ter 0 -outfmt -1 -m -
