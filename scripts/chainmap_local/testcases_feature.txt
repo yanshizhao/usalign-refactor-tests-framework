@@ -1,55 +1,45 @@
-# chainmap local-constraint feature test cases
-# Format: name workdir(relative to data/) command... | assert1;assert2;...
-# Assert types:
-#   contains:TEXT        - output must contain TEXT
-#   not_contains:TEXT    - output must NOT contain TEXT
-#   mapping:C1->C2,...   - chain1 list must pair to chain2 list in order
-
-# ---- G2/G3: partial mapping - mapping fixed + auto selection ----
-# (pairing-summary "Protein: N pair(s)" asserted in G7_summary)
+# Verify that with only 1 fixed mapping (A to A), the remaining chains B/C are auto-matched by TM-score
 F1_partial_mapping    . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_A.txt -outfmt 2 | mapping:A->A,B->B,C->C
+
+# Verify that with 2 fixed mappings (A to A, B to B), the remaining chain C is auto-matched
 F2_two_mappings       . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_AB.txt -outfmt 2 | mapping:A->A,B->B,C->C
 
-# ---- G7: pairing summary format ----
+# Verify the pairing-summary output format: contains Chain pairing summary header, protein pair count, RNA pair count
 G7_summary            . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_AB.txt -outfmt 2 | contains:Chain pairing summary:;contains:Protein: 3 pair(s) aligned;contains:RNA: 0 pair(s) aligned
 
-# ---- G6.1: duplicate target defense ----
-# 提示需带出完整上下文：目标链所属结构、占用它的映射、被忽略的条目
+# Verify that when the same target chain is specified twice (A to A and C to A), the second mapping is rejected with a full-context warning
 F3_duplicate_target   . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_dup.txt -outfmt 2 | contains:chain A of complexB.pdb is already the target of mapping;contains:mapping C -> A is ignored
 
-# ---- G2.3: crossed mapping lock (4iaj A -> 4jhm B, even if auto would pick differently) ----
+# Verify that with a user-specified cross mapping (A to B), pairing stays locked as specified even if auto-matching prefers another pair
 F4_lock_conflict      . 4iaj.pdb1 4jhm.pdb1 -mm 1 -ter 0 -chainmap map_4iaj_AtoB.txt -outfmt 2 | mapping:A->B
 
-# ---- G5.2: chain number mismatch ----
+# Verify that when chain counts differ (3 vs 2), pairing uses the fewer side and outputs the 'more chains' unpaired hint
 E1_chain_mismatch     . complexA.pdb complexB_2chain.pdb -mm 1 -ter 0 -outfmt 2 | contains:Protein: 2 pair(s) aligned;contains:more chains in structure 1
 
-# ---- G5.1: molecule type mismatch (auto) ----
+# Verify that when a complex has RNA chains and the other has none, the RNA chain stays unpaired with the 'no chain of the same molecule type' hint
 E2_type_mismatch      . complexA_plusRNA.pdb complexB.pdb -mm 1 -ter 0 -outfmt 2 | contains:Protein: 3 pair(s) aligned;contains:no chain of the same molecule type;contains:(RNA)
 
-# ---- G5.1: -mol protein pre-scan (all-RNA input, no usable chain) ----
-# 预检失败无结果行，表头（#PDBchain1）也不应输出
+# Verify that -mol protein conflicts with all-RNA input: pre-scan warning is printed and no result row or header is output
 E3_mol_prescan        . ../../mm1/data/MSTATest/US7351924051.pdb complexA.pdb -mm 1 -ter 0 -mol protein -outfmt 2 | contains:US7351924051.pdb contains 1 chain(s), all RNA, but -mol protein is set;not_contains:0 chain;not_contains:no CA atoms;not_contains:\US7351924051.pdb;not_contains:/US7351924051.pdb;not_contains:#PDBchain1
 
-# ---- G6.3: type-mismatch mapping - warning + ignore ----
-# 全部映射无效报错退出，无结果行，表头也不应输出
+# Verify that mapping a protein chain to an RNA chain (type mismatch) prints a warning; when all mappings are invalid the program exits without printing the header
 E4_mapping_type_mismatch . ../../mm1/data/MSTATest/US7351924051.pdb complexA.pdb -mm 1 -ter 0 -chainmap map_rna_type.txt -outfmt 2 | contains:molecule type mismatch;not_contains:#PDBchain1
 
-# ---- G8.3: partial mapping + chain mismatch ----
+# Verify the combination of partial mapping (A to A) and chain-count mismatch (3 vs 2): the mapping is kept and the 'more chains' hint is printed
 B2_mapping_plus_mismatch . complexA.pdb complexB_2chain.pdb -mm 1 -ter 0 -chainmap map_A.txt -outfmt 2 | contains:Protein: 2 pair(s) aligned;contains:more chains in structure 1;mapping:A->A
 
-# ---- G6.4: nonexistent chain id in chainmap ----
+# Verify that when the mapping file contains a nonexistent chain name: the mapping is recorded as invalid and its details are shown in the pairing summary
 B4_nonexistent_chain . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_nonexist.txt -outfmt 2 | contains:Chainmap: 1 entries specified, 0 mapped, 3 free-matching; total 3 pair(s) aligned;contains:Invalid mappings: X -> A (chain X does not exist in structure 1
 
-# ---- 其它输出方式验证：-outfmt 0（默认详细格式，配对汇总无条件输出）----
+# Verify that pairing summary is still printed after alignment results under outfmt 0 (default full output format)
 G8_outfmt0_detail   . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_A.txt | contains:Name of Structure_1:;contains:TM-score=;contains:Chain pairing summary:;contains:Chainmap: 1 entries specified, 1 mapped, 2 free-matching
 
-# ---- 其它输出方式验证：-outfmt 1（fasta 格式）----
+# Verify that pairing summary is still printed after alignment results under outfmt 1 (fasta output format)
 G9_outfmt1_fasta    . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_A.txt -outfmt 1 | contains:>complexA.pdb:1,A:1,B:1,C;contains:# Lali=;contains:Chain pairing summary:;contains:Protein: 3 pair(s) aligned
 
-# ---- 其它输出方式验证：-m -（旋转矩阵输出到 stdout，与配对汇总共存）----
+# Verify that with -m - (rotation matrix to stdout), the rotation matrix and pairing summary are both printed without interference
 G10_matrix_stdout   . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_A.txt -outfmt 2 -m - | contains:The rotation matrix to rotate Structure_1 to Structure_2;contains:X[i] = t[0] + u[0][0]*x[i];contains:Chain pairing summary:;mapping:A->A
 
-# ---- G11: cross-chain adoption critical zone（回归 MMalign_dimer 双重计数缺陷）----
-# crit_A/B 合成数据：B 链 y 偏移差 8A → 真实 cross ∈ [iteration/2, iteration]
-# 修复版：不采纳（配 B->B，A 链质量保护剔除）；缺陷版：误采纳（配 A->A，B 链剔除）
+# Verify cross-chain adoption decision on critical-zone data: fixed version pairs B to B, double-count buggy version wrongly pairs A to A
 G11_cross_critical   . crit_A.pdb crit_B.pdb -mm 1 -ter 0 -outfmt 2 | mapping:B->B;contains:Protein: 1 pair(s) aligned
+
