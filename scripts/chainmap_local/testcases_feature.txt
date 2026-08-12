@@ -13,6 +13,16 @@ F3_duplicate_target   . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_dup
 # Verify that with a user-specified cross mapping (A to B), pairing stays locked as specified even if auto-matching prefers another pair
 F4_lock_conflict      . 4iaj.pdb1 4jhm.pdb1 -mm 1 -ter 0 -chainmap map_4iaj_AtoB.txt -outfmt 2 | mapping:A->B
 
+# Verify that mapped chains are kept after the full pipeline (iteration + refinement): with A->A and B->B locked,
+# the complete post-iteration pairing is A->A, B->B, C->C with both mapped pairs retained (G4.1/G4.3)
+F5_iter_retention     . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_AB.txt -outfmt 2 | mapping:A->A,B->B,C->C;contains:Chainmap: 2 entries specified, 2 mapped, 1 free-matching;contains:Protein: 3 pair(s) aligned
+
+# Verify that a crossed mapping (A to B, B to A) is kept as a hard constraint end-to-end, C auto-matched
+F6_cross_mapping      . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_swap.txt -outfmt 2 | mapping:A->B,B->A,C->C;contains:Chainmap: 2 entries specified, 2 mapped, 1 free-matching;contains:Protein: 3 pair(s) aligned
+
+# Verify that a duplicate chain-1 key (A to A, then A to B) is rejected with a warning, the first mapping is kept, and the freed chain is auto-matched
+G6_duplicate_key      . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_dup1.txt -outfmt 2 | contains:chain A of complexA.pdb is already mapped to chain;contains:mapping A -> B is ignored (the first mapping is kept);mapping:A->A,B->B,C->C;contains:Chainmap: 2 entries specified, 1 mapped, 2 free-matching
+
 # Verify that when chain counts differ (3 vs 2), pairing uses the fewer side and outputs the 'more chains' unpaired hint
 E1_chain_mismatch     . complexA.pdb complexB_2chain.pdb -mm 1 -ter 0 -outfmt 2 | contains:Protein: 2 pair(s) aligned;contains:more chains in structure 1
 
@@ -25,8 +35,29 @@ E3_mol_prescan        . ../../mm1/data/MSTATest/US7351924051.pdb complexA.pdb -m
 # Verify that mapping a protein chain to an RNA chain (type mismatch) prints a warning; when all mappings are invalid the program exits without printing the header
 E4_mapping_type_mismatch . ../../mm1/data/MSTATest/US7351924051.pdb complexA.pdb -mm 1 -ter 0 -chainmap map_rna_type.txt -outfmt 2 | contains:molecule type mismatch;not_contains:#PDBchain1
 
+# Verify the too-short guard: a <3-residue chain is rejected at parse with a clear warning, and a structure
+# containing only such chains fails with the 0-chain error (the 'too short' unpaired hint is unreachable:
+# parse_chain_list drops <3-residue chains before they reach the pairing stage)
+E5_too_short          . complexA.pdb short.pdb -mm 1 -ter 0 -outfmt 2 | contains:Sequence is too short <3!: short.pdb;contains:ERROR! one of the structures contains 0 chain
+
+# Verify low-score retention (fallback/iteration): with C->C and D->D mapped on the 4iaj/4jhm low-TM pair,
+# both mapped chains survive the whole pipeline and stay in the final pairing (G4.4)
+D1_lowscore_retention . 4iaj.pdb1 4jhm.pdb1 -mm 1 -ter 0 -chainmap map_4iaj_CD.txt -outfmt 2 | mapping:A->E,B->G,C->C,D->D;contains:Chainmap: 2 entries specified, 2 mapped, 6 free-matching;contains:Protein: 8 pair(s) aligned
+
+# Verify the MMalign_dimer exclusion exemption: with mapped chains present, no chain is dropped by quality
+# protection and no Unpaired block appears (mapped chains are exempt from TM4<=0 removal, G4.5)
+D2_dimer_exemption    . 4iaj.pdb1 4jhm.pdb1 -mm 1 -ter 0 -chainmap map_4iaj_CD.txt -outfmt 2 | contains:Chainmap: 2 entries specified, 2 mapped;contains:total 8 pair(s) aligned;not_contains:Unpaired;not_contains:removed by quality protection
+
+# Verify fallback-union dedup: mapping the best pair (A->A, TM 0.996) keeps each chain exactly once in the
+# final pairing, and mapped + free counts stay consistent (G8.1)
+B1_best_pair_mapping  . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_A.txt -outfmt 2 | mapping:A->A,B->B,C->C;contains:Chainmap: 1 entries specified, 1 mapped, 2 free-matching;contains:Protein: 3 pair(s) aligned
+
 # Verify the combination of partial mapping (A to A) and chain-count mismatch (3 vs 2): the mapping is kept and the 'more chains' hint is printed
 B2_mapping_plus_mismatch . complexA.pdb complexB_2chain.pdb -mm 1 -ter 0 -chainmap map_A.txt -outfmt 2 | contains:Protein: 2 pair(s) aligned;contains:more chains in structure 1;mapping:A->A
+
+# Verify the combination of partial mapping (A to A) and mixed molecules: protein chains pair normally with
+# the lock kept, the RNA chain stays unpaired with the same-type hint (G8.4)
+B3_mapping_plus_mixed . complexA_plusRNA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_A.txt -outfmt 2 | mapping:A->A,B->B,C->C;contains:no chain of the same molecule type in the other complex;contains::1,D (RNA) - no chain of the same molecule type;contains:Chainmap: 1 entries specified, 1 mapped, 2 free-matching;contains:Protein: 3 pair(s) aligned
 
 # Verify that when the mapping file contains a nonexistent chain name: the mapping is recorded as invalid and its details are shown in the pairing summary
 B4_nonexistent_chain . complexA.pdb complexB.pdb -mm 1 -ter 0 -chainmap map_nonexist.txt -outfmt 2 | contains:Chainmap: 1 entries specified, 0 mapped, 3 free-matching; total 3 pair(s) aligned;contains:Invalid mappings: X -> A (chain X does not exist in structure 1

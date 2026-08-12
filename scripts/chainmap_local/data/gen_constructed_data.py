@@ -148,6 +148,8 @@ def main():
     write_chainmap("map_rna_type.txt", [("A", "A")])
     # ---- 4iaj vs 4jhm crossed mapping (4iaj chain A -> 4jhm chain B) ----
     write_chainmap("map_4iaj_AtoB.txt", [("A", "B")])
+    # ---- 4iaj vs 4jhm low-score mapping (C -> C, D -> D, exemption-retention test) ----
+    write_chainmap("map_4iaj_CD.txt", [("C", "C"), ("D", "D")])
 
     print("ALL DATA GENERATED in %s" % SCRIPT_DIR)
 
