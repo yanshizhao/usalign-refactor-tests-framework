@@ -11,7 +11,8 @@ usalign-refactor-tests-framework/
 └── scripts/
     ├── cLanguage2Cplus/   ← USalign 通用回归与性能测试
     ├── mm1/               ← 寡聚体（-mm 1）批量目录模式测试
-    └── upgmatree/         ← 多结构比对（-mm 4 / MSTA）测试
+    ├── upgmatree/         ← 多结构比对（-mm 4 / MSTA）测试
+    └── chainmap_local/    ← -chainmap 局部约束（-mm 1 链映射硬约束）测试
 ```
 
 ## 子测试流程
@@ -37,6 +38,14 @@ usalign-refactor-tests-framework/
 - **测试类型**：功能验证
 - **详细文档**：[scripts/upgmatree/README.md](scripts/upgmatree/README.md) | [English](scripts/upgmatree/README_EN.md)
 
+### chainmap_local
+
+验证 USalign `-chainmap` 局部约束功能（仅 `-mm 1` 复合物比对）：用户指定的链映射对作为硬约束锁定（含交叉映射），剩余链按 TM-score 自动择优。包含回归测试（R1/R2/R3，与 master 基线 diff，差异属预期清单）与 23 个功能断言用例（F1-F6 / E1-E5 / D1-D2 / B1-B4 / G6-G11），覆盖映射锁定、自动择优、输入防御（重复键/重复目标/类型不匹配/链不存在）、低分场景映射链保留（回退/迭代/剔除豁免）、链数不匹配与混合分子等边界组合、配对汇总输出格式。测试数据含 Rhodanese 3+3 拼接复合物（带标准答案 TM4）、4iaj/4jhm 真实低分复合物与临界区合成数据。
+
+- **测试类型**：功能回归 + 功能断言
+- **用例清单**：[功能用例](scripts/chainmap_local/testcases_feature.txt) | [回归用例](scripts/chainmap_local/testcases_regression.txt)
+- **脚本**：`create_baseline.py`（master 基线）/ `run_regression.py`（R1-R3 回归）/ `run_feature_test.py`（23 个功能用例断言）
+
 ---
 
 后续如有新的测试需求（如特定算法模块验证、跨平台兼容性测试等），参照现有子流程的模式在 `scripts/` 下新增即可。
@@ -51,4 +60,4 @@ USalign 源码
   └── 目标分支编译   → 修改版 → current/ → 逐字节/逐行比对
 ```
 
-详细说明见各子测试流程的 README。
+其中 chainmap_local 在回归比对之外，另以关键行断言方式验证局部约束新行为（映射锁定、防御警告、未配对归因等，见 `testcases_feature.txt`）。详细说明见各子测试流程的 README。
