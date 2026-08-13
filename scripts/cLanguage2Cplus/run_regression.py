@@ -112,6 +112,40 @@ def run_tests():
             with open(out_file, "w", encoding="utf-8") as of:
                 of.write(content)
 
+            # ---- Serial sanity + serial/parallel consistency check (parallel cases only) ----
+            # For every -threads case, also run once with -threads 1 and assert:
+            #   1. serial run does not crash
+            #   2. serial output == parallel output (excluding CPU time)
+            # This catches data-race nondeterminism that a single parallel run
+            # vs serial baseline comparison may miss.
+            serial_ok = True
+            if name != "superposed_structure" and "-threads" in args_list:
+                serial_args = []
+                skip_next = False
+                for a in args_list:
+                    if skip_next:
+                        skip_next = False
+                        continue
+                    if a == "-threads":
+                        serial_args += ["-threads", "1"]
+                        skip_next = True
+                    else:
+                        serial_args.append(a)
+                cmd_serial = [str(EXE)] + serial_args
+                proc_serial = subprocess.run(cmd_serial, capture_output=True, text=True, cwd=str(workdir))
+                if proc_serial.returncode != 0:
+                    print(f"  FAIL: serial run crashed (exit {proc_serial.returncode})")
+                    serial_ok = False
+                else:
+                    serial_content = clean_slash(proc_serial.stdout + proc_serial.stderr)
+                    serial_content = strip_cpu_time(serial_content)
+                    parallel_content = strip_cpu_time(content)
+                    if serial_content != parallel_content:
+                        print("  FAIL: serial vs parallel output differs (possible data race)")
+                        serial_ok = False
+                with open(CURRENT / f"{name}_serial.out", "w", encoding="utf-8") as of:
+                    of.write(proc_serial.stdout + proc_serial.stderr)
+
             if name == "superposed_structure":
                 total += 1
                 sup_pdb = workdir / "sup.pdb"
@@ -127,9 +161,9 @@ def run_tests():
             else:
                 total += 1
                 result = _diff_files(f"{name}.out", out_filename, name)
-                if result == "PASS":
+                if result == "PASS" and serial_ok:
                     passed += 1
-                elif result == "WARNING":
+                elif result == "WARNING" and serial_ok:
                     warned += 1
                 else:
                     failed += 1
