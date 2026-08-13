@@ -112,14 +112,27 @@ def run_tests():
             with open(out_file, "w", encoding="utf-8") as of:
                 of.write(content)
 
-            # ---- Serial sanity + serial/parallel consistency check (parallel cases only) ----
-            # For every -threads case, also run once with -threads 1 and assert:
-            #   1. serial run does not crash
-            #   2. serial output == parallel output (excluding CPU time)
-            # This catches data-race nondeterminism that a single parallel run
-            # vs serial baseline comparison may miss.
+            # ---- Parallel determinism + serial sanity checks (parallel cases only) ----
+            # For every -threads case, additionally:
+            #   1. run the parallel command a second time and assert the two
+            #      parallel runs produce identical output (data-race nondeterminism
+            #      would make the output scheduling-dependent; repeat runs raise
+            #      the detection probability vs a single run vs baseline)
+            #   2. run once with -threads 1 and assert:
+            #      a. serial run does not crash
+            #      b. serial output == parallel output (excluding CPU time)
             serial_ok = True
             if name != "superposed_structure" and "-threads" in args_list:
+                # --- parallel repeat run (determinism) ---
+                proc_parallel2 = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
+                parallel2_content = strip_cpu_time(clean_slash(proc_parallel2.stdout + proc_parallel2.stderr))
+                parallel_content = strip_cpu_time(content)
+                if parallel2_content != parallel_content:
+                    print("  FAIL: parallel repeat runs differ (data race nondeterminism)")
+                    serial_ok = False
+                with open(CURRENT / f"{name}_repeat.out", "w", encoding="utf-8") as of:
+                    of.write(clean_slash(proc_parallel2.stdout + proc_parallel2.stderr))
+                # --- serial run (sanity + consistency) ---
                 serial_args = []
                 skip_next = False
                 for a in args_list:
@@ -137,9 +150,7 @@ def run_tests():
                     print(f"  FAIL: serial run crashed (exit {proc_serial.returncode})")
                     serial_ok = False
                 else:
-                    serial_content = clean_slash(proc_serial.stdout + proc_serial.stderr)
-                    serial_content = strip_cpu_time(serial_content)
-                    parallel_content = strip_cpu_time(content)
+                    serial_content = strip_cpu_time(clean_slash(proc_serial.stdout + proc_serial.stderr))
                     if serial_content != parallel_content:
                         print("  FAIL: serial vs parallel output differs (possible data race)")
                         serial_ok = False
