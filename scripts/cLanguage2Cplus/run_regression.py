@@ -70,7 +70,7 @@ def clean_slash(text: str) -> str:
 
 def strip_cpu_time(text: str) -> str:
     """Remove #Total CPU time lines -- CPU time naturally fluctuates and is not used for regression decisions"""
-    return re.sub(r'^#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
+    return re.sub(r'^\s*#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
 
 
 def is_non_business_line(line: str) -> bool:
@@ -94,7 +94,11 @@ def run_tests():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            name, workdir_rel, args_str = line.split(maxsplit=2)
+            parts = line.split(maxsplit=2)
+            if len(parts) < 3:
+                print(f"  SKIP malformed case line: {line}")
+                continue
+            name, workdir_rel, args_str = parts
             workdir = (DATA_DIR / workdir_rel).resolve()
             args_list = args_str.split()
             cmd = [str(EXE)] + args_list
@@ -128,7 +132,9 @@ def run_tests():
             if first_crashed:
                 print(f"  WARNING: parallel run crashed (exit {proc.returncode})")
             serial_ok = True
-            if not first_crashed and name != "superposed_structure" and "-threads" in args_list:
+            has_threads_opt = any(a.startswith("-threads") for a in args_list)
+            if not first_crashed and name != "superposed_structure" and has_threads_opt:
+                parallel_content = strip_cpu_time(content)   # defined before checks (serial check below also uses it)
                 # --- parallel repeat run (determinism) ---
                 proc_parallel2 = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
                 if proc_parallel2.returncode != 0:
@@ -136,7 +142,6 @@ def run_tests():
                     serial_ok = False
                 else:
                     parallel2_content = strip_cpu_time(clean_slash(proc_parallel2.stdout + proc_parallel2.stderr))
-                    parallel_content = strip_cpu_time(content)
                     if parallel2_content != parallel_content:
                         print("  FAIL: parallel repeat runs differ (data race nondeterminism)")
                         serial_ok = False
@@ -149,7 +154,7 @@ def run_tests():
                     if skip_next:
                         skip_next = False
                         continue
-                    if a == "-threads":
+                    if a.startswith("-threads"):
                         serial_args += ["-threads", "1"]
                         skip_next = True
                     else:
