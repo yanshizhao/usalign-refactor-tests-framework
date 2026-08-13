@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
-import subprocess, os, sys, shutil, difflib, re, platform
+import subprocess, os, sys, shutil, platform
 from pathlib import Path
+
+from regression_utils import (
+    clean_directory, clean_slash, strip_cpu_time,
+    diff_files, diff_binary,
+)
 
 
 """
@@ -53,34 +58,6 @@ def compile():
         compile_cmd.insert(5, "-static-libstdc++")
     if subprocess.run(compile_cmd).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
-
-
-def clean_directory(dir_path):
-    if dir_path.exists():
-        shutil.rmtree(dir_path, ignore_errors=True)
-    dir_path.mkdir(parents=True, exist_ok=True)
-
-
-def clean_slash(text: str) -> str:
-    """Remove redundant '/' prefix in output paths (both 'Name of Structure_X:' and table columns)"""
-    text = re.sub(r'(Name of Structure_\d+:)\s*/', r'\1 ', text)
-    text = re.sub(r'(^|[\t >])/(?=[A-Z])', r'\1', text, flags=re.MULTILINE)
-    return text
-
-
-def strip_cpu_time(text: str) -> str:
-    """Remove #Total CPU time lines -- CPU time naturally fluctuates and is not used for regression decisions"""
-    return re.sub(r'^\s*#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
-
-
-def is_non_business_line(line: str) -> bool:
-    """Determine whether a diff line is non-business content (CPU time, etc., environmental differences)"""
-    stripped = line.strip()
-    if not stripped:
-        return True
-    if "#Total CPU time is" in stripped:
-        return True
-    return False
 
 
 def run_tests():
@@ -181,14 +158,14 @@ def run_tests():
                     shutil.move(str(sup_pdb), str(CURRENT / f"sup{MOD_SUFFIX}.pdb"))
                 for pml in workdir.glob("*.pml"):
                     pml.unlink()
-                result = _diff_binary("sup.pdb", f"sup{MOD_SUFFIX}.pdb", name, " (structure)")
+                result = diff_binary("sup.pdb", f"sup{MOD_SUFFIX}.pdb", name, BASELINE, CURRENT, DIFFS, " (structure)")
                 if result == "PASS":
                     passed += 1
                 else:
                     failed += 1
             else:
                 total += 1
-                result = _diff_files(f"{name}.out", out_filename, name)
+                result = diff_files(f"{name}.out", out_filename, name, BASELINE, CURRENT, DIFFS)
                 if result == "PASS" and serial_ok:
                     passed += 1
                 elif result == "WARNING" and serial_ok:
@@ -198,81 +175,6 @@ def run_tests():
 
     print(f"\n=== Summary: total={total}, PASS={passed}, WARNING={warned}, FAIL={failed} ===")
     return failed == 0
-
-
-def _diff_files(base_filename, mod_filename, tag, extra_note=""):
-    """Compare text output files with CPU-time-aware classification.
-
-    Returns: "PASS" (identical), "WARNING" (only CPU time differs), "FAIL" (business data differs)
-    """
-    base = BASELINE / base_filename
-    curr = CURRENT / mod_filename
-    diff = DIFFS / f"{tag}.diff"
-    try:
-        btext = clean_slash(strip_cpu_time(base.read_text(encoding="utf-8", errors="replace")))
-        ctext = clean_slash(strip_cpu_time(curr.read_text(encoding="utf-8", errors="replace")))
-        if btext == ctext:
-            print(f"  PASS{extra_note}")
-            if diff.exists():
-                diff.unlink()
-            return "PASS"
-
-        # generate diff and classify lines
-        blines = btext.splitlines(keepends=True)
-        clines = ctext.splitlines(keepends=True)
-        diff_lines = list(difflib.unified_diff(
-            blines, clines, fromfile=str(base), tofile=str(curr)
-        ))
-        with open(diff, "w", encoding="utf-8") as df:
-            df.writelines(diff_lines)
-
-        has_business = False
-        for line in diff_lines:
-            if line.startswith('---') or line.startswith('+++') or line.startswith('@@') or line.startswith(' '):
-                continue
-            content = line[1:].strip()
-            if line.startswith('-') or line.startswith('+'):
-                if not is_non_business_line(content):
-                    has_business = True
-                    break
-
-        if has_business:
-            print(f"  FAIL{extra_note} (business data mismatch, see {diff})")
-            return "FAIL"
-        else:
-            print(f"  WARNING{extra_note} (CPU time only, see {diff})")
-            return "WARNING"
-    except FileNotFoundError as e:
-        print(f"  ERROR: {e}")
-        return "ERROR"
-
-
-def _diff_binary(base_filename, mod_filename, tag, extra_note=""):
-    """Byte-level comparison for structure files (.pdb, .sup).
-
-    Returns: "PASS" (identical) or "FAIL" (any byte difference)
-    """
-    base = BASELINE / base_filename
-    curr = CURRENT / mod_filename
-    diff = DIFFS / f"{tag}.diff"
-    try:
-        if base.read_bytes() == curr.read_bytes():
-            print(f"  PASS{extra_note}")
-            if diff.exists():
-                diff.unlink()
-            return "PASS"
-        else:
-            print(f"  FAIL{extra_note} (structure file mismatch, see {diff})")
-            blines = base.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)
-            clines = curr.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)
-            with open(diff, "w", encoding="utf-8") as df:
-                df.writelines(difflib.unified_diff(
-                    blines, clines, fromfile=str(base), tofile=str(curr)
-                ))
-            return "FAIL"
-    except FileNotFoundError as e:
-        print(f"  ERROR: {e}")
-        return "ERROR"
 
 
 if __name__ == "__main__":
