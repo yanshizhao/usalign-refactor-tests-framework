@@ -125,11 +125,15 @@ def run_tests():
             if name != "superposed_structure" and "-threads" in args_list:
                 # --- parallel repeat run (determinism) ---
                 proc_parallel2 = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
-                parallel2_content = strip_cpu_time(clean_slash(proc_parallel2.stdout + proc_parallel2.stderr))
-                parallel_content = strip_cpu_time(content)
-                if parallel2_content != parallel_content:
-                    print("  FAIL: parallel repeat runs differ (data race nondeterminism)")
+                if proc_parallel2.returncode != 0:
+                    print(f"  FAIL: parallel repeat run crashed (exit {proc_parallel2.returncode})")
                     serial_ok = False
+                else:
+                    parallel2_content = strip_cpu_time(clean_slash(proc_parallel2.stdout + proc_parallel2.stderr))
+                    parallel_content = strip_cpu_time(content)
+                    if parallel2_content != parallel_content:
+                        print("  FAIL: parallel repeat runs differ (data race nondeterminism)")
+                        serial_ok = False
                 with open(CURRENT / f"{name}_repeat.out", "w", encoding="utf-8") as of:
                     of.write(clean_slash(proc_parallel2.stdout + proc_parallel2.stderr))
                 # --- serial run (sanity + consistency) ---
