@@ -18,3 +18,4 @@ dimer_mm1           mm1_refactor    dimer1.pdb dimer2.pdb -mm 1 -outfmt -1 -m - 
 mm1_with_o          mm1_refactor    ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -ter 0 -o sup -threads 4
 mm1_with_se         mm1_refactor    AAA_1d2na.pdb AAA_1e32a.pdb -mm 1 -ter 0 -se -outfmt -1 -m - -threads 4
 mm1_with_se_lowscore mm1_refactor ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -ter 0 -se -outfmt -1 -m - -threads 4
+mm1_symwrite_guard  .  4iaj.pdb1 4jhm.pdb1 -mm 1 -ter 0 -outfmt -1 -m - -threads 4
