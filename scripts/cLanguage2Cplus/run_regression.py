@@ -143,8 +143,10 @@ def run_tests():
                     if serial_content != parallel_content:
                         print("  FAIL: serial vs parallel output differs (possible data race)")
                         serial_ok = False
+                # Save serial output (cleaned, consistent with the parallel
+                # current/<name>_mod.out) for manual inspection
                 with open(CURRENT / f"{name}_serial.out", "w", encoding="utf-8") as of:
-                    of.write(proc_serial.stdout + proc_serial.stderr)
+                    of.write(clean_slash(proc_serial.stdout + proc_serial.stderr))
 
             if name == "superposed_structure":
                 total += 1
