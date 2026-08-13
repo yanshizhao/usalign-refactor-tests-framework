@@ -121,8 +121,14 @@ def run_tests():
             #   2. run once with -threads 1 and assert:
             #      a. serial run does not crash
             #      b. serial output == parallel output (excluding CPU time)
+            # If the first parallel run itself crashed, skip these checks (the
+            # truncated output would otherwise be misreported as a determinism
+            # mismatch); the baseline comparison still flags the case as FAIL.
+            first_crashed = proc.returncode != 0
+            if first_crashed:
+                print(f"  WARNING: parallel run crashed (exit {proc.returncode})")
             serial_ok = True
-            if name != "superposed_structure" and "-threads" in args_list:
+            if not first_crashed and name != "superposed_structure" and "-threads" in args_list:
                 # --- parallel repeat run (determinism) ---
                 proc_parallel2 = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
                 if proc_parallel2.returncode != 0:
