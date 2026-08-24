@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+import platform
 
 # Paths - relative to script location
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -39,10 +40,43 @@ for item in os.listdir(CURRENT_DIR):
         os.remove(item_path)
 
 # Switch USalign to master branch before running tests
-if os.path.exists(os.path.join(USALIGN_DIR, ".git")):
-    result = subprocess.run(["git", "checkout", "master"], cwd=USALIGN_DIR, capture_output=True, text=True)
+def current_branch():
+    result = subprocess.run(["git", "branch", "--show-current"], cwd=str(USALIGN_DIR), capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"Warning: git checkout master failed: {result.stderr}")
+        print(f"Warning: git branch failed: {result.stderr}")
+        return None
+    return result.stdout.strip()
+
+def checkout(branch):
+    result = subprocess.run(["git", "checkout", branch], cwd=str(USALIGN_DIR), capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Warning: git checkout {branch} failed: {result.stderr}")
+        return False
+    return True
+
+def compile_usalign():
+    src = os.path.join(str(USALIGN_DIR), "USalign.cpp")
+    exe = USALIGN_EXE
+    print(f"Compiling {src} -> {exe}")
+    compile_cmd = ["g++", "-O3", "-ffast-math", "-o", exe, src]
+    if platform.system() == "Windows":
+        compile_cmd.insert(3, "-static-libgcc")
+        compile_cmd.insert(4, "-static-libstdc++")
+    if subprocess.run(compile_cmd).returncode != 0:
+        print("Compilation failed!")
+        sys.exit(1)
+    print("Compilation successful!")
+
+original_branch = None
+if os.path.exists(os.path.join(USALIGN_DIR, ".git")):
+    original_branch = current_branch()
+    if original_branch and original_branch != "master":
+        print(f"Switching USalign from {original_branch} to master for compilation...")
+        checkout("master")
+    compile_usalign()
+    if original_branch and original_branch != "master":
+        print(f"Restoring USalign branch to {original_branch}...")
+        checkout(original_branch)
 
 # Read test cases
 with open(TESTCASES_FILE, "r") as f:
