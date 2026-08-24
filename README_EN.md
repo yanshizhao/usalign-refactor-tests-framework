@@ -12,7 +12,9 @@ usalign-refactor-tests-framework/
     ├── cLanguage2Cplus/   ← USalign general regression & performance tests
     ├── mm1/               ← Oligomer (-mm 1) batch directory mode tests
     ├── upgmatree/         ← Multiple structure alignment (-mm 4 / MSTA) tests
-    └── chainmap_local/    ← -chainmap local-constraint (-mm 1 chain mapping hard lock) tests
+    ├── chainmap_local/    ← -chainmap local-constraint (-mm 1 chain mapping hard lock) tests
+    ├── flexalign/         ← FlexAlign flexible alignment tests
+    └── usalign_full/      ← USalign_full unified entry scripts (full executable regression)
 ```
 
 ## Sub-Test Workflows
@@ -45,6 +47,28 @@ Validates the USalign `-chainmap` local-constraint feature (oligomer alignment `
 - **Test type**: Functional regression + functional assertion
 - **Case lists**: [Functional cases](scripts/chainmap_local/testcases_feature.txt) | [Regression cases](scripts/chainmap_local/testcases_regression.txt)
 - **Scripts**: `create_baseline.py` (master baseline) / `run_regression.py` (R1-R3 regression) / `run_feature_test.py` (23 functional assertion cases)
+
+### flexalign
+
+Validates USalign FlexAlign flexible alignment functionality. Uses `testcases_functional.txt` as the test case file, with data in `scripts/flexalign/data/` and baselines in `scripts/flexalign/baseline/`. The test runner automatically checks whether PDB files exist and skips any test case where a required file is missing. Outputs are saved to `scripts/flexalign/current/` and diffs (if any) go to `scripts/flexalign/diffs/`.
+
+- **Test type**: Functional regression
+- **Case file**: `scripts/flexalign/testcases_functional.txt`
+- **Entry script**: `scripts/usalign_full/run_flexalign_test.py`
+
+### usalign_full
+
+Unified entry script directory for USalign_full regression testing. Contains three sub-flow entry scripts that each compile USalign from the master branch (via `USalign_single_full.cpp`) and compare outputs against baselines in their respective sub-test frameworks:
+
+- `run_full_test.py` — cLanguage2Cplus test set (`testcases_baseline_functional.txt`)
+- `run_flexalign_test.py` — flexalign test set (`testcases_functional.txt`)
+- `run_chainmap_regression.py` — chainmap_local test set (`testcases_regression.txt`)
+
+All scripts handle Git branch switching (master → original), compilation, output cleaning (slash normalization, CPU time stripping), and diff generation. Run from `scripts/usalign_full/`.
+
+- **Test type**: Unified regression entry point (delegates to cLanguage2Cplus / flexalign / chainmap_local)
+- **Detailed documentation (Chinese)**: [scripts/usalign_full/README_中文.md](scripts/usalign_full/README_中文.md)
+- **Detailed documentation (English)**: [scripts/usalign_full/README_English.md](scripts/usalign_full/README_English.md)
 
 ---
 

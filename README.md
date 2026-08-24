@@ -12,7 +12,9 @@ usalign-refactor-tests-framework/
     ├── cLanguage2Cplus/   ← USalign 通用回归与性能测试
     ├── mm1/               ← 寡聚体（-mm 1）批量目录模式测试
     ├── upgmatree/         ← 多结构比对（-mm 4 / MSTA）测试
-    └── chainmap_local/    ← -chainmap 局部约束（-mm 1 链映射硬约束）测试
+    ├── chainmap_local/    ← -chainmap 局部约束（-mm 1 链映射硬约束）测试
+    ├── flexalign/         ← FlexAlign 柔性比对测试
+    └── usalign_full/      ← USalign_full 统一入口脚本（full 版可执行文件回归）
 ```
 
 ## 子测试流程
@@ -45,6 +47,28 @@ usalign-refactor-tests-framework/
 - **测试类型**：功能回归 + 功能断言
 - **用例清单**：[功能用例](scripts/chainmap_local/testcases_feature.txt) | [回归用例](scripts/chainmap_local/testcases_regression.txt)
 - **脚本**：`create_baseline.py`（master 基线）/ `run_regression.py`（R1-R3 回归）/ `run_feature_test.py`（23 个功能用例断言）
+
+### flexalign
+
+验证 USalign FlexAlign 柔性比对功能。使用 `testcases_functional.txt` 作为测试用例文件，数据位于 `scripts/flexalign/data/`，基线位于 `scripts/flexalign/baseline/`。运行脚本会自动检查 PDB 文件是否存在，若缺失则跳过该用例。输出保存至 `scripts/flexalign/current/`，差异文件（如有）保存至 `scripts/flexalign/diffs/`。
+
+- **测试类型**：功能回归
+- **用例清单**：`scripts/flexalign/testcases_functional.txt`
+- **入口脚本**：[scripts/usalign_full/run_flexalign_test.py](scripts/usalign_full/run_flexalign_test.py)
+
+### usalign_full
+
+USalign_full 回归测试的统一入口脚本目录。包含三个子流程入口脚本，均从 master 分支编译 USalign（通过 `USalign_single_full.cpp`），并与各自子测试框架的基线进行输出比对：
+
+- `run_full_test.py` — cLanguage2Cplus 用例集（`testcases_baseline_functional.txt`）
+- `run_flexalign_test.py` — flexalign 用例集（`testcases_functional.txt`）
+- `run_chainmap_regression.py` — chainmap_local 用例集（`testcases_regression.txt`）
+
+所有脚本自动处理 Git 分支切换（master → 原分支）、编译、输出清理（斜杠规范化、CPU 时间剔除）与差异文件生成。在 `scripts/usalign_full/` 目录下运行。
+
+- **测试类型**：统一回归入口（委托 cLanguage2Cplus / flexalign / chainmap_local）
+- **详细文档（中文）**：[scripts/usalign_full/README_中文.md](scripts/usalign_full/README_中文.md)
+- **详细文档（English）**：[scripts/usalign_full/README_English.md](scripts/usalign_full/README_English.md)
 
 ---
 
