@@ -1,0 +1,87 @@
+# Functional regression test cases for -mm 7 (flexible alignment)
+# Format: <name> <workdir> <arg1> <arg2> ...
+# workdir: relative to data/ directory (i.e., data/<pair_name>/)
+# -mm 7: flexible alignment mode
+# -afp: AFP-enhancement mode (uses flexalign_usbcat instead of flexalign_greedy)
+# -outfmt -1: output format that includes version info for deterministic comparison
+# -m -: output rotation matrix to stdout (captured in baseline)
+
+# ==============================================================================
+# 1. Low TM-score baseline tests (structure quite different)
+# ==============================================================================
+
+# Test 1: Very low TM (~0.38) - greedy mode (flexalign_greedy)
+flex_low_greedy_1rid_3o8eB   1ridA-3o8eB   1ridA.pdb 3o8eB.pdb -mm 7 -outfmt -1 -m -
+# Test 1b: AFP mode (flexalign_usbcat)
+flex_low_afp_1rid_3o8eB      1ridA-3o8eB   1ridA.pdb 3o8eB.pdb -afp -mm 7 -outfmt -1 -m -
+
+# Test 2: Low TM (~0.42) - greedy mode
+flex_low_greedy_4i0k_2x1xR   4i0kA-2x1xR   4i0kA.pdb 2x1xR.pdb -mm 7 -outfmt -1 -m -
+# Test 2b: AFP mode
+flex_low_afp_4i0k_2x1xR      4i0kA-2x1xR   4i0kA.pdb 2x1xR.pdb -afp -mm 7 -outfmt -1 -m -
+
+# ==============================================================================
+# 2. Medium TM-score tests (0.50-0.52) - typical flexible alignment cases
+# ==============================================================================
+
+# Test 3: Medium TM (~0.51) - greedy mode
+flex_mid_greedy_5xpw_1cdhA   5xpwA-1cdhA   5xpwA.pdb 1cdhA.pdb -mm 7 -outfmt -1 -m -
+# Test 3b: AFP mode
+flex_mid_afp_5xpw_1cdhA      5xpwA-1cdhA   5xpwA.pdb 1cdhA.pdb -afp -mm 7 -outfmt -1 -m -
+
+# Test 4: Medium TM (~0.52) - greedy mode
+flex_mid_greedy_3icy_3lyxA   3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -mm 7 -outfmt -1 -m -
+# Test 4b: AFP mode
+flex_mid_afp_3icy_3lyxA      3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -afp -mm 7 -outfmt -1 -m -
+
+# ==============================================================================
+# 3. Higher TM-score tests (0.59+) - validate stability
+# ==============================================================================
+
+# Test 5: Good TM (~0.60) - greedy mode
+flex_high_greedy_1w5f_6umkA  1w5fA-6umkA   1w5fA.pdb 6umkA.pdb -mm 7 -outfmt -1 -m -
+# Test 5b: AFP mode
+flex_high_afp_1w5f_6umkA     1w5fA-6umkA   1w5fA.pdb 6umkA.pdb -afp -mm 7 -outfmt -1 -m -
+
+# Test 6: Similar (~0.60) - greedy mode
+flex_high_greedy_4kp4_6qrjA1 4kp4A-6qrjA1  4kp4A.pdb 6qrjA1.pdb -mm 7 -outfmt -1 -m -
+# Test 6b: AFP mode
+flex_high_afp_4kp4_6qrjA1    4kp4A-6qrjA1  4kp4A.pdb 6qrjA1.pdb -afp -mm 7 -outfmt -1 -m -
+
+# ==============================================================================
+# 4. Edge case scenarios
+# ==============================================================================
+
+# Test 7: Hinge=0 with greedy mode (single rigid transform)
+flex_hinge0_greedy           1w5fA-6umkA   1w5fA.pdb 6umkA.pdb -hinge 0 -mm 7 -outfmt -1 -m -
+# Test 7b: Hinge=0 with AFP mode
+flex_hinge0_afp              1w5fA-6umkA   1w5fA.pdb 6umkA.pdb -hinge 0 -afp -mm 7 -outfmt -1 -m -
+
+# Test 8: Default hinge detection with greedy mode
+flex_default_hinge_greedy    3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -mm 7 -outfmt -1 -m -
+# Test 8b: Default hinge detection with AFP mode
+flex_default_hinge_afp       3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -afp -mm 7 -outfmt -1 -m -
+
+# ==============================================================================
+# 5. Output format variations
+# ==============================================================================
+
+# Test 9: FASTA output format (greedy mode)
+flex_outfmt1_greedy          1ridA-3o8eB   1ridA.pdb 3o8eB.pdb -mm 7 -outfmt 1 -m -
+# Test 9b: FASTA output format (AFP mode)
+flex_outfmt1_afp             1ridA-3o8eB   1ridA.pdb 3o8eB.pdb -afp -mm 7 -outfmt 1 -m -
+
+# Test 10: Standard default output with matrix to stdout (greedy mode)
+flex_outfmt0_greedy          5xpwA-1cdhA   5xpwA.pdb 1cdhA.pdb -mm 7 -outfmt 0 -m -
+# Test 10b: Same with AFP mode
+flex_outfmt0_afp             5xpwA-1cdhA   5xpwA.pdb 1cdhA.pdb -afp -mm 7 -outfmt 0 -m -
+
+# ==============================================================================
+# 6. AFP-specific tests with TMpass threshold variations
+# ==============================================================================
+
+# Test 11: AFP with default TMpass threshold
+flex_afp_default             3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -afp -mm 7 -outfmt -1 -m -
+
+# Test 12: AFP with higher TMpass threshold (0.9)
+flex_afp_strict              1w5fA-6umkA   1w5fA.pdb 6umkA.pdb -afp -TMpass 0.9 -mm 7 -outfmt -1 -m -

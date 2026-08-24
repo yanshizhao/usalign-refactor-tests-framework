@@ -1,0 +1,35 @@
+
+Name of Structure_1: 5xpwA.pdb:_ (to be superimposed onto Structure_2)
+Name of Structure_2: 1cdhA.pdb:_
+Length of Structure_1: 180 residues
+Length of Structure_2: 178 residues
+
+Aligned length= 157, RMSD=   2.03, Seq_ID=n_identical/n_aligned= 0.172
+TM-score= 0.77282 (normalized by length of Structure_1: L=180, d0=5.00)
+TM-score= 0.78048 (normalized by length of Structure_2: L=178, d0=4.97)
+(You should use TM-score normalized by length of the reference structure)
+
+([0-9,a-z,A-Z] denote different aligned fragment pairs separated by different hinges)
+---VSHQQGQSHLFECDYPISADTYVINWYKD-GTSVMNYLSGGEPAFT-EDLDDRTDVQFV--NN----RNLEITNLRVSDEGEYYCSVIEIGAGGQSGD-GTRYQLVVFVPPTITLM-GGPYEVEVGEMMMSTCRANSHPPSNFTWTLPNGNVTQG-AVLEITNMTQAEIGTYMCTADNGYGTDYESVDIT-M-
+   00000000000000000000 00000000 00000000000 0000 0000 0 00000  00    000000000000000000000       000       11111 11111 11111111111111111111111111111111111111 1111111111111111111111111111111111 1 
+KKVVLGKKGDTVELTCTASQKKS-IQFHWKNSNQIKILGNQGSF-LTKGPSKLN-D-RADSRRSLWDQGNFPLIIKNLKIEDSDTYICEVE-------DQKE------EVQLL-VFGLTANSDTHLLQGQSLTLTLESPPGSSPSVQCRSPRGKNIQGGKTLSVSQLELQDSGTWTCTVLQNQKKVEFKIDIVVLA
+
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0      -1.5091914554   0.6754030534   0.3591280702   0.6440945154
+1      38.1684997575   0.2460074122   0.7136551750  -0.6558785287
+2      54.1877953121  -0.6952057743   0.6014343858   0.3936567170
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0       2.1554088770   0.1341162326   0.7952745534   0.5912285690
+1      25.3337773497   0.6505130449   0.3794201692  -0.6579309338
+2      66.7444906078  -0.7475597733   0.4728411148  -0.4664500676
+
+Code for rotating Structure 1 from (x,y,z) to (X,Y,Z):
+for(i=0; i<L; i++)
+{
+   X[i] = t[0] + u[0][0]*x[i] + u[0][1]*y[i] + u[0][2]*z[i];
+   Y[i] = t[1] + u[1][0]*x[i] + u[1][1]*y[i] + u[1][2]*z[i];
+   Z[i] = t[2] + u[2][0]*x[i] + u[2][1]*y[i] + u[2][2]*z[i];
+}
+#Total CPU time is  0.07 seconds

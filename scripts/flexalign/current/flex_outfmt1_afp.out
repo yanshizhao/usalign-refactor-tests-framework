@@ -1,0 +1,46 @@
+>1ridA.pdb:_	L=244	d0=5.79	seqID=0.291	TM-score=0.81365
+CCTIPSRPINMKFKNSVETDANANYNIGDTIEYLCL-PGYRKQKMGPIYAKCTGT-GWTLFNQCI---KRRCPSPRDIDNGQLDI--GGVDFGSSITYSCNSGYHLIGESKSYCELGSTGSMVWNPEAPIC-ESVKCQSPPSISNGRHNGYED-FYTDGSVVTYSCNS-----GYSL-IGNSGVL--CSGGEWSD-PPTCQIVKCPHPTISNGYLSSGFKRSYSYNDNVDFKCKYGYKLSGSSSSTCSPGNTWKPELPKCVR-
+>3o8eB.pdb:_	L=252	d0=5.87	seqID=0.282	TM-score=0.79068
+-CEEPPTF-EAMELIG-KPK-PYYEIG-ERVDYKCKKGYFYIPP-LATHTICDRNHTWL-PVSDDACYRETCPYIRDPLNGQAVPANGTYEFGYQMHFICNEGYYLIGEEILYCELKG-SVAIWSGK-PPICEKVLCTPPPKIKNGKHTFSEVEVFEYLDAVTYSCDPAPGPDPFSLIGE-STI-YCGDNSVWSRAAPECKVVKCRFPVVENGKQISGFGKKFYYKATVMFECDKGFYLDGSDTIVCDSNSTWDPPVPKCLKV
+# Lali=213	RMSD=2.17	seqID_ali=0.333
+$$$$
+
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0      14.2706993311   0.7132543710   0.4176235813  -0.5629020755
+1       7.0655563580  -0.6801294028   0.6064713622  -0.4118452164
+2     -96.1167019760   0.1693877143   0.6765966532   0.7166064269
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0     112.0355747018  -0.3761832475   0.0523219762  -0.9250667950
+1     -10.0966156058   0.9229603884  -0.0665808117  -0.3790924912
+2      91.7463371382  -0.0814265664  -0.9964082528  -0.0232445255
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0      71.0045768215  -0.9075058308   0.1343627927   0.3979696056
+1      67.1458600419  -0.3896893319  -0.6229250606  -0.6783115755
+2     -17.7348963518   0.1567654031  -0.7706562196   0.6176678716
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0     104.9574559349  -0.9454962675  -0.3021917424   0.1213134744
+1      37.8885855439   0.2804379326  -0.9450005745  -0.1683106655
+2     -60.0375428617   0.1655033962  -0.1251162060   0.9782405434
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0      30.0272318508  -0.7482702412   0.6578190639   0.0858238033
+1      69.1523252292  -0.5624058948  -0.6976439554   0.4438383951
+2    -104.5692426616   0.3518398153   0.2838432501   0.8919875301
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0       4.0225409747  -0.3843036562   0.8119907409   0.4392968661
+1      61.4522584597  -0.8810459019  -0.1804161993  -0.4372734999
+2     -11.2309234184  -0.2758057622  -0.5550865084   0.7847357197
+
+Code for rotating Structure 1 from (x,y,z) to (X,Y,Z):
+for(i=0; i<L; i++)
+{
+   X[i] = t[0] + u[0][0]*x[i] + u[0][1]*y[i] + u[0][2]*z[i];
+   Y[i] = t[1] + u[1][0]*x[i] + u[1][1]*y[i] + u[1][2]*z[i];
+   Z[i] = t[2] + u[2][0]*x[i] + u[2][1]*y[i] + u[2][2]*z[i];
+}
+#Total CPU time is  0.18 seconds

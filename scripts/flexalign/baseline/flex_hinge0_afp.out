@@ -1,0 +1,30 @@
+
+Name of Structure_1: 1w5fA.pdb:_ (to be superimposed onto Structure_2)
+Name of Structure_2: 6umkA.pdb:_
+Length of Structure_1: 315 residues
+Length of Structure_2: 303 residues
+
+Aligned length= 198, RMSD=   2.61, Seq_ID=n_identical/n_aligned= 0.505
+TM-score= 0.58680 (normalized by length of Structure_1: L=315, d0=6.50)
+TM-score= 0.60924 (normalized by length of Structure_2: L=303, d0=6.39)
+(You should use TM-score normalized by length of the reference structure)
+
+([0-9,a-z,A-Z] denote different aligned fragment pairs separated by different hinges)
+-LKIKVIGVGGAGNNAINRMIEIGIHGVEFVAVNTDLQVLEASNADVKIQIGENITRG-LGAGGRPEIGEQAALESEEKIREVLQDTHMVFITAGFGGGTGTGASPVIAKIAKEMGILTVAIVTTPFYFEGPERLKKAIEGLKKLRKHVDTLIKISNNKLMEELPRDVKIKDAFLKADETLHQGVKGISELITKRGYIRLTSRFARIESVMKDAGAAILGIGVGKGEHRAREAAKKAMESKLIEHPVENASSIVF----------------------------------------------------------------NITAP--SNIR---MEEV--HEAAMIIRQNSSEDADVKFGLI------------FDDEVPDDEIRVIFIATRFPDEDKILF--------------------
+ 00000000000000000000000000000000000000000000000000000 00  000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000   0000000000000000000000000000000000                                                                                                                         00     0      00    0                                 0                                              
+DAVIKVIGVGGGGGNAVEHMVRERIEGVEFFAVNTDAQALRKTAVGQTIQIGSG-IT-GLGAGANPEVGRNAADEDRDALRAALEGADMVFIAAGMGGGTGTGAAPVVAEVAKDLGILTVAVVTKPFNFEGKKRMAFAEQGITELSKHVDSLITIPNDKLL---GRGISELDAFGAANDVLKGAVQGIAELITRPGLM---------------------------------------------------------NVDFADVRTVMSEMGYAMMGSGVASGEDRAEEAAEMAISSPLLEDIDLSGARGVLVNITAGFDLRL---DEF---ETVGN--TIR---------------------AFASDNATVVIGT--------------------------SLDPDMNDELRVTVVATGIG
+
+------ The rotation matrix to rotate Structure_1 to Structure_2 ------
+m               t[m]        u[m][0]        u[m][1]        u[m][2]
+0     -29.4596409127   0.6460733118   0.7375318700  -0.1965604653
+1     -19.8771089603   0.2793323703   0.0111917361   0.9601292475
+2     -37.8278429160   0.7103257722  -0.6752195834  -0.1987858434
+
+Code for rotating Structure 1 from (x,y,z) to (X,Y,Z):
+for(i=0; i<L; i++)
+{
+   X[i] = t[0] + u[0][0]*x[i] + u[0][1]*y[i] + u[0][2]*z[i];
+   Y[i] = t[1] + u[1][0]*x[i] + u[1][1]*y[i] + u[1][2]*z[i];
+   Z[i] = t[2] + u[2][0]*x[i] + u[2][1]*y[i] + u[2][2]*z[i];
+}
+#Total CPU time is  0.12 seconds
