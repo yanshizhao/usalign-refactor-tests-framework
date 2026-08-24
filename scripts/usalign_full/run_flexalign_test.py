@@ -13,10 +13,10 @@ import sys
 # Paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_FRAMEWORK = os.path.join(SCRIPT_DIR, "..", "flexalign")
-USALIGN_BIN_DIR = os.path.join(SCRIPT_DIR, "..", "..", "..", "USalign")
-USALIGN_EXE = os.path.join(USALIGN_BIN_DIR, "USalign_full.exe")
+USALIGN_DIR = os.path.join(SCRIPT_DIR, "..", "..", "..", "USalign")
+USALIGN_EXE = os.path.join(USALIGN_DIR, "USalign_full.exe")
 if not os.path.exists(USALIGN_EXE):
-    USALIGN_EXE = os.path.join(USALIGN_BIN_DIR, "USalign_full")
+    USALIGN_EXE = os.path.join(USALIGN_DIR, "USalign_full")
 DATA_DIR = os.path.join(TEST_FRAMEWORK, "data")
 BASELINE_DIR = os.path.join(TEST_FRAMEWORK, "baseline")
 CURRENT_DIR = os.path.join(TEST_FRAMEWORK, "current")
@@ -37,6 +37,12 @@ for item in os.listdir(DIFFS_DIR):
     item_path = os.path.join(DIFFS_DIR, item)
     if os.path.isfile(item_path) and item.endswith('.diff'):
         os.remove(item_path)
+
+# Switch USalign to master branch before running tests
+if os.path.exists(os.path.join(USALIGN_DIR, ".git")):
+    result = subprocess.run(["git", "checkout", "master"], cwd=USALIGN_DIR, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Warning: git checkout master failed: {result.stderr}")
 
 # Read test cases
 with open(TESTCASES_FILE, "r") as f:
