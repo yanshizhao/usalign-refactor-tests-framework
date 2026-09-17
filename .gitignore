@@ -21,6 +21,7 @@ scripts/cLanguage2Cplus/data/**/sup*
 scripts/cLanguage2Cplus/USalign_orig
 scripts/cLanguage2Cplus/USalign_mod_*
 USalign/
+scripts/flexalign/baseline/
 scripts/flexalign/current/
 scripts/flexalign/diffs/
 scripts/chainmap_local/current/
