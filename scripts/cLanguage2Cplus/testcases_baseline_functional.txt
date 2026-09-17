@@ -13,9 +13,15 @@ msta_rna MSTATest -dir . list.txt -suffix .pdb -mm 4 -mol RNA -outfmt -1 -m -
 all_vs_all MSTATest -dir . list.txt -suffix .pdb -outfmt -1 -m - 
 database_search smallDB 1mba.pdb -dir2 . list.txt -suffix .pdb -fast -outfmt -1 -m - 
 mmdock mmdock -dir1 . list.txt -suffix .pdb ../4jhm.pdb1 -ter 1 -mm 2 -outfmt -1 -m - 
+mm2_trim_serial mmdock 101m.pdb ../4jhm.pdb1 -mm 2 -outfmt -1 -m - 
+mm2_trim_parallel mmdock -dir1 . list_trim.txt -suffix .pdb ../4jhm.pdb1 -ter 1 -mm 2 -outfmt -1 -m - 
 chainmap_full mm1_refactor ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -chainmap map.txt -outfmt -1 -m - 
 dimer_mm1 mm1_refactor dimer1.pdb dimer2.pdb -mm 1 -outfmt -1 -m - 
 mm1_with_o mm1_refactor ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -ter 0 -o sup 
 mm1_with_se mm1_refactor AAA_1d2na.pdb AAA_1e32a.pdb -mm 1 -ter 0 -se -outfmt -1 -m - 
 mm1_with_se_lowscore mm1_refactor ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -ter 0 -se -outfmt -1 -m - 
 mm1_symwrite_guard  .  4iaj.pdb1 4jhm.pdb1 -mm 1 -ter 0 -outfmt -1 -m - 
+mm0_se_dir2        smallDB  1mba.pdb -dir2 . list.txt -suffix .pdb -fast -se -outfmt -1 -m -
+mm0_cp_dir2        smallDB  1mba.pdb -dir2 . list.txt -suffix .pdb -fast -mm 3 -outfmt -1 -m -
+mm5_dir2           smallDB  1mba.pdb -dir2 . list.txt -suffix .pdb -fast -mm 5 -outfmt -1 -m -
+mm6_dir2           smallDB  1mba.pdb -dir2 . list.txt -suffix .pdb -fast -mm 6 -outfmt -1 -m -

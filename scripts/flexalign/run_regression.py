@@ -17,14 +17,12 @@ CURRENT = SCRIPT_DIR / "current"
 BASELINE = SCRIPT_DIR / "baseline"
 DIFFS = SCRIPT_DIR / "diffs"
 
-USALIGN_DIR = Path("/d/qlab/us-align_modify/USalign").resolve()
+USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
 SRC = [USALIGN_DIR / "USalign.cpp", USALIGN_DIR / "UPGMA.cpp"]
 
 EXE_SUFFIX = ".exe" if os.name == "nt" else ""
-EXE_MASTER = SCRIPT_DIR / f"USalign_orig{EXE_SUFFIX}"
 EXE_BETA   = SCRIPT_DIR / f"USalign_mod{EXE_SUFFIX}"
 
-MASTER_BRANCH = "master"
 BETA_BRANCH   = "USalign-beta"
 
 
@@ -91,10 +89,7 @@ def run_case(exe, workdir, args_list):
 def main():
     original = current_branch()
     try:
-        # Step 1: Compile master (baseline)
-        compile_exe(MASTER_BRANCH, EXE_MASTER)
-
-        # Step 2: Compile beta (current)
+        # Step 1: Compile beta (current)
         compile_exe(BETA_BRANCH, EXE_BETA)
 
         # Step 3: Clean output dirs
@@ -113,8 +108,9 @@ def main():
 
         total = passed = warned = failed = 0
 
-        # Ensure baseline directory exists (may already have baselines from create_baseline.py)
-        BASELINE.mkdir(parents=True, exist_ok=True)
+        # Baseline directory holds the golden outputs generated from master
+        if not BASELINE.exists():
+            print(f"Baseline directory not found: {BASELINE}"); sys.exit(1)
 
         for line in lines:
             line = line.strip()
@@ -129,17 +125,21 @@ def main():
 
             print(f"\n=== {name} ===")
 
-            # Run with master (baseline)
-            base_text = run_case(EXE_MASTER, workdir, args_list)
-            base_file = BASELINE / f"{name}.out"
-            with open(base_file, "w", encoding="utf-8") as of:
-                of.write(base_text)
-
             # Run with beta (current)
             cur_text = run_case(EXE_BETA, workdir, args_list)
             cur_file = CURRENT / f"{name}.out"
             with open(cur_file, "w", encoding="utf-8") as of:
                 of.write(cur_text)
+
+            # Read the golden baseline
+            base_file = BASELINE / f"{name}.out"
+            if not base_file.exists():
+                print(f"  FAIL - baseline missing: {base_file}")
+                failed += 1
+                total += 1
+                continue
+            with open(base_file, "r", encoding="utf-8") as bf:
+                base_text = clean_output(bf.read())
 
             # Compare
             if base_text == cur_text:
