@@ -112,12 +112,22 @@ def main():
             cmd = [str(EXE)] + args_list
 
             print(f"=== {name} ===")
+            before = {p.name for p in workdir.iterdir() if p.is_file()}
             proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
             content = clean_slash(proc.stdout + proc.stderr)
 
             out_file = BASELINE / f"{name}.out"
             with open(out_file, "w", encoding="utf-8") as of:
                 of.write(content)
+            # Product files (-o/-rasmol/-chimerax 产物): snapshot new files, then clean workdir
+            prod_dir = BASELINE / f"{name}.prod"
+            if prod_dir.exists():
+                shutil.rmtree(prod_dir, ignore_errors=True)
+            prod_dir.mkdir(parents=True, exist_ok=True)
+            for p in workdir.iterdir():
+                if p.is_file() and p.name not in before:
+                    shutil.copy2(p, prod_dir / p.name)
+                    p.unlink()
             print(f"  Saved baseline -> {out_file}")
             case_count += 1
 

@@ -125,8 +125,17 @@ def main():
 
             print(f"\n=== {name} ===")
 
-            # Run with beta (current)
+            # Run with beta (current); snapshot new product files (-o/-rasmol/-chimerax)
+            before = {p.name for p in workdir.iterdir() if p.is_file()}
             cur_text = run_case(EXE_BETA, workdir, args_list)
+            prod_dir = CURRENT / f"{name}.prod"
+            if prod_dir.exists():
+                shutil.rmtree(prod_dir, ignore_errors=True)
+            prod_dir.mkdir(parents=True, exist_ok=True)
+            for p in workdir.iterdir():
+                if p.is_file() and p.name not in before:
+                    shutil.copy2(p, prod_dir / p.name)
+                    p.unlink()
             cur_file = CURRENT / f"{name}.out"
             with open(cur_file, "w", encoding="utf-8") as of:
                 of.write(cur_text)
@@ -141,8 +150,22 @@ def main():
             with open(base_file, "r", encoding="utf-8") as bf:
                 base_text = clean_output(bf.read())
 
+            # Compare product files byte-by-byte (if any)
+            prod_ok = True
+            base_prod = BASELINE / f"{name}.prod"
+            base_files = {p.name for p in base_prod.iterdir()} if base_prod.exists() else set()
+            cur_files = {p.name for p in prod_dir.iterdir()}
+            if base_files != cur_files:
+                print(f"  FAIL - product file set differs: base={sorted(base_files)} cur={sorted(cur_files)}")
+                prod_ok = False
+            else:
+                for fn in sorted(base_files):
+                    if (base_prod / fn).read_bytes() != (prod_dir / fn).read_bytes():
+                        print(f"  FAIL - product file differs: {fn}")
+                        prod_ok = False
+
             # Compare
-            if base_text == cur_text:
+            if base_text == cur_text and prod_ok:
                 print(f"  PASS")
                 passed += 1
             else:
