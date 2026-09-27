@@ -19,6 +19,9 @@ flex_low_afp_1rid_3o8eB      1ridA-3o8eB   1ridA.pdb 3o8eB.pdb -afp -mm 7 -outfm
 flex_low_greedy_4i0k_2x1xR   4i0kA-2x1xR   4i0kA.pdb 2x1xR.pdb -mm 7 -outfmt -1 -m -
 # Test 2b: AFP mode
 flex_low_afp_4i0k_2x1xR      4i0kA-2x1xR   4i0kA.pdb 2x1xR.pdb -afp -mm 7 -outfmt -1 -m -
+# Test 2c: AFP + -hinge 2. Guards merge_adjacent_blocks in build_domains_bounds being non-inert:
+#          with the merge the result is Aligned length=176/TM~0.68, without it 158/~0.70 (34 vs 39 output blocks).
+flex_afp_hinge2_4i0k_2x1xR   4i0kA-2x1xR   4i0kA.pdb 2x1xR.pdb -afp -hinge 2 -mm 7 -outfmt -1 -m -
 
 # ==============================================================================
 # 2. Medium TM-score tests (0.50-0.52) - typical flexible alignment cases
