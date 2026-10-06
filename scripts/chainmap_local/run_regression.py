@@ -20,7 +20,11 @@ CURRENT = SCRIPT_DIR / "current"
 DIFFS = SCRIPT_DIR / "diffs"
 BASELINE = SCRIPT_DIR / "baseline"
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
-SRC = [USALIGN_DIR / "USalign.cpp", USALIGN_DIR / "UPGMA.cpp"]
+INC = ["-I" + str(USALIGN_DIR / d) for d in (
+    "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
+    "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
+    "engine/upgma", "orchestration", "app/tools")]
+SRC = [USALIGN_DIR / "app" / "usalign.cpp", USALIGN_DIR / "engine" / "upgma" / "UPGMA.cpp"]
 
 EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
 EXE = SCRIPT_DIR / f"USalign_chainmap_new{EXE_SUFFIX}"
@@ -46,7 +50,7 @@ def checkout(branch):
 
 def compile_exe():
     print("Compiling USalign-beta (+ chainmap changes)...")
-    cmd = ["g++", "-O3", "-ffast-math", "-fopenmp", "-o", str(EXE)] + [str(s) for s in SRC]
+    cmd = ["g++", "-O3", "-ffast-math", "-fopenmp"] + INC + ["-o", str(EXE)] + [str(s) for s in SRC]
     if platform.system() == "Windows":
         cmd.insert(4, "-static-libgcc")
         cmd.insert(5, "-static-libstdc++")

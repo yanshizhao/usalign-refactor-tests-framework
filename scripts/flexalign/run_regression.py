@@ -18,7 +18,11 @@ BASELINE = SCRIPT_DIR / "baseline"
 DIFFS = SCRIPT_DIR / "diffs"
 
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
-SRC = [USALIGN_DIR / "USalign.cpp", USALIGN_DIR / "UPGMA.cpp"]
+INC = ["-I" + str(USALIGN_DIR / d) for d in (
+    "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
+    "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
+    "engine/upgma", "orchestration", "app/tools")]
+SRC = [USALIGN_DIR / "app" / "usalign.cpp", USALIGN_DIR / "engine" / "upgma" / "UPGMA.cpp"]
 
 EXE_SUFFIX = ".exe" if os.name == "nt" else ""
 EXE_BETA   = SCRIPT_DIR / f"USalign_mod{EXE_SUFFIX}"
@@ -48,7 +52,7 @@ def compile_exe(branch, exe_path):
     print(f"Compiling USalign from {branch} branch...")
     checkout(branch)
     # Use the same compilation command as readme.txt for consistency
-    cmd = ["g++", "-O3", "-ffast-math", "-std=gnu++11", "-fopenmp",
+    cmd = ["g++", "-O3", "-ffast-math", "-std=gnu++11", "-fopenmp"] + INC + [
            "-o", str(exe_path)] + [str(s) for s in SRC]
     if os.name == "nt":
         # Windows: use static linking

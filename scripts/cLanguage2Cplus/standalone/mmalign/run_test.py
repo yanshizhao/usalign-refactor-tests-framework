@@ -18,7 +18,11 @@ DATA_DIR     = SCRIPT_DIR / ".." / ".." / "data"
 BASELINE_DIR = SCRIPT_DIR / "baseline"
 CURRENT_DIR  = SCRIPT_DIR / "current"
 DIFFS_DIR    = SCRIPT_DIR / "diffs"
-SRC_MAIN     = USALIGN_DIR / "MMalign.cpp"
+SRC_MAIN     = USALIGN_DIR / "app" / "tools" / "mmalign_main.cpp"
+INC          = ["-I" + str(USALIGN_DIR / d) for d in (
+    "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
+    "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
+    "engine/upgma", "orchestration", "app/tools")]
 EXE_NAME     = "MMalign_mod.exe"
 
 
@@ -38,7 +42,7 @@ def checkout(branch):
 def compile_mod(exe_path: str):
     print("Compiling modified MMalign ...")
     r = subprocess.run(
-        ["g++", "-O3", "-ffast-math", "-lm", "-static", "-o", exe_path, str(SRC_MAIN)],
+        ["g++", "-O3", "-ffast-math", "-lm", "-static"] + INC + ["-o", exe_path, str(SRC_MAIN)],
         capture_output=True, text=True
     )
     if r.returncode != 0:

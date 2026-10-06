@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200">
+<style>text{font-family:monospace;font-size:12px;}</style>
+<line x1="50" y1="30" x2="50" y2="66" stroke="black" stroke-width="1"/>
+<line x1="50" y1="30" x2="130" y2="30" stroke="black" stroke-width="1"/>
+<text x="135" y="34">1ajk.pdb</text>
+<line x1="50" y1="66" x2="130" y2="66" stroke="black" stroke-width="1"/>
+<line x1="130" y1="54" x2="130" y2="78" stroke="black" stroke-width="1"/>
+<line x1="130" y1="54" x2="210" y2="54" stroke="black" stroke-width="1"/>
+<text x="215" y="58">101m.pdb</text>
+<line x1="130" y1="78" x2="210" y2="78" stroke="black" stroke-width="1"/>
+<text x="215" y="82">1mba.pdb</text>
+</svg>

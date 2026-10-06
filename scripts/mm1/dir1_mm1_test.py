@@ -176,7 +176,10 @@ def compile_usalign():
     env = os.environ.copy(); env["TMPDIR"] = "/tmp"
     result = subprocess.run(
         ["g++", "-O3", "-ffast-math", "-std=gnu++11", "-fopenmp", "-static",
-         "USalign.cpp", "UPGMA.cpp", "-o", "USalign_dir1_mm1", "-lm"],
+         "-Icommon", "-Iengine/tmalign", "-Iengine/flexalign", "-Iengine/mmalign",
+         "-Iengine/soialign", "-Iengine/se", "-Iengine/tmscore", "-Iengine/hwrmsd",
+         "-Iengine/upgma", "-Iorchestration", "-Iapp/tools",
+         "app/usalign.cpp", "engine/upgma/UPGMA.cpp", "-o", "USalign_dir1_mm1", "-lm"],
         cwd=USALIGN_DIR, env=env, capture_output=True, text=True)
     if result.returncode != 0: print(f"[ERROR] Compilation failed:\n{result.stderr}"); sys.exit(1)
     print("  Compilation OK")
