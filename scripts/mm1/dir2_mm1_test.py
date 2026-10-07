@@ -186,7 +186,7 @@ def compile_usalign():
     print("  Compilation OK")
 
 def run_usalign(work_dir, command, timeout=120):
-    args = [USALIGN_EXE] + command
+    args = [USALIGN_EXE] + command + ["-outdir", "."]
     result = subprocess.run(args, capture_output=True, text=True, timeout=timeout, cwd=work_dir)
     return result.returncode, result.stdout, result.stderr
 

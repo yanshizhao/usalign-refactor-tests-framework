@@ -100,7 +100,7 @@ def run_tests():
                 continue
             name, workdir_rel, args_str = line.split(maxsplit=2)
             workdir = (DATA_DIR / workdir_rel).resolve()
-            cmd = [str(EXE)] + args_str.split()
+            cmd = [str(EXE)] + args_str.split() + ["-outdir", "."]
             print(f"=== {name} ===")
             proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
             content = clean_slash(proc.stdout + proc.stderr)

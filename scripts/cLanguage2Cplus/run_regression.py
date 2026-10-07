@@ -84,7 +84,7 @@ def run_tests():
                 continue
             name, workdir_rel, args_str = parts
             workdir = (DATA_DIR / workdir_rel).resolve()
-            args_list = args_str.split()
+            args_list = args_str.split() + ["-outdir", "."]
             cmd = [str(EXE)] + args_list
             print(f"Running {name} ...")
             print(f"  CWD: {workdir}")

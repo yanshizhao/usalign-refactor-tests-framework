@@ -82,7 +82,7 @@ def run_benchmarks():
                 if not line or line.startswith("#"): continue
                 name, workdir_rel, args_str = line.split(maxsplit=2)
                 workdir = (DATA_DIR / workdir_rel).resolve()
-                args_list = args_str.split()
+                args_list = args_str.split() + ["-outdir", "."]
                 cmd = [str(EXE)] + args_list
                 print(f"Benchmarking {name} (modified)...")
                 print(f"  CWD: {workdir}")

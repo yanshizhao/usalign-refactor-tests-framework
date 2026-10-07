@@ -128,7 +128,7 @@ def main():
                 continue
             name, workdir_rel, args_str = parts
             workdir = (DATA_DIR / workdir_rel).resolve()
-            args_list = args_str.split()
+            args_list = args_str.split() + ["-outdir", "."]
 
             print(f"\n=== {name} ===")
 
