@@ -21,7 +21,14 @@ Note: Run this script after modifying US-align source code to evaluate the impac
 SCRIPT_DIR = Path(__file__).parent.resolve()
 DATA_DIR = SCRIPT_DIR / "data"
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
-SRC = [USALIGN_DIR / "USalign.cpp", USALIGN_DIR / "UPGMA.cpp"]
+INC = ["-I" + str(USALIGN_DIR / d) for d in (
+    "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
+    "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
+    "engine/upgma", "orchestration", "app/tools")]
+COMMON = [USALIGN_DIR / "common" / f for f in ("param.cpp", "io.cpp", "geometry.cpp", "seqalign.cpp")]
+ENGINE = [USALIGN_DIR / "engine" / "tmalign" / "output.cpp", USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp", USALIGN_DIR / "engine" / "soialign" / "SOIalign.cpp"]
+ORCH = [USALIGN_DIR / "orchestration" / "output_do.cpp"]
+SRC = [USALIGN_DIR / "app" / "usalign.cpp", USALIGN_DIR / "engine" / "upgma" / "UPGMA.cpp"] + COMMON + ENGINE + ORCH
 
 # Cross-platform executable path: add .exe only on Windows
 EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
@@ -54,7 +61,7 @@ def checkout(branch):
 
 def compile():
     print("Compiling modified US-align from USalign-beta...")
-    compile_cmd = ["g++", "-O3", "-ffast-math", "-fopenmp", "-o", str(EXE), str(USALIGN_DIR / "USalign.cpp"), str(USALIGN_DIR / "UPGMA.cpp")]
+    compile_cmd = ["g++", "-O3", "-ffast-math", "-fopenmp"] + INC + ["-o", str(EXE)] + [str(s) for s in SRC]
     if platform.system() == "Windows":
         compile_cmd.insert(4, "-static-libgcc")
         compile_cmd.insert(5, "-static-libstdc++")

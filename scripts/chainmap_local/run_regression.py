@@ -26,7 +26,8 @@ INC = ["-I" + str(USALIGN_DIR / d) for d in (
     "engine/upgma", "orchestration", "app/tools")]
 COMMON = [USALIGN_DIR / "common" / f for f in ("param.cpp", "io.cpp", "geometry.cpp", "seqalign.cpp")]
 ENGINE = [USALIGN_DIR / "engine" / "tmalign" / "output.cpp", USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp", USALIGN_DIR / "engine" / "soialign" / "SOIalign.cpp"]
-SRC = [USALIGN_DIR / "app" / "usalign.cpp", USALIGN_DIR / "engine" / "upgma" / "UPGMA.cpp"] + COMMON + ENGINE
+ORCH = [USALIGN_DIR / "orchestration" / "output_do.cpp"]
+SRC = [USALIGN_DIR / "app" / "usalign.cpp", USALIGN_DIR / "engine" / "upgma" / "UPGMA.cpp"] + COMMON + ENGINE + ORCH
 
 EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
 EXE = SCRIPT_DIR / f"USalign_chainmap_new{EXE_SUFFIX}"
