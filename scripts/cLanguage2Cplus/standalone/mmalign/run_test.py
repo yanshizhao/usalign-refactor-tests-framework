@@ -72,7 +72,7 @@ def run_tests(exe_path: str):
             name, workdir_rel, args_str = line.split(maxsplit=2)
             workdir = (DATA_DIR / workdir_rel).resolve()
             args = args_str.split()
-            cmd = [exe_path] + args
+            cmd = [exe_path] + args + ["-outdir", "."]
 
             print(f"=== {name} ===", end=" ")
 
