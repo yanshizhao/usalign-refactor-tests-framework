@@ -24,6 +24,7 @@ INC          = ["-I" + str(USALIGN_DIR / d) for d in (
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
     "engine/upgma", "orchestration", "app/tools")]
 COMMON_CPP   = [str(USALIGN_DIR / "common" / f) for f in ("param.cpp", "io.cpp", "geometry.cpp", "seqalign.cpp")]
+ENGINE_CPP   = [str(USALIGN_DIR / "engine" / "tmalign" / "output.cpp")]
 EXE_NAME     = "TMscore_mod.exe"
 
 
@@ -43,7 +44,7 @@ def checkout(branch):
 def compile_mod(exe_path: str):
     print("Compiling modified TMscore ...")
     r = subprocess.run(
-        ["g++", "-O3", "-ffast-math", "-lm", "-static"] + INC + ["-o", exe_path, str(SRC_MAIN)] + COMMON_CPP,
+        ["g++", "-O3", "-ffast-math", "-lm", "-static"] + INC + ["-o", exe_path, str(SRC_MAIN)] + COMMON_CPP + ENGINE_CPP,
         capture_output=True, text=True
     )
     if r.returncode != 0:

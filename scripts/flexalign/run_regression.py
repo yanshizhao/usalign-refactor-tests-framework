@@ -23,7 +23,8 @@ INC = ["-I" + str(USALIGN_DIR / d) for d in (
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
     "engine/upgma", "orchestration", "app/tools")]
 COMMON = [USALIGN_DIR / "common" / f for f in ("param.cpp", "io.cpp", "geometry.cpp", "seqalign.cpp")]
-SRC = [USALIGN_DIR / "app" / "usalign.cpp", USALIGN_DIR / "engine" / "upgma" / "UPGMA.cpp"] + COMMON
+ENGINE = [USALIGN_DIR / "engine" / "tmalign" / "output.cpp"]
+SRC = [USALIGN_DIR / "app" / "usalign.cpp", USALIGN_DIR / "engine" / "upgma" / "UPGMA.cpp"] + COMMON + ENGINE
 
 EXE_SUFFIX = ".exe" if os.name == "nt" else ""
 EXE_BETA   = SCRIPT_DIR / f"USalign_mod{EXE_SUFFIX}"
