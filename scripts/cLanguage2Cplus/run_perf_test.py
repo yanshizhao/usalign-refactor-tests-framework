@@ -25,7 +25,7 @@ INC = ["-I" + str(USALIGN_DIR / d) for d in (
     "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
     "engine/upgma", "orchestration", "app/tools")]
-COMMON = [USALIGN_DIR / "common" / f for f in ("param.cpp", "io.cpp", "geometry.cpp", "seqalign.cpp")]
+COMMON = [USALIGN_DIR / "common" / "common.cpp"]
 ENGINE = [USALIGN_DIR / "engine" / "tmalign" / "output.cpp", USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp", USALIGN_DIR / "engine" / "flexalign" / "flexalign.cpp", USALIGN_DIR / "engine" / "soialign" / "SOIalign.cpp"]
 ORCH = [USALIGN_DIR / "orchestration" / "output_do.cpp", USALIGN_DIR / "orchestration" / "orchestration.cpp"]
 SRC = [USALIGN_DIR / "app" / "usalign.cpp", USALIGN_DIR / "engine" / "upgma" / "UPGMA.cpp"] + COMMON + ENGINE + ORCH
