@@ -23,7 +23,7 @@ INC          = ["-I" + str(USALIGN_DIR / d) for d in (
     "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
     "engine/upgma", "orchestration", "app/tools")]
-COMMON_CPP   = [str(USALIGN_DIR / "common" / f) for f in ("param.cpp", "io.cpp", "geometry.cpp")]
+COMMON_CPP   = [str(USALIGN_DIR / "common" / f) for f in ("param.cpp", "io.cpp", "geometry.cpp", "seqalign.cpp")]
 EXE_NAME     = "HwRMSD_mod.exe"
 
 
