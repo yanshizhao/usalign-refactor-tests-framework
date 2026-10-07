@@ -24,10 +24,10 @@ USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
 INC = ["-I" + str(USALIGN_DIR / d) for d in (
     "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
-    "engine/upgma", "orchestration", "app/tools")]
+    "engine/upgma", "orchestration", "output", "app/tools")]
 COMMON = [USALIGN_DIR / "common" / "common.cpp"]
-ENGINE = [USALIGN_DIR / "engine" / "tmalign" / "output.cpp", USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp", USALIGN_DIR / "engine" / "flexalign" / "flexalign.cpp", USALIGN_DIR / "engine" / "soialign" / "SOIalign.cpp"]
-ORCH = [USALIGN_DIR / "orchestration" / "output_do.cpp", USALIGN_DIR / "orchestration" / "orchestration.cpp"]
+ENGINE = [USALIGN_DIR / "engine" / "tmalign" / "tmalign_output.cpp", USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp", USALIGN_DIR / "engine" / "flexalign" / "flexalign.cpp", USALIGN_DIR / "engine" / "soialign" / "SOIalign.cpp"]
+ORCH = [USALIGN_DIR / "orchestration" / "orchestration.cpp", USALIGN_DIR / "output" / "output.cpp"]
 SRC = [USALIGN_DIR / "app" / "usalign.cpp", USALIGN_DIR / "engine" / "upgma" / "UPGMA.cpp"] + COMMON + ENGINE + ORCH
 
 # Cross-platform executable path: add .exe only on Windows
