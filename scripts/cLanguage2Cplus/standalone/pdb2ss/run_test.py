@@ -17,9 +17,9 @@ SRC_MAIN     = USALIGN_DIR / "app" / "tools" / "pdb2ss_main.cpp"
 INC          = ["-I" + str(USALIGN_DIR / d) for d in (
     "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
-    "engine/upgma", "orchestration", "output", "app/tools")]
+    "engine/upgma", "orchestration", "output_formatting", "app/tools")]
 COMMON_CPP   = [str(USALIGN_DIR / "common" / "common.cpp")]
-ENGINE_CPP   = [str(USALIGN_DIR / "output" / "tmalign_output.cpp"), str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp")]
+ENGINE_CPP   = [str(USALIGN_DIR / "output_formatting" / "tmalign_output.cpp"), str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp")]
 EXE_NAME     = "pdb2ss_mod.exe"
 
 
