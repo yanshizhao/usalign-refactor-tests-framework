@@ -180,7 +180,7 @@ def compile_usalign():
          "-Icommon", "-Iengine/tmalign", "-Iengine/flexalign", "-Iengine/mmalign",
          "-Iengine/soialign", "-Iengine/se", "-Iengine/tmscore", "-Iengine/hwrmsd",
          "-Iengine/upgma", "-Iorchestration", "-Ioutput", "-Iapp/tools",
-         "app/usalign.cpp", "engine/upgma/UPGMA.cpp", "common/common.cpp", "engine/tmalign/tmalign_output.cpp", "engine/tmalign/TMalign.cpp", "engine/flexalign/flexalign.cpp", "engine/soialign/SOIalign.cpp", "orchestration/orchestration.cpp", "output/output.cpp", "-o", "USalign_dir2_mm1", "-lm"],
+         "app/usalign.cpp", "engine/upgma/UPGMA.cpp", "common/common.cpp", "output/tmalign_output.cpp", "engine/tmalign/TMalign.cpp", "engine/flexalign/flexalign.cpp", "engine/soialign/SOIalign.cpp", "orchestration/orchestration.cpp", "output/output.cpp", "-o", "USalign_dir2_mm1", "-lm"],
         cwd=USALIGN_DIR, env=env, capture_output=True, text=True)
     if result.returncode != 0: print(f"[ERROR] Compilation failed:\n{result.stderr}"); sys.exit(1)
     print("  Compilation OK")

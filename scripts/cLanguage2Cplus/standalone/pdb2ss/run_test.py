@@ -19,7 +19,7 @@ INC          = ["-I" + str(USALIGN_DIR / d) for d in (
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
     "engine/upgma", "orchestration", "output", "app/tools")]
 COMMON_CPP   = [str(USALIGN_DIR / "common" / "common.cpp")]
-ENGINE_CPP   = [str(USALIGN_DIR / "engine" / "tmalign" / "tmalign_output.cpp"), str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp")]
+ENGINE_CPP   = [str(USALIGN_DIR / "output" / "tmalign_output.cpp"), str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp")]
 EXE_NAME     = "pdb2ss_mod.exe"
 
 
