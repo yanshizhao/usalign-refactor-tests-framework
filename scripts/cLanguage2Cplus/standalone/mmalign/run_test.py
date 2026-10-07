@@ -24,7 +24,7 @@ INC          = ["-I" + str(USALIGN_DIR / d) for d in (
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
     "engine/upgma", "orchestration", "app/tools")]
 COMMON_CPP   = [str(USALIGN_DIR / "common" / f) for f in ("param.cpp", "io.cpp", "geometry.cpp", "seqalign.cpp")]
-ENGINE_CPP   = [str(USALIGN_DIR / "engine" / "tmalign" / "output.cpp")]
+ENGINE_CPP   = [str(USALIGN_DIR / "engine" / "tmalign" / "output.cpp"), str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp")]
 EXE_NAME     = "MMalign_mod.exe"
 
 
