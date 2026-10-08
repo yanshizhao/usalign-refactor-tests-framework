@@ -185,7 +185,7 @@ def compile_usalign():
          "-Icommon", "-Iengine/tmalign", "-Iengine/flexalign", "-Iengine/mmalign",
          "-Iengine/soialign", "-Iengine/se", "-Iengine/tmscore", "-Iengine/hwrmsd",
          "-Iengine/upgma", "-Iorchestration", "-Ioutput_funcs", "-Iapp/tools",
-         "app/usalign.cpp", "engine/upgma/UPGMA.cpp", "common/common.cpp", "engine/tmalign/TMalign.cpp", "engine/mmalign/MMalign.cpp", "engine/flexalign/flexalign.cpp", "engine/soialign/SOIalign.cpp", "orchestration/orchestration.cpp", "output_funcs/output.cpp", "-o", "USalign_dir_mm1", "-lm"],
+         "app/usalign.cpp", "engine/upgma/UPGMA.cpp", "common/common.cpp", "engine/tmalign/TMalign.cpp", "engine/mmalign/MMalign.cpp", "engine/mmdock/MMdock.cpp", "engine/flexalign/flexalign.cpp", "engine/soialign/SOIalign.cpp", "orchestration/orchestration.cpp", "output_funcs/output.cpp", "-o", "USalign_dir_mm1", "-lm"],
         cwd=USALIGN_DIR, env=env, capture_output=True, text=True
     )
     if result.returncode != 0:
