@@ -28,7 +28,7 @@ INC = ["-I" + str(USALIGN_DIR / d) for d in (
 COMMON = [USALIGN_DIR / "src" / "common" / "common.cpp"]
 ENGINE = [USALIGN_DIR / "src" / "engine" / "tmalign" / "TMalign.cpp", USALIGN_DIR / "src" / "engine" / "mmalign" / "MMalign.cpp", USALIGN_DIR / "src" / "engine" / "mmdock" / "MMdock.cpp", USALIGN_DIR / "src" / "engine" / "mtmalign" / "mTMalign.cpp", USALIGN_DIR / "src" / "engine" / "flexalign" / "flexalign.cpp", USALIGN_DIR / "src" / "engine" / "soialign" / "SOIalign.cpp"]
 ORCH = [USALIGN_DIR / "src" / "common" / "orchestration.cpp", USALIGN_DIR / "src" / "output_funcs" / "output.cpp"]
-SRC = [USALIGN_DIR / "src" / "app" / "usalign.cpp", USALIGN_DIR / "src" / "engine" / "upgma" / "UPGMA.cpp"] + COMMON + ENGINE + ORCH
+SRC = [USALIGN_DIR / "src" / "app" / "usalign" / "usalign.cpp", USALIGN_DIR / "src" / "engine" / "upgma" / "UPGMA.cpp"] + COMMON + ENGINE + ORCH
 
 # Cross-platform executable path: add .exe only on Windows
 EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
