@@ -22,9 +22,9 @@ SRC_MAIN     = USALIGN_DIR / "app" / "tools" / "mmalign_main.cpp"
 INC          = ["-I" + str(USALIGN_DIR / d) for d in (
     "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
-    "engine/upgma", "orchestration", "output_funcs", "app/tools")]
+    "engine/upgma", "output_funcs", "app/tools")]
 COMMON_CPP   = [str(USALIGN_DIR / "common" / "common.cpp")]
-ENGINE_CPP   = [str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "orchestration" / "orchestration.cpp"), str(USALIGN_DIR / "output_funcs" / "output.cpp")]
+ENGINE_CPP   = [str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "common" / "orchestration.cpp"), str(USALIGN_DIR / "output_funcs" / "output.cpp")]
 EXE_NAME     = "MMalign_mod.exe"
 
 
