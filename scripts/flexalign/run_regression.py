@@ -19,11 +19,11 @@ DIFFS = SCRIPT_DIR / "diffs"
 
 USALIGN_DIR = (SCRIPT_DIR / ".." / ".." / ".." / "USalign").resolve()
 INC = ["-I" + str(USALIGN_DIR / d) for d in (
-    "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
+    "common", "engine/tmalign", "engine/flexalign", "engine/mmalign", "engine/mmdock", "engine/mtmalign",
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
     "engine/upgma", "orchestration", "output_funcs", "app/tools")]
 COMMON = [USALIGN_DIR / "common" / "common.cpp"]
-ENGINE = [USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp", USALIGN_DIR / "engine" / "mmalign" / "MMalign.cpp", USALIGN_DIR / "engine" / "mmdock" / "MMdock.cpp", USALIGN_DIR / "engine" / "flexalign" / "flexalign.cpp", USALIGN_DIR / "engine" / "soialign" / "SOIalign.cpp"]
+ENGINE = [USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp", USALIGN_DIR / "engine" / "mmalign" / "MMalign.cpp", USALIGN_DIR / "engine" / "mmdock" / "MMdock.cpp", USALIGN_DIR / "engine" / "mtmalign" / "mTMalign.cpp", USALIGN_DIR / "engine" / "flexalign" / "flexalign.cpp", USALIGN_DIR / "engine" / "soialign" / "SOIalign.cpp"]
 ORCH = [USALIGN_DIR / "orchestration" / "orchestration.cpp", USALIGN_DIR / "output_funcs" / "output.cpp"]
 SRC = [USALIGN_DIR / "app" / "usalign.cpp", USALIGN_DIR / "engine" / "upgma" / "UPGMA.cpp"] + COMMON + ENGINE + ORCH
 
