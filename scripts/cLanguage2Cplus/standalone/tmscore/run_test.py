@@ -24,7 +24,7 @@ INC          = ["-I" + str(USALIGN_DIR / d) for d in (
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
     "engine/upgma", "orchestration", "output_funcs", "app/tools")]
 COMMON_CPP   = [str(USALIGN_DIR / "common" / "common.cpp")]
-ENGINE_CPP   = [str(USALIGN_DIR / "output_funcs" / "tmalign_output.cpp"), str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "engine" / "tmscore" / "TMscore.cpp")]
+ENGINE_CPP   = [str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "engine" / "tmscore" / "TMscore.cpp")]
 EXE_NAME     = "TMscore_mod.exe"
 
 
