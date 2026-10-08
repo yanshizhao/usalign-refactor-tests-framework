@@ -27,4 +27,4 @@ for(i=0; i<L; i++)
    Y[i] = t[1] + u[1][0]*x[i] + u[1][1]*y[i] + u[1][2]*z[i];
    Z[i] = t[2] + u[2][0]*x[i] + u[2][1]*y[i] + u[2][2]*z[i];
 }
-#Total CPU time is  0.75 seconds
+#Total CPU time is  0.51 seconds
