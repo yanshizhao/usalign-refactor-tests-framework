@@ -176,10 +176,10 @@ def compile_usalign():
     env = os.environ.copy(); env["TMPDIR"] = "/tmp"
     result = subprocess.run(
         ["g++", "-O3", "-ffast-math", "-std=gnu++11", "-fopenmp", "-static",
-         "-Icommon", "-Iengine/tmalign", "-Iengine/flexalign", "-Iengine/mmalign", "-Iengine/mmdock", "-Iengine/mtmalign",
-         "-Iengine/soialign", "-Iengine/se", "-Iengine/tmscore", "-Iengine/hwrmsd",
-         "-Iengine/upgma", "-Ioutput_funcs", "-Iapp/tools",
-         "app/usalign/usalign.cpp", "engine/upgma/UPGMA.cpp", "common/common.cpp", "engine/tmalign/TMalign.cpp", "engine/mmalign/MMalign.cpp", "engine/mmdock/MMdock.cpp", "engine/mtmalign/mTMalign.cpp", "engine/flexalign/flexalign.cpp", "engine/soialign/SOIalign.cpp", "common/orchestration.cpp", "output_funcs/output.cpp", "-o", "USalign_dir1_mm1", "-lm"],
+         "-Isrc/common", "-Isrc/engine/tmalign", "-Isrc/engine/flexalign", "-Isrc/engine/mmalign", "-Isrc/engine/mmdock", "-Isrc/engine/mtmalign",
+         "-Isrc/engine/soialign", "-Isrc/engine/se", "-Isrc/engine/tmscore", "-Isrc/engine/hwrmsd",
+         "-Isrc/engine/upgma", "-Isrc/output_funcs", "-Isrc/app/tools",
+         "src/app/usalign/usalign.cpp", "src/engine/upgma/UPGMA.cpp", "src/common/common.cpp", "src/engine/tmalign/TMalign.cpp", "src/engine/mmalign/MMalign.cpp", "src/engine/mmdock/MMdock.cpp", "src/engine/mtmalign/mTMalign.cpp", "src/engine/flexalign/flexalign.cpp", "src/engine/soialign/SOIalign.cpp", "src/common/orchestration.cpp", "src/output_funcs/output.cpp", "-o", "USalign_dir1_mm1", "-lm"],
         cwd=USALIGN_DIR, env=env, capture_output=True, text=True)
     if result.returncode != 0: print(f"[ERROR] Compilation failed:\n{result.stderr}"); sys.exit(1)
     print("  Compilation OK")

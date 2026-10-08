@@ -13,13 +13,13 @@ DATA_DIR     = SCRIPT_DIR / ".." / ".." / "data"
 BASELINE_DIR = SCRIPT_DIR / "baseline"
 CURRENT_DIR  = SCRIPT_DIR / "current"
 DIFFS_DIR    = SCRIPT_DIR / "diffs"
-SRC_MAIN     = USALIGN_DIR / "app" / "tools" / "tool_main" / "pdb2ss_main.cpp"
+SRC_MAIN     = USALIGN_DIR / "src" / "app" / "tools" / "tool_main" / "pdb2ss_main.cpp"
 INC          = ["-I" + str(USALIGN_DIR / d) for d in (
-    "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
-    "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
-    "engine/upgma", "output_funcs", "app/tools", "app/tools/tool_include")]
-COMMON_CPP   = [str(USALIGN_DIR / "common" / "common.cpp")]
-ENGINE_CPP   = [str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "common" / "orchestration.cpp"), str(USALIGN_DIR / "output_funcs" / "output.cpp")]
+    "src/common", "src/engine/tmalign", "src/engine/flexalign", "src/engine/mmalign",
+    "src/engine/soialign", "src/engine/se", "src/engine/tmscore", "src/engine/hwrmsd",
+    "src/engine/upgma", "src/output_funcs", "src/app/tools", "src/app/tools/tool_include")]
+COMMON_CPP   = [str(USALIGN_DIR / "src" / "common" / "common.cpp")]
+ENGINE_CPP   = [str(USALIGN_DIR / "src" / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "src" / "common" / "orchestration.cpp"), str(USALIGN_DIR / "src" / "output_funcs" / "output.cpp")]
 EXE_NAME     = "pdb2ss_mod.exe"
 
 
