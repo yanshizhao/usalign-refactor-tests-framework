@@ -18,11 +18,11 @@ DATA_DIR     = SCRIPT_DIR / ".." / ".." / "data"
 BASELINE_DIR = SCRIPT_DIR / "baseline"
 CURRENT_DIR  = SCRIPT_DIR / "current"
 DIFFS_DIR    = SCRIPT_DIR / "diffs"
-SRC_MAIN     = USALIGN_DIR / "app" / "tools" / "hwrmsd_main.cpp"
+SRC_MAIN     = USALIGN_DIR / "app" / "tools" / "tool_main" / "hwrmsd_main.cpp"
 INC          = ["-I" + str(USALIGN_DIR / d) for d in (
     "common", "engine/tmalign", "engine/flexalign", "engine/mmalign",
     "engine/soialign", "engine/se", "engine/tmscore", "engine/hwrmsd",
-    "engine/upgma", "output_funcs", "app/tools")]
+    "engine/upgma", "output_funcs", "app/tools", "app/tools/tool_include")]
 COMMON_CPP   = [str(USALIGN_DIR / "common" / "common.cpp")]
 ENGINE_CPP   = [str(USALIGN_DIR / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "common" / "orchestration.cpp"), str(USALIGN_DIR / "output_funcs" / "output.cpp"), str(USALIGN_DIR / "engine" / "hwrmsd" / "HwRMSD.cpp")]
 EXE_NAME     = "HwRMSD_mod.exe"
