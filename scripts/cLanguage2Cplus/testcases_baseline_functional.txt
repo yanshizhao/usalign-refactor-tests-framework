@@ -26,6 +26,7 @@ mm0_se_dir2        smallDB  1mba.pdb -dir2 . list.txt -suffix .pdb -fast -se -ou
 mm0_cp_dir2        smallDB  1mba.pdb -dir2 . list.txt -suffix .pdb -fast -mm 3 -outfmt -1 -m -
 mm5_dir2           smallDB  1mba.pdb -dir2 . list.txt -suffix .pdb -fast -mm 5 -outfmt -1 -m -
 mm6_dir2           smallDB  1mba.pdb -dir2 . list.txt -suffix .pdb -fast -mm 6 -outfmt -1 -m -
+mm5_dir            MSTATest  -dir . list.txt -suffix .pdb -fast -mm 5 -outfmt -1 -m -
 mm1_se_outfmt1     mm1_refactor ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -ter 0 -se -outfmt 1
 mm1_se_outfmt2     mm1_refactor ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -ter 0 -se -outfmt 2
 mm0_mirror_dir2    smallDB  1mba.pdb -dir2 . list.txt -suffix .pdb -fast -mirror 1 -het 1 -outfmt -1 -m -
