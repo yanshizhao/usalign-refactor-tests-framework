@@ -179,7 +179,7 @@ def compile_usalign():
          "-Isrc/common", "-Isrc/engine/tmalign", "-Isrc/engine/flexalign", "-Isrc/engine/mmalign", "-Isrc/engine/mmdock", "-Isrc/engine/mtmalign",
          "-Isrc/engine/soialign", "-Isrc/engine/se", "-Isrc/engine/tmscore", "-Isrc/engine/hwrmsd",
          "-Isrc/engine/upgma", "-Isrc/output_funcs", "-Isrc/app/tools",
-         "src/app/usalign/usalign.cpp", "src/engine/upgma/UPGMA.cpp", "src/common/common.cpp", "src/engine/tmalign/TMalign.cpp", "src/engine/mmalign/MMalign.cpp", "src/engine/mmdock/MMdock.cpp", "src/engine/mtmalign/mTMalign.cpp", "src/engine/flexalign/flexalign.cpp", "src/engine/soialign/SOIalign.cpp", "src/common/orchestration.cpp", "src/output_funcs/output.cpp", "-o", "USalign_dir1_mm1", "-lm"],
+         "src/app/usalign/usalign.cpp", "src/engine/upgma/UPGMA.cpp", "src/common/common.cpp", "src/engine/tmalign/TMalign.cpp", "src/engine/mmalign/MMalign.cpp", "src/engine/mmdock/MMdock.cpp", "src/engine/mtmalign/mTMalign.cpp", "src/engine/flexalign/flexalign.cpp", "src/engine/soialign/SOIalign.cpp", "src/output_funcs/output.cpp", "-o", "USalign_dir1_mm1", "-lm"],
         cwd=USALIGN_DIR, env=env, capture_output=True, text=True)
     if result.returncode != 0: print(f"[ERROR] Compilation failed:\n{result.stderr}"); sys.exit(1)
     print("  Compilation OK")

@@ -24,7 +24,7 @@ INC          = ["-I" + str(USALIGN_DIR / d) for d in (
     "src/engine/soialign", "src/engine/se", "src/engine/tmscore", "src/engine/hwrmsd",
     "src/engine/upgma", "src/output_funcs", "src/app/tools", "src/app/tools/tool_include")]
 COMMON_CPP   = [str(USALIGN_DIR / "src" / "common" / "common.cpp")]
-ENGINE_CPP   = [str(USALIGN_DIR / "src" / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "src" / "common" / "orchestration.cpp"), str(USALIGN_DIR / "src" / "output_funcs" / "output.cpp"), str(USALIGN_DIR / "src" / "engine" / "hwrmsd" / "HwRMSD.cpp")]
+ENGINE_CPP   = [str(USALIGN_DIR / "src" / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "src" / "output_funcs" / "output.cpp"), str(USALIGN_DIR / "src" / "engine" / "hwrmsd" / "HwRMSD.cpp")]
 EXE_NAME     = "HwRMSD_mod.exe"
 
 
