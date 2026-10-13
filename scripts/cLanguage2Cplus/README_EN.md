@@ -215,7 +215,7 @@ Each standalone program (`standalone/<program>/`) has two core scripts:
 | 4 | `circular_permutation` | `.` | `1ajk.pdb 2ayh.pdb -mm 3 -outfmt -1 -m -` | Circular permutation alignment (`-mm 3`) |
 | 5 | `fully_non_seq` | `.` | `1eh1.pdb 1evv.pdb -mm 5 -atom PC4' -outfmt -1 -m -` | Fully non-sequential RNA alignment (`-mm 5`) |
 | 6 | `semi_non_seq` | `.` | `1ajk.pdb 2ayh.pdb -mm 6 -outfmt -1 -m -` | Semi non-sequential alignment (`-mm 6`) |
-| 7 | `superposed_structure` | `.` | `101m.pdb 1mba.pdb -o sup` | Superposed structure output (generates sup.pdb) |
+| 7 | `superposed_structure` | `.` | `101m.pdb 1mba.pdb -pymol sup` | Superposed structure output (generates sup.pdb) |
 | 8 | `tmscore_resid` | `help` | `model.pdb native.pdb -TMscore 1 -outfmt -1 -m -` | TM-score residue-guided |
 | 9 | `tmscore_seqalign` | `help` | `model.pdb native.pdb -TMscore 5 -outfmt -1 -m -` | TM-score sequence alignment-guided |
 | 10 | `complex_chainid` | `help` | `modelComplex.pdb nativeComplex.pdb -TMscore 2 -outfmt -1 -m -` | Complex chain ID-guided |

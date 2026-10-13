@@ -228,7 +228,7 @@ python build_Small_DB.py
 | 4 | `circular_permutation` | `.` | `1ajk.pdb 2ayh.pdb -mm 3 -outfmt -1 -m -` | 循环置换比对 (`-mm 3`) |
 | 5 | `fully_non_seq` | `.` | `1eh1.pdb 1evv.pdb -mm 5 -atom PC4' -outfmt -1 -m -` | 完全非顺序 RNA 比对 (`-mm 5`) |
 | 6 | `semi_non_seq` | `.` | `1ajk.pdb 2ayh.pdb -mm 6 -outfmt -1 -m -` | 半非顺序比对 (`-mm 6`) |
-| 7 | `superposed_structure` | `.` | `101m.pdb 1mba.pdb -o sup` | 叠合结构输出 (生成 sup.pdb) |
+| 7 | `superposed_structure` | `.` | `101m.pdb 1mba.pdb -pymol sup` | 叠合结构输出 (生成 sup.pdb) |
 | 8 | `tmscore_resid` | `help` | `model.pdb native.pdb -TMscore 1 -outfmt -1 -m -` | TM-score 残基引导 |
 | 9 | `tmscore_seqalign` | `help` | `model.pdb native.pdb -TMscore 5 -outfmt -1 -m -` | TM-score 序列比对引导 |
 | 10 | `complex_chainid` | `help` | `modelComplex.pdb nativeComplex.pdb -TMscore 2 -outfmt -1 -m -` | 复合物链 ID 引导 |
