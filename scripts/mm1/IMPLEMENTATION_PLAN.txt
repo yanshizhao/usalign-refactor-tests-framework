@@ -301,7 +301,7 @@ Core functionality        USalign -dir PDB list -suffix .pdb -mm 1 -ter 0 -outfm
 Accuracy consistency      Compare one pair against manual USalign PDB/A.pdb PDB/B.pdb -mm 1 -ter 0   Scores match exactly
 -mm 2 blocking            USalign -dir PDB list -mm 2                                                Error and exit
 -chainmap blocking        USalign -dir PDB list -mm 1 -chainmap map.txt                              Error and exit
--o blocking               USalign -dir PDB list -mm 1 -o sup.pdb                                     Error and exit (already checked)
+-pymol blocking           USalign -dir PDB list -mm 1 -pymol sup.pdb                                 Error and exit (already checked)
 -dir1 regression          USalign -dir1 PDB list target.pdb -mm 1 -ter 0 -outfmt 2                   Functionality unaffected
 -dir2 regression          USalign query.pdb -dir2 PDB list -mm 1 -ter 0 -outfmt 2                    Functionality unaffected
 Monomer -dir regression   USalign -dir PDB list -ter 0 -outfmt 2                                     Results consistent with before modification

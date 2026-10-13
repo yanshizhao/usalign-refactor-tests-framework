@@ -5,5 +5,5 @@
 
 mmalign_basic          help  modelComplex.pdb nativeComplex.pdb -outfmt -1
 mmalign_d0             help  modelComplex.pdb nativeComplex.pdb -d 5.0 -outfmt -1
-mmalign_alen           help  modelComplex.pdb nativeComplex.pdb -a T -o complex1.sup -outfmt -1
+mmalign_alen           help  modelComplex.pdb nativeComplex.pdb -a T -pymol complex1.sup -outfmt -1
 mmalign_matrix         help  modelComplex.pdb nativeComplex.pdb -m matrix.txt -outfmt -1

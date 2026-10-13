@@ -93,7 +93,7 @@ def main():
             shutil.rmtree(BASELINE, ignore_errors=True)
         BASELINE.mkdir(parents=True, exist_ok=True)
 
-        cases_file = SCRIPT_DIR / "testcases_functional.txt"
+        cases_file = SCRIPT_DIR / "testcases_baseline_functional.txt"
         with open(cases_file, "r", encoding="utf-8") as f:
             lines = f.readlines()
 

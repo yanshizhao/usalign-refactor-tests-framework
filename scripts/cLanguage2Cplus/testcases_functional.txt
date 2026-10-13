@@ -5,7 +5,7 @@ circular_permutation   .               1ajk.pdb 2ayh.pdb -mm 3 -outfmt -1 -m - -
 circular_permutation_restore   .               1evv.pdb 1mba.pdb -mm 3 -outfmt -1 -m - -threads 4
 fully_non_seq          .               1eh1.pdb 1evv.pdb -mm 5 -atom PC4' -outfmt -1 -m - -threads 4
 semi_non_seq           .               1ajk.pdb 2ayh.pdb -mm 6 -outfmt -1 -m - -threads 4
-superposed_structure   .               101m.pdb 1mba.pdb -o sup -threads 4
+superposed_structure   .               101m.pdb 1mba.pdb -pymol sup -threads 4
 tmscore_resid          help            model.pdb native.pdb -TMscore 1 -outfmt -1 -m - -threads 4
 tmscore_seqalign       help            model.pdb native.pdb -TMscore 5 -outfmt -1 -m - -threads 4
 complex_chainid        help            modelComplex.pdb nativeComplex.pdb -TMscore 2 -outfmt -1 -m - -threads 4
@@ -18,7 +18,7 @@ mm2_trim_serial        mmdock          101m.pdb ../4jhm.pdb1 -mm 2 -outfmt -1 -m
 mm2_trim_parallel      mmdock          -dir1 . list_trim.txt -suffix .pdb ../4jhm.pdb1 -ter 1 -mm 2 -outfmt -1 -m - -threads 4
 chainmap_full       mm1_refactor    ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -chainmap map.txt -outfmt -1 -m - -threads 4
 dimer_mm1           mm1_refactor    dimer1.pdb dimer2.pdb -mm 1 -outfmt -1 -m - -threads 4
-mm1_with_o          mm1_refactor    ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -ter 0 -o sup -threads 4
+mm1_with_o          mm1_refactor    ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -ter 0 -pymol sup -threads 4
 mm1_with_se         mm1_refactor    AAA_1d2na.pdb AAA_1e32a.pdb -mm 1 -ter 0 -se -outfmt -1 -m - -threads 4
 mm1_with_se_lowscore mm1_refactor ../4iaj.pdb1 ../4jhm.pdb1 -mm 1 -ter 0 -se -outfmt -1 -m - -threads 4
 mm1_symwrite_guard  .  4iaj.pdb1 4jhm.pdb1 -mm 1 -ter 0 -outfmt -1 -m - -threads 4

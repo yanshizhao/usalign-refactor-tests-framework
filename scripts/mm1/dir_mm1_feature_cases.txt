@@ -26,9 +26,9 @@ GUARD_dir_dir1_excl	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MST
 GUARD_dir_ter	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt -suffix .pdb -mm 1 -ter 2
 # EXPECT:-mm 1 or 2 must be used with -ter 0 or -ter 1
 
-# Guard 5: -o cannot be used with -dir
-GUARD_dir_o	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt -suffix .pdb -mm 1 -ter 0 -o sup
-# EXPECT:-o cannot be set with -dir
+# Guard 5: -pymol cannot be used with -dir
+GUARD_dir_o	.	-dir usalign-refactor-tests-framework/scripts/mm1/data/MSTATest usalign-refactor-tests-framework/scripts/mm1/data/MSTATest/list.txt -suffix .pdb -mm 1 -ter 0 -pymol sup
+# EXPECT:-pymol cannot be set with -dir
 
 # ============================================================
 # Batch cases: verify -dir output matches single-pair results

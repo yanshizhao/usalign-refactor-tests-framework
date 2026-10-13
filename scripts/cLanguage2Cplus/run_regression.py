@@ -180,6 +180,9 @@ def run_tests():
                 else:
                     failed += 1
 
+            for structure2 in workdir.glob("*_structure2.*"):
+                structure2.unlink()
+
     print(f"\n=== Summary: total={total}, PASS={passed}, WARNING={warned}, FAIL={failed} ===")
     return failed == 0
 

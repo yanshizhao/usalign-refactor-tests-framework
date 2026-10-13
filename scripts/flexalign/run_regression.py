@@ -85,6 +85,11 @@ def clean_output(text: str) -> str:
     return text
 
 
+STRUCTURE2_PRODUCT = re.compile(r"_structure2\.[^.]+$")
+PYMOL_STRUCTURE2_LOAD = re.compile(rb'^cmd\.load\(.*, "structure2"\)', re.MULTILINE)
+PYMOL_STRUCTURE2_TOKEN = b'cmd.load("<structure2>", "structure2")'
+
+
 def run_case(exe, workdir, args_list):
     """Run one test case and return cleaned stdout+stderr."""
     # Inject -threads 1 for deterministic floating-point output
@@ -160,14 +165,18 @@ def main():
             # Compare product files byte-by-byte (if any)
             prod_ok = True
             base_prod = BASELINE / f"{name}.prod"
-            base_files = {p.name for p in base_prod.iterdir()} if base_prod.exists() else set()
-            cur_files = {p.name for p in prod_dir.iterdir()}
+            base_files = {p.name for p in base_prod.iterdir()
+                          if not STRUCTURE2_PRODUCT.search(p.name)} if base_prod.exists() else set()
+            cur_files = {p.name for p in prod_dir.iterdir()
+                         if not STRUCTURE2_PRODUCT.search(p.name)}
             if base_files != cur_files:
                 print(f"  FAIL - product file set differs: base={sorted(base_files)} cur={sorted(cur_files)}")
                 prod_ok = False
             else:
                 for fn in sorted(base_files):
-                    if (base_prod / fn).read_bytes() != (prod_dir / fn).read_bytes():
+                    base_data = PYMOL_STRUCTURE2_LOAD.sub(PYMOL_STRUCTURE2_TOKEN, (base_prod / fn).read_bytes())
+                    cur_data = PYMOL_STRUCTURE2_LOAD.sub(PYMOL_STRUCTURE2_TOKEN, (prod_dir / fn).read_bytes())
+                    if base_data != cur_data:
                         print(f"  FAIL - product file differs: {fn}")
                         prod_ok = False
 

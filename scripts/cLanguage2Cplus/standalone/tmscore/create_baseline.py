@@ -70,7 +70,7 @@ def run_baseline(exe_path: str):
         shutil.rmtree(BASELINE_DIR)
     BASELINE_DIR.mkdir(parents=True)
 
-    testcases = SCRIPT_DIR / "testcases.txt"
+    testcases = SCRIPT_DIR / "testcases_baseline.txt"
     with open(testcases, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -91,7 +91,7 @@ def run_baseline(exe_path: str):
             out_file = BASELINE_DIR / f"{name}.out"
             out_file.write_text(content, encoding="utf-8")
 
-            # TMscore -o TM_sup produces TM_sup.pdb and TM_sup.pml
+            # TMscore -pymol TM_sup produces TM_sup.pdb and TM_sup.pml
             sup_pdb = workdir / "TM_sup.pdb"
             if sup_pdb.exists():
                 shutil.move(str(sup_pdb), str(BASELINE_DIR / f"{name}.pdb"))

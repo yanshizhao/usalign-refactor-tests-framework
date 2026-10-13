@@ -1,0 +1,9 @@
+# MMalign standalone program test cases
+# Sourced from the 4 Example usages in MMalign.cpp print_help()
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+
+mmalign_basic          help  modelComplex.pdb nativeComplex.pdb -outfmt -1
+mmalign_d0             help  modelComplex.pdb nativeComplex.pdb -d 5.0 -outfmt -1
+mmalign_alen           help  modelComplex.pdb nativeComplex.pdb -a T -o complex1.sup -outfmt -1
+mmalign_matrix         help  modelComplex.pdb nativeComplex.pdb -m matrix.txt -outfmt -1

@@ -70,7 +70,7 @@ def run_baseline(exe_path: str):
         shutil.rmtree(BASELINE_DIR)
     BASELINE_DIR.mkdir(parents=True)
 
-    testcases = SCRIPT_DIR / "testcases.txt"
+    testcases = SCRIPT_DIR / "testcases_baseline.txt"
     with open(testcases, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -91,7 +91,7 @@ def run_baseline(exe_path: str):
             out_file = BASELINE_DIR / f"{name}.out"
             out_file.write_text(content, encoding="utf-8")
 
-            # MMalign -o complex1.sup produces complex1.sup and complex1.sup.pml
+            # MMalign -pymol complex1.sup produces complex1.sup and complex1.sup.pml
             sup_file = workdir / "complex1.sup"
             if sup_file.exists():
                 shutil.move(str(sup_file), str(BASELINE_DIR / f"{name}.sup"))
