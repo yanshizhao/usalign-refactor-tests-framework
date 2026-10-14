@@ -20,11 +20,11 @@ CURRENT_DIR  = SCRIPT_DIR / "current"
 DIFFS_DIR    = SCRIPT_DIR / "diffs"
 SRC_MAIN     = USALIGN_DIR / "src" / "app" / "tools" / "tool_main" / "mmalign_main.cpp"
 INC          = ["-I" + str(USALIGN_DIR / d) for d in (
-    "src/common", "src/engine/tmalign", "src/engine/flexalign", "src/engine/mmalign",
+    "src/common", "src/engine", "src/engine/tmalign", "src/engine/flexalign", "src/engine/mmalign",
     "src/engine/soialign", "src/engine/se", "src/engine/tmscore", "src/engine/hwrmsd",
     "src/engine/upgma", "src/output_funcs", "src/app/tools", "src/app/tools/tool_include")]
 COMMON_CPP   = [str(USALIGN_DIR / "src" / "common" / "common.cpp")]
-ENGINE_CPP   = [str(USALIGN_DIR / "src" / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "src" / "output_funcs" / "output.cpp")]
+ENGINE_CPP   = [str(USALIGN_DIR / "src" / "engine" / "engine_common.cpp"), str(USALIGN_DIR / "src" / "engine" / "tmalign" / "TMalign.cpp"), str(USALIGN_DIR / "src" / "output_funcs" / "output.cpp")]
 EXE_NAME     = "MMalign_mod.exe"
 
 
