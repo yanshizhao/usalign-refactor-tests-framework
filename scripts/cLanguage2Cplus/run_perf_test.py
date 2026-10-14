@@ -26,7 +26,7 @@ INC = ["-I" + str(USALIGN_DIR / d) for d in (
     "src/engine/soialign", "src/engine/se", "src/engine/tmscore", "src/engine/hwrmsd",
     "src/engine/upgma", "src/output_funcs", "src/app/tools")]
 COMMON = [USALIGN_DIR / "src" / "common" / "common.cpp"]
-ENGINE = [USALIGN_DIR / "src" / "engine" / "engine_common.cpp", USALIGN_DIR / "src" / "engine" / "tmalign" / "TMalign.cpp", USALIGN_DIR / "src" / "engine" / "mmalign" / "MMalign.cpp", USALIGN_DIR / "src" / "engine" / "mmdock" / "MMdock.cpp", USALIGN_DIR / "src" / "engine" / "mtmalign" / "mTMalign.cpp", USALIGN_DIR / "src" / "engine" / "flexalign" / "flexalign.cpp", USALIGN_DIR / "src" / "engine" / "soialign" / "SOIalign.cpp"]
+ENGINE = [USALIGN_DIR / "src" / "engine" / "engine_common.cpp", USALIGN_DIR / "src" / "engine" / "se" / "se.cpp", USALIGN_DIR / "src" / "engine" / "tmalign" / "TMalign.cpp", USALIGN_DIR / "src" / "engine" / "mmalign" / "MMalign.cpp", USALIGN_DIR / "src" / "engine" / "mmdock" / "MMdock.cpp", USALIGN_DIR / "src" / "engine" / "mtmalign" / "mTMalign.cpp", USALIGN_DIR / "src" / "engine" / "flexalign" / "flexalign.cpp", USALIGN_DIR / "src" / "engine" / "soialign" / "SOIalign.cpp"]
 ORCH = [USALIGN_DIR / "src" / "output_funcs" / "output.cpp"]
 SRC = [USALIGN_DIR / "src" / "app" / "usalign" / "usalign.cpp", USALIGN_DIR / "src" / "engine" / "upgma" / "UPGMA.cpp"] + COMMON + ENGINE + ORCH
 
