@@ -78,10 +78,40 @@ def strip_cpu_time(text: str) -> str:
     return re.sub(r'^#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
 
 
+def strip_version_banner(text: str) -> str:
+    """Remove version banner and contact email lines (branch-specific)."""
+    text = re.sub(r'^.*\* US-align \(Version[^\n]*\n?', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^.*\* Please email[^\n]*\n?', '', text, flags=re.MULTILINE)
+    return text
+
+
+# Cases whose only accepted differences are non-behavioral:
+#  - d0: master leaves d0=0.00 while beta computes it correctly (spec five).
+#  - rotation-matrix last digit: the refactored sources reassociate FP
+#    operations, shifting the 10th decimal (independent of compile flags).
+EXPECTED_DIFF_CASES = {
+    "flex_low_greedy_1rid_3o8eB",
+    "flex_outfmt1_greedy",
+    "flex_afp_default",
+    "flex_default_hinge_afp",
+    "flex_mid_afp_3icy_3lyxA",
+}
+D0_VALUE = re.compile(r'd0=[0-9.]+')
+LONG_DECIMAL = re.compile(r'-?\d+\.\d{10,}')
+
+
+def normalize_expected(text: str) -> str:
+    """Normalize accepted differences (d0 value, FP last-digit noise)."""
+    text = D0_VALUE.sub("d0=*", text)
+    text = LONG_DECIMAL.sub(lambda m: f"{float(m.group(0)):.9f}", text)
+    return text
+
+
 def clean_output(text: str) -> str:
     """Apply all cleaning steps for comparison."""
     text = clean_slash(text)
     text = strip_cpu_time(text)
+    text = strip_version_banner(text)
     return text
 
 
@@ -162,6 +192,12 @@ def main():
             with open(base_file, "r", encoding="utf-8") as bf:
                 base_text = clean_output(bf.read())
 
+            # For whitelisted cases, tolerate only the accepted differences.
+            expected_diff = name in EXPECTED_DIFF_CASES
+            if expected_diff:
+                base_text = normalize_expected(base_text)
+                cur_text = normalize_expected(cur_text)
+
             # Compare product files byte-by-byte (if any)
             prod_ok = True
             base_prod = BASELINE / f"{name}.prod"
@@ -182,7 +218,7 @@ def main():
 
             # Compare
             if base_text == cur_text and prod_ok:
-                print(f"  PASS")
+                print("  PASS" + (" (expected difference)" if expected_diff else ""))
                 passed += 1
             else:
                 # Generate unified diff

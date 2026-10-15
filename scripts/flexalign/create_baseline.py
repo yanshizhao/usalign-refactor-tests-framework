@@ -55,10 +55,13 @@ def compile_exe(branch):
     """Compile USalign from the specified branch for baseline."""
     print(f"Compiling USalign from {branch} branch for baseline...")
     checkout(branch)
-    # Use compilation command matching the branch's readme.txt
+    # Use compilation command matching run_regression.py so that the baseline
+    # and the current build share the same flags (avoids last-digit FP noise).
     if branch == "master":
-        # Master readme.txt: g++ -static -O3 -ffast-math -lm -o USalign USalign.cpp
-        cmd = ["g++", "-O3", "-ffast-math", "-static", "-lm", "-o", str(EXE)]
+        # Same flags as run_regression.py: -std=gnu++11 -fopenmp keep the master
+        # baseline bit-comparable with the beta build (readme.txt omits them).
+        cmd = ["g++", "-O3", "-ffast-math", "-std=gnu++11", "-fopenmp",
+               "-static", "-lm", "-o", str(EXE)]
         cmd.extend(SRC_MASTER)
     else:
         # Beta readme.txt: g++ -static -O3 -ffast-math -std=gnu++11 -fopenmp -lm -o USalign USalign.cpp UPGMA.cpp
