@@ -96,3 +96,14 @@ flex_o_rasmol_mid           5xpwA-1cdhA   5xpwA.pdb 1cdhA.pdb -mm 7 -outfmt -1 -
 flex_o_pymol_hinge          3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -mm 7 -hinge 3 -outfmt -1 -pymol out.pdb
 # Test 16: output_flexalign_rasmol AFP 分支
 flex_o_rasmol_afp           1w5fA-6umkA   1w5fA.pdb 6umkA.pdb -afp -mm 7 -outfmt -1 -rasmol out.rasmol
+
+# ==============================================================================
+# 7. Visualization tool output (-mm 7, no-chain data 3icyA-3lyxA)
+# ==============================================================================
+
+# Test 17: output_flexalign_pymol (-pymol) 无链产物覆盖
+flex_o_pymol_noid_3icy      3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -mm 7 -outfmt -1 -pymol out.pdb
+# Test 18: output_flexalign_rasmol (-rasmol) 无链产物覆盖
+flex_o_rasmol_noid_3icy     3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -mm 7 -outfmt -1 -rasmol out.rasmol
+# Test 19: output_flexalign_chimerax (-chimerax) 无链产物覆盖
+flex_o_chimerax_noid_3icy   3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -mm 7 -outfmt -1 -chimerax out.cxc
