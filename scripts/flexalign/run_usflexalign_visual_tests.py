@@ -37,7 +37,11 @@ NOCHAIN_PDBS = [NOCHAIN_DIR / "3icyA.pdb", NOCHAIN_DIR / "3lyxA.pdb"]
 CHAIN_PDBS = [MASTER_DIR / "PDB2.pdb", MASTER_DIR / "PDB1.pdb"]
 
 SEGMENT_SELECT = re.compile(r"^select\s+[\d,\s:A-Z]+$")
-SEGMENT_COLOR = re.compile(r"^color\s+(\S+)")
+SEGMENT_COLOR = re.compile(r"^color\s+(\S+)\s*$")
+# Base (structure1/structure2) colors written in the RasMol headers.
+BASE_COLORS = ("grey", "wheat")
+# RasMol refuses a script line longer than 256 chars; the writer caps at 250.
+MAX_LINE_LEN = 250
 
 
 def clean_env():
@@ -66,7 +70,12 @@ def product(workdir, variant, ext):
 
 
 def segment_colors(text):
-    """Pair each chain-less numeric 'select' line with the color command after it."""
+    """Pair each numeric 'select' line (one segment chunk) with the color after it.
+
+    A segment whose residue list does not fit on one command line is split into
+    several 'select' chunks, each followed by the same color, so the number of
+    pairs can exceed the number of segments.
+    """
     lines = text.splitlines()
     pairs = []
     for i, line in enumerate(lines):
@@ -75,6 +84,22 @@ def segment_colors(text):
             match = SEGMENT_COLOR.match(nxt)
             pairs.append((line, match.group(1) if match else None))
     return pairs
+
+
+def collapse_runs(colors):
+    """Collapse consecutive duplicates (split chunks repeat their segment color)."""
+    runs = []
+    for color in colors:
+        if not runs or runs[-1] != color:
+            runs.append(color)
+    return runs
+
+
+def overlong_line(text):
+    for line in text.splitlines():
+        if len(line) > MAX_LINE_LEN:
+            return line
+    return None
 
 
 def check_nochain_rasmol(workdir):
@@ -87,18 +112,23 @@ def check_nochain_rasmol(workdir):
         text = read_text(path)
         if "ATOM" not in text:
             fails.append(f"{path.name}: no ATOM records")
-        if re.search(r"^color white", text, re.M):
+        if re.search(r"^color white\s*$", text, re.M):
             fails.append(f"{path.name}: contains 'color white'")
+        long_line = overlong_line(text)
+        if long_line is not None:
+            fails.append(f"{path.name}: found a line of {len(long_line)} chars (> {MAX_LINE_LEN})")
+        for base in BASE_COLORS:
+            if not re.search(rf"^color {base}\s*$", text, re.M):
+                fails.append(f"{path.name}: missing base color 'color {base}'")
         pairs = segment_colors(text)
-        if len(pairs) != 3:
-            fails.append(f"{path.name}: expected 3 segment selections, got {len(pairs)}")
         for select_line, color in pairs:
             if ":" in select_line:
                 fails.append(f"{path.name}: chain-less segment carries a chain suffix: {select_line[:40]}")
             if color is None:
                 fails.append(f"{path.name}: segment selection without a color command: {select_line[:40]}")
-        if "_atm" not in variant and not re.search(r"^color grey", text, re.M):
-            fails.append(f"{path.name}: missing CA base color 'color grey'")
+        runs = collapse_runs([c for _s, c in pairs])
+        if runs != ["blue", "red", "green"]:
+            fails.append(f"{path.name}: expected segment colors [blue, red, green], got {runs}")
     return fails
 
 
@@ -151,11 +181,23 @@ def check_chain_rasmol(workdir):
         text = read_text(path)
         if "ATOM" not in text:
             fails.append(f"{path.name}: no ATOM records")
-        selects = [l for l in text.splitlines() if SEGMENT_SELECT.match(l)]
-        if len(selects) != 2:
-            fails.append(f"{path.name}: expected 2 segment selections, got {len(selects)}")
-        if not re.search(r"^select\s+[\d,]+:A", text, re.M):
-            fails.append(f"{path.name}: segment selection lacks ':A' chain suffix")
+        long_line = overlong_line(text)
+        if long_line is not None:
+            fails.append(f"{path.name}: found a line of {len(long_line)} chars (> {MAX_LINE_LEN})")
+        for base in BASE_COLORS:
+            if not re.search(rf"^color {base}\s*$", text, re.M):
+                fails.append(f"{path.name}: missing base color 'color {base}'")
+        pairs = segment_colors(text)
+        if not pairs:
+            fails.append(f"{path.name}: no segment selections found")
+        for select_line, color in pairs:
+            if not re.search(r"\d+:A", select_line):
+                fails.append(f"{path.name}: segment selection lacks ':A' chain suffix: {select_line[:40]}")
+            if color is None:
+                fails.append(f"{path.name}: segment selection without a color command: {select_line[:40]}")
+        runs = collapse_runs([c for _s, c in pairs])
+        if runs != ["blue", "red"]:
+            fails.append(f"{path.name}: expected segment colors [blue, red], got {runs}")
     return fails
 
 
