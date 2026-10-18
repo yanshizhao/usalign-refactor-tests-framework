@@ -36,8 +36,13 @@ PYMOL_EXT = ".pml"
 CHIMERAX_EXT = ".cxc"
 VARIANTS = ["", "_all", "_atm", "_all_atm", "_all_atm_lig"]
 
+MULTICHAIN_DIR = DATA_DIR / "multichain_sample"
+OVERLAP_DIR = DATA_DIR / "overlap_resnum_sample"
+
 NOCHAIN_PDBS = [NOCHAIN_DIR / "3icyA.pdb", NOCHAIN_DIR / "3lyxA.pdb"]
 CHAIN_PDBS = [DATA_DIR / "US185232304A.pdb", DATA_DIR / "US185232304B.pdb"]
+MULTICHAIN_PDBS = [MULTICHAIN_DIR / "s1.pdb", MULTICHAIN_DIR / "s2.pdb"]
+OVERLAP_PDBS = [OVERLAP_DIR / "s1.pdb", OVERLAP_DIR / "s2.pdb"]
 
 SEGMENT_SELECT = re.compile(r"^select\s+[\d,\s:A-Z]+$")
 SEGMENT_COLOR = re.compile(r"^color\s+(\S+)\s*$")
@@ -218,6 +223,57 @@ def check_chain_rasmol(workdir):
     return fails
 
 
+def check_nonchain_rasmol(workdir):
+    fails = []
+    for variant in VARIANTS:
+        path = product(workdir, variant, RASMOL_EXT)
+        if not path.exists():
+            fails.append(f"missing product: {path.name}")
+            continue
+        text = read_text(path)
+        if "ATOM" not in text:
+            fails.append(f"{path.name}: no ATOM records")
+        pairs = segment_colors(text)
+        if not pairs:
+            fails.append(f"{path.name}: no segment selections found")
+        for select_line, color in pairs:
+            if not re.search(r"\d+:A", select_line):
+                fails.append(f"{path.name}: segment selection lacks ':A' chain suffix: {select_line[:40]}")
+            if color is None:
+                fails.append(f"{path.name}: segment selection without a color command: {select_line[:40]}")
+    return fails
+
+
+def check_ter0_pymol_bond(workdir):
+    fails = []
+    path = product(workdir, "", PYMOL_EXT)
+    if not path.exists():
+        return [f"missing product: {path.name}"]
+    text = read_text(path)
+    chains = {}
+    for structure in ("structure1", "structure2"):
+        match = re.search(rf"^remove {structure} and not\s+c\. (\S+)$", text, re.M)
+        if match is None:
+            fails.append(f"{path.name}: missing chain selection for {structure}")
+        chains[structure] = match.group(1) if match else None
+    bond_lines = [l for l in text.splitlines() if l.startswith("bond ")]
+    if not bond_lines:
+        fails.append(f"{path.name}: no bond lines")
+    for line in bond_lines:
+        operands = line[len("bond "):].split(", ")
+        if len(operands) != 2:
+            fails.append(f"{path.name}: bond line does not have two operands: {line[:60]}")
+            continue
+        for operand in operands:
+            structure = "structure2" if operand.startswith("structure2") else "structure1"
+            chain = chains[structure]
+            if chain is None:
+                continue
+            if f"c. {chain}" not in operand:
+                fails.append(f"{path.name}: bond operand lacks 'c. {chain}': {operand[:60]}")
+    return fails
+
+
 MM7 = ["-mm", "7"]
 PYMOL_UF = [["-pymol"], ["-o"]]
 PYMOL_MM7 = [MM7 + ["-pymol"], MM7 + ["-o"]]
@@ -225,6 +281,8 @@ RASMOL_UF = [["-rasmol"]]
 RASMOL_MM7 = [MM7 + ["-rasmol"]]
 CHIMERAX_UF = [["-chimerax"]]
 CHIMERAX_MM7 = [MM7 + ["-chimerax"]]
+RASMOL_CHAIN1_C_UF = [["-chain1", "C", "-rasmol"]]
+PYMOL_SPLIT2_TER0_UF = [["-split", "2", "-ter", "0", "-pymol"]]
 
 CASES = [
     ("nochain_rasmol_uf", NOCHAIN_PDBS, "uf", RASMOL_UF, check_nochain_rasmol),
@@ -235,6 +293,8 @@ CASES = [
     ("nochain_chimerax_mm7", NOCHAIN_PDBS, "mm7", CHIMERAX_MM7, check_nochain_chimerax),
     ("chain_rasmol_uf", CHAIN_PDBS, "uf", RASMOL_UF, check_chain_rasmol),
     ("chain_rasmol_mm7", CHAIN_PDBS, "mm7", RASMOL_MM7, check_chain_rasmol),
+    ("nonchain_rasmol_uf", MULTICHAIN_PDBS, "uf", RASMOL_CHAIN1_C_UF, check_nonchain_rasmol),
+    ("ter0_pymol_bond_uf", OVERLAP_PDBS, "uf", PYMOL_SPLIT2_TER0_UF, check_ter0_pymol_bond),
 ]
 
 
