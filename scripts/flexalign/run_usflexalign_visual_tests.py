@@ -38,11 +38,13 @@ VARIANTS = ["", "_all", "_atm", "_all_atm", "_all_atm_lig"]
 
 MULTICHAIN_DIR = DATA_DIR / "multichain_sample"
 OVERLAP_DIR = DATA_DIR / "overlap_resnum_sample"
+LIGAND_DIR = DATA_DIR / "ligand_sample"
 
 NOCHAIN_PDBS = [NOCHAIN_DIR / "3icyA.pdb", NOCHAIN_DIR / "3lyxA.pdb"]
 CHAIN_PDBS = [DATA_DIR / "US185232304A.pdb", DATA_DIR / "US185232304B.pdb"]
 MULTICHAIN_PDBS = [MULTICHAIN_DIR / "s1.pdb", MULTICHAIN_DIR / "s2.pdb"]
 OVERLAP_PDBS = [OVERLAP_DIR / "s1.pdb", OVERLAP_DIR / "s2.pdb"]
+LIGAND_PDBS = [LIGAND_DIR / "s1.pdb", LIGAND_DIR / "s2.pdb"]
 
 SEGMENT_SELECT = re.compile(r"^select\s+[\d,\s:A-Z]+$")
 SEGMENT_COLOR = re.compile(r"^color\s+(\S+)\s*$")
@@ -274,6 +276,44 @@ def check_ter0_pymol_bond(workdir):
     return fails
 
 
+def check_lig_chimerax(workdir):
+    fails = []
+    path = product(workdir, "_all_atm_lig", CHIMERAX_EXT)
+    if not path.exists():
+        return [f"missing product: {path.name}"]
+    text = read_text(path)
+    if "show ligand|solvent|ions atoms,bonds" not in text:
+        fails.append(f"{path.name}: missing 'show ligand|solvent|ions atoms,bonds'")
+    return fails
+
+
+def cartoon_lines(text):
+    return [line for line in text.splitlines() if line.startswith("show cartoon, ")]
+
+
+def check_multichain_pymol_lig(workdir):
+    fails = []
+    lig_path = product(workdir, "_all_atm_lig", PYMOL_EXT)
+    atm_path = product(workdir, "_all_atm", PYMOL_EXT)
+    for path in (lig_path, atm_path):
+        if not path.exists():
+            fails.append(f"missing product: {path.name}")
+    if fails:
+        return fails
+    lig_lines = cartoon_lines(read_text(lig_path))
+    atm_lines = cartoon_lines(read_text(atm_path))
+    if len(lig_lines) != 2:
+        fails.append(f"{lig_path.name}: expected 2 cartoon lines, got {len(lig_lines)}")
+    if lig_lines != atm_lines:
+        fails.append(
+            f"{lig_path.name}: cartoon lines differ from {atm_path.name}: {lig_lines} != {atm_lines}"
+        )
+    for line in lig_lines:
+        if not re.search(r"^show cartoon, structure[12] and c\. \S+$", line):
+            fails.append(f"{lig_path.name}: cartoon line lacks chain selection: {line}")
+    return fails
+
+
 MM7 = ["-mm", "7"]
 PYMOL_UF = [["-pymol"], ["-o"]]
 PYMOL_MM7 = [MM7 + ["-pymol"], MM7 + ["-o"]]
@@ -283,6 +323,7 @@ CHIMERAX_UF = [["-chimerax"]]
 CHIMERAX_MM7 = [MM7 + ["-chimerax"]]
 RASMOL_CHAIN1_C_UF = [["-chain1", "C", "-rasmol"]]
 PYMOL_SPLIT2_TER0_UF = [["-split", "2", "-ter", "0", "-pymol"]]
+CHIMERAX_HET1_UF = [["-het", "1", "-chimerax"]]
 
 CASES = [
     ("nochain_rasmol_uf", NOCHAIN_PDBS, "uf", RASMOL_UF, check_nochain_rasmol),
@@ -295,6 +336,8 @@ CASES = [
     ("chain_rasmol_mm7", CHAIN_PDBS, "mm7", RASMOL_MM7, check_chain_rasmol),
     ("nonchain_rasmol_uf", MULTICHAIN_PDBS, "uf", RASMOL_CHAIN1_C_UF, check_nonchain_rasmol),
     ("ter0_pymol_bond_uf", OVERLAP_PDBS, "uf", PYMOL_SPLIT2_TER0_UF, check_ter0_pymol_bond),
+    ("lig_chimerax_uf", LIGAND_PDBS, "uf", CHIMERAX_HET1_UF, check_lig_chimerax),
+    ("multichain_pymol_lig_uf", MULTICHAIN_PDBS, "uf", PYMOL_UF, check_multichain_pymol_lig),
 ]
 
 
