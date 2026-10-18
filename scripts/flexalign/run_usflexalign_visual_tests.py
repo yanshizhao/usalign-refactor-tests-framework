@@ -2,12 +2,13 @@
 """
 Independent CLI visual-content tests for USFlexalign.
 
-Calls the beta USFlexalign.exe entry point directly (not through the -mm 7
+Calls the USFlexalign / USalign entry points directly (not through the -mm 7
 regression runner) and asserts the *content* of the PyMOL / RasMol / ChimeraX
 products, for both a chain-less and a chained input pair.
 
 Exit code: 0 = all cases pass, non-zero = failure (1) or precondition (2).
 """
+import argparse
 import os
 import re
 import subprocess
@@ -22,11 +23,12 @@ NOCHAIN_DIR = DATA_DIR / "3icyA-3lyxA"
 # __file__ = .../usalign-refactor-tests-framework/scripts/flexalign/<this>.py
 # parent x4 = us-align_modify/
 USALIGN_DIR = SCRIPT_DIR.parent.parent.parent / "USalign"
-MASTER_DIR = USALIGN_DIR.parent.parent / "_master_viz_fix"
 
 EXE_SUFFIX = ".exe" if os.name == "nt" else ""
-EXE_UF = USALIGN_DIR / f"USFlexalign{EXE_SUFFIX}"
-EXE_MM7 = USALIGN_DIR / f"USalign{EXE_SUFFIX}"
+EXE_NAMES = {
+    "uf": f"USFlexalign{EXE_SUFFIX}",
+    "mm7": f"USalign{EXE_SUFFIX}",
+}
 
 PREFIX = "sup"
 RASMOL_EXT = ".spt"
@@ -35,7 +37,7 @@ CHIMERAX_EXT = ".cxc"
 VARIANTS = ["", "_all", "_atm", "_all_atm", "_all_atm_lig"]
 
 NOCHAIN_PDBS = [NOCHAIN_DIR / "3icyA.pdb", NOCHAIN_DIR / "3lyxA.pdb"]
-CHAIN_PDBS = [MASTER_DIR / "PDB2.pdb", MASTER_DIR / "PDB1.pdb"]
+CHAIN_PDBS = [DATA_DIR / "US185232304A.pdb", DATA_DIR / "US185232304B.pdb"]
 
 SEGMENT_SELECT = re.compile(r"^select\s+[\d,\s:A-Z]+$")
 SEGMENT_COLOR = re.compile(r"^color\s+(\S+)\s*$")
@@ -64,12 +66,14 @@ def run_entry(exe, pdbs, option_flags, workdir):
     base.extend(str(p) for p in pdbs)
     ok = None
     for flags in option_flags:
-        for extra in ([], ["-outdir", "."]):
+        for extra in (["-outdir", "."], []):
             cmd = base + flags + [PREFIX] + extra
             proc = subprocess.run(cmd, capture_output=True, text=True,
                                   cwd=str(workdir), env=clean_env())
             ok = (proc.returncode, proc.stdout + proc.stderr)
-            if proc.returncode == 0:
+            # Only stop once products actually landed in workdir: a successful
+            # exit without '-outdir' writes to the default results/ dir instead.
+            if proc.returncode == 0 and any(workdir.glob(f"{PREFIX}*")):
                 return ok
     return ok
 
@@ -135,8 +139,8 @@ def check_nochain_rasmol(workdir):
                 fails.append(f"{path.name}: missing base color 'color {base}'")
         pairs = segment_colors(text)
         for select_line, color in pairs:
-            if ":" in select_line:
-                fails.append(f"{path.name}: chain-less segment carries a chain suffix: {select_line[:40]}")
+            if not re.search(r"\d+:A", select_line):
+                fails.append(f"{path.name}: segment selection lacks ':A' chain suffix: {select_line[:40]}")
             if color is None:
                 fails.append(f"{path.name}: segment selection without a color command: {select_line[:40]}")
         runs = collapse_runs([c for _s, c in pairs])
@@ -223,19 +227,32 @@ CHIMERAX_UF = [["-chimerax"]]
 CHIMERAX_MM7 = [MM7 + ["-chimerax"]]
 
 CASES = [
-    ("nochain_rasmol_uf", NOCHAIN_PDBS, EXE_UF, RASMOL_UF, check_nochain_rasmol),
-    ("nochain_rasmol_mm7", NOCHAIN_PDBS, EXE_MM7, RASMOL_MM7, check_nochain_rasmol),
-    ("nochain_pymol_uf", NOCHAIN_PDBS, EXE_UF, PYMOL_UF, check_nochain_pymol),
-    ("nochain_pymol_mm7", NOCHAIN_PDBS, EXE_MM7, PYMOL_MM7, check_nochain_pymol),
-    ("nochain_chimerax_uf", NOCHAIN_PDBS, EXE_UF, CHIMERAX_UF, check_nochain_chimerax),
-    ("nochain_chimerax_mm7", NOCHAIN_PDBS, EXE_MM7, CHIMERAX_MM7, check_nochain_chimerax),
-    ("chain_rasmol_uf", CHAIN_PDBS, EXE_UF, RASMOL_UF, check_chain_rasmol),
-    ("chain_rasmol_mm7", CHAIN_PDBS, EXE_MM7, RASMOL_MM7, check_chain_rasmol),
+    ("nochain_rasmol_uf", NOCHAIN_PDBS, "uf", RASMOL_UF, check_nochain_rasmol),
+    ("nochain_rasmol_mm7", NOCHAIN_PDBS, "mm7", RASMOL_MM7, check_nochain_rasmol),
+    ("nochain_pymol_uf", NOCHAIN_PDBS, "uf", PYMOL_UF, check_nochain_pymol),
+    ("nochain_pymol_mm7", NOCHAIN_PDBS, "mm7", PYMOL_MM7, check_nochain_pymol),
+    ("nochain_chimerax_uf", NOCHAIN_PDBS, "uf", CHIMERAX_UF, check_nochain_chimerax),
+    ("nochain_chimerax_mm7", NOCHAIN_PDBS, "mm7", CHIMERAX_MM7, check_nochain_chimerax),
+    ("chain_rasmol_uf", CHAIN_PDBS, "uf", RASMOL_UF, check_chain_rasmol),
+    ("chain_rasmol_mm7", CHAIN_PDBS, "mm7", RASMOL_MM7, check_chain_rasmol),
 ]
 
 
-def main():
-    missing_exe = [str(e) for e, _ in ((EXE_UF, 0), (EXE_MM7, 0)) if not e.exists()]
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--exe-dir",
+        default=str(USALIGN_DIR),
+        help="directory containing USFlexalign / USalign executables (default: beta build)",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    exe_dir = Path(args.exe_dir).resolve()
+    exes = {key: exe_dir / name for key, name in EXE_NAMES.items()}
+    missing_exe = [str(e) for e in exes.values() if not e.exists()]
     if missing_exe:
         print("ERROR: executable not found: " + ", ".join(missing_exe))
         print("Build first: cd USalign && mingw32-make USFlexalign USalign")
@@ -247,11 +264,11 @@ def main():
 
     total = passed = 0
     with tempfile.TemporaryDirectory(prefix="usflexalign_visual_") as tmp:
-        for name, pdbs, exe, flags, checker in CASES:
+        for name, pdbs, exe_key, flags, checker in CASES:
             workdir = Path(tmp) / name
             workdir.mkdir(parents=True, exist_ok=True)
             print(f"\n=== {name} ===")
-            rc, output = run_entry(exe, pdbs, flags, workdir)
+            rc, output = run_entry(exes[exe_key], pdbs, flags, workdir)
             fails = checker(workdir) if rc == 0 else [f"entry exit code {rc}"]
             total += 1
             if fails:
