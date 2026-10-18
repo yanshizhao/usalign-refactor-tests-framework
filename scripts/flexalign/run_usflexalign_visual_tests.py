@@ -353,9 +353,9 @@ def check_help_rasmol_ext(workdir):
 
 
 def parse_color_list(source, name):
-    """Return the quoted entries of `const std::vector<std::string> <name> = {...};`."""
+    """Return the quoted entries of `const [std::]vector<[std::]string> <name> = {...};`."""
     match = re.search(
-        rf"const std::vector<std::string>\s+{name}\s*=\s*\{{(.*?)\}};", source, re.S
+        rf"const\s+(?:std::)?vector<(?:std::)?string>\s+{name}\s*=\s*\{{(.*?)\}};", source, re.S
     )
     if match is None:
         return None
@@ -401,7 +401,8 @@ RASMOL_MM7 = [MM7 + ["-rasmol"]]
 CHIMERAX_UF = [["-chimerax"]]
 CHIMERAX_MM7 = [MM7 + ["-chimerax"]]
 RASMOL_CHAIN1_C_UF = [["-chain1", "C", "-rasmol"]]
-PYMOL_SPLIT2_TER0_UF = [["-split", "2", "-ter", "0", "-pymol"]]
+PYMOL_SPLIT2_TER0_UF = [["-split", "2", "-ter", "0", "-pymol"],
+                        ["-split", "2", "-ter", "0", "-o"]]
 CHIMERAX_HET1_UF = [["-het", "1", "-chimerax"]]
 
 CASES = [
