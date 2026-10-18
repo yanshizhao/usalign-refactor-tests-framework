@@ -53,6 +53,20 @@ BASE_COLORS = ("grey", "yellowtint")
 # RasMol refuses a script line longer than 256 chars; the writer caps at 250.
 MAX_LINE_LEN = 250
 
+# Color palettes hoisted to namespace scope in flexalign.h.
+PALETTE_NAMES = (
+    "flexalign_pymol_color_list",
+    "flexalign_chimerax_color_list",
+    "flexalign_rasmol_color_list",
+)
+# Verified one-by-one with ChimeraX 1.12: `color <name>` exits 0 for each.
+CHIMERAX_1_12_COLORS = frozenset({
+    "blue", "red", "green", "yellow", "magenta", "cyan", "orange", "purple", "brown", "pink",
+    "teal", "firebrick", "forest", "gold", "violet", "skyblue", "salmon", "aquamarine",
+    "chocolate", "hotpink", "lime", "olive", "slate", "cornflowerblue", "palegreen", "khaki",
+    "lightpink", "lightblue", "orchid", "plum", "tan", "dodgerblue", "coral", "mediumblue",
+})
+
 
 def clean_env():
     """Drop /mingw64/bin from PATH (wrong libstdc++-6.dll would break the run)."""
@@ -338,6 +352,47 @@ def check_help_rasmol_ext(workdir):
     return fails
 
 
+def parse_color_list(source, name):
+    """Return the quoted entries of `const std::vector<std::string> <name> = {...};`."""
+    match = re.search(
+        rf"const std::vector<std::string>\s+{name}\s*=\s*\{{(.*?)\}};", source, re.S
+    )
+    if match is None:
+        return None
+    return re.findall(r'"([^"]+)"', match.group(1))
+
+
+def check_color_palettes(exe_dir):
+    fails = []
+    header = exe_dir / "src" / "engine" / "flexalign" / "flexalign.h"
+    if not header.exists():
+        header = exe_dir / "flexalign.h"
+    if not header.exists():
+        return [f"missing source: {header}"]
+    source = read_text(header)
+    palettes = {}
+    for name in PALETTE_NAMES:
+        colors = parse_color_list(source, name)
+        if colors is None:
+            fails.append(f"{header.name}: missing palette {name}")
+            continue
+        palettes[name] = colors
+        duplicates = sorted({c for c in colors if colors.count(c) > 1})
+        if duplicates:
+            fails.append(f"{name}: duplicate colors {duplicates}")
+        if not colors:
+            fails.append(f"{name}: empty palette")
+    chimerax = palettes.get("flexalign_chimerax_color_list")
+    if chimerax:
+        illegal = [c for c in chimerax if c not in CHIMERAX_1_12_COLORS]
+        if illegal:
+            fails.append(f"flexalign_chimerax_color_list: illegal in ChimeraX 1.12: {illegal}")
+    pymol = palettes.get("flexalign_pymol_color_list")
+    if pymol and chimerax and pymol[:10] != chimerax[:10]:
+        fails.append("PyMOL/ChimeraX palettes differ in their first 10 colors")
+    return fails
+
+
 MM7 = ["-mm", "7"]
 PYMOL_UF = [["-pymol"], ["-o"]]
 PYMOL_MM7 = [MM7 + ["-pymol"], MM7 + ["-o"]]
@@ -366,6 +421,10 @@ CASES = [
 
 HELP_CASES = [
     ("help_rasmol_ext_uf", "uf", check_help_rasmol_ext),
+]
+
+STATIC_CASES = [
+    ("color_palettes", check_color_palettes),
 ]
 
 
@@ -419,6 +478,18 @@ def main(argv=None):
             print(f"\n=== {name} ===")
             rc, output = run_help(exes[exe_key], workdir)
             fails = checker(workdir) if rc == 0 else [f"entry exit code {rc}"]
+            total += 1
+            if fails:
+                print(f"  FAIL")
+                for msg in fails:
+                    print(f"    - {msg}")
+            else:
+                print("  PASS")
+                passed += 1
+
+        for name, checker in STATIC_CASES:
+            print(f"\n=== {name} ===")
+            fails = checker(exe_dir)
             total += 1
             if fails:
                 print(f"  FAIL")
