@@ -85,6 +85,14 @@ def run_entry(exe, pdbs, option_flags, workdir):
     return ok
 
 
+def run_help(exe, workdir):
+    proc = subprocess.run([str(exe), "-h"], capture_output=True, text=True,
+                          cwd=str(workdir), env=clean_env())
+    output = proc.stdout + proc.stderr
+    (workdir / "help.txt").write_text(output, encoding="utf-8")
+    return proc.returncode, output
+
+
 def read_text(path):
     return path.read_text(encoding="utf-8", errors="replace")
 
@@ -314,6 +322,22 @@ def check_multichain_pymol_lig(workdir):
     return fails
 
 
+def check_help_rasmol_ext(workdir):
+    fails = []
+    path = workdir / "help.txt"
+    if not path.exists():
+        return [f"missing product: {path.name}"]
+    text = read_text(path)
+    for variant in VARIANTS:
+        expected = f"rasmol -script {PREFIX}{variant}{RASMOL_EXT}"
+        if expected not in text:
+            fails.append(f"{path.name}: missing '{expected}'")
+        bare = f"rasmol -script {PREFIX}{variant} "
+        if bare in text:
+            fails.append(f"{path.name}: found extension-less '{bare.strip()}'")
+    return fails
+
+
 MM7 = ["-mm", "7"]
 PYMOL_UF = [["-pymol"], ["-o"]]
 PYMOL_MM7 = [MM7 + ["-pymol"], MM7 + ["-o"]]
@@ -338,6 +362,10 @@ CASES = [
     ("ter0_pymol_bond_uf", OVERLAP_PDBS, "uf", PYMOL_SPLIT2_TER0_UF, check_ter0_pymol_bond),
     ("lig_chimerax_uf", LIGAND_PDBS, "uf", CHIMERAX_HET1_UF, check_lig_chimerax),
     ("multichain_pymol_lig_uf", MULTICHAIN_PDBS, "uf", PYMOL_UF, check_multichain_pymol_lig),
+]
+
+HELP_CASES = [
+    ("help_rasmol_ext_uf", "uf", check_help_rasmol_ext),
 ]
 
 
@@ -381,6 +409,21 @@ def main(argv=None):
                 tail = [l for l in output.splitlines() if l.strip()][-3:]
                 for line in tail:
                     print(f"    | {line}")
+            else:
+                print("  PASS")
+                passed += 1
+
+        for name, exe_key, checker in HELP_CASES:
+            workdir = Path(tmp) / name
+            workdir.mkdir(parents=True, exist_ok=True)
+            print(f"\n=== {name} ===")
+            rc, output = run_help(exes[exe_key], workdir)
+            fails = checker(workdir) if rc == 0 else [f"entry exit code {rc}"]
+            total += 1
+            if fails:
+                print(f"  FAIL")
+                for msg in fails:
+                    print(f"    - {msg}")
             else:
                 print("  PASS")
                 passed += 1
