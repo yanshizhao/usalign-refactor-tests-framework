@@ -107,3 +107,16 @@ flex_o_pymol_noid_3icy      3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -mm 7 -outfmt -1 -
 flex_o_rasmol_noid_3icy     3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -mm 7 -outfmt -1 -rasmol out.rasmol
 # Test 19: output_flexalign_chimerax (-chimerax) 无链产物覆盖
 flex_o_chimerax_noid_3icy   3icyA-3lyxA   3icyA.pdb 3lyxA.pdb -mm 7 -outfmt -1 -chimerax out.cxc
+
+# ==============================================================================
+# 8. mmCIF parsing fixes (B-09 no-model crash, B-13 first-line drop)
+# ==============================================================================
+
+# Test 20: B-09 - no model column + split 0 (crashed with SIGSEGV before fix)
+flex_mmcif_nomodel_split0   mmcif_nomodel   s1.cif s2.cif -split 0 -ter 0 -outfmt -1 -threads 1
+# Test 21: B-09 - no model column + split 1 (crashed with SIGSEGV before fix)
+flex_mmcif_nomodel_split1   mmcif_nomodel   s1.cif s2.cif -split 1 -ter 0 -outfmt -1 -threads 1
+# Test 22: B-09/B-13 - no model column + default split 2
+flex_mmcif_nomodel_split2   mmcif_nomodel   s1.cif s2.cif -split 2 -outfmt -1 -threads 1
+# Test 23: B-13 - first data row is a CA atom (was dropped before fix)
+flex_mmcif_firstline        mmcif_firstline s1.cif s2.cif -outfmt -1 -threads 1
