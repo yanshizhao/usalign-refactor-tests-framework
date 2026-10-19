@@ -298,6 +298,44 @@ def check_ter0_pymol_bond(workdir):
     return fails
 
 
+def check_split0_pymol_bond(workdir):
+    fails = []
+    path = product(workdir, "", PYMOL_EXT)
+    if not path.exists():
+        return [f"missing product: {path.name}"]
+    text = read_text(path)
+    bond_lines = [l for l in text.splitlines() if l.startswith("bond ")]
+    if not bond_lines:
+        fails.append(f"{path.name}: no bond lines")
+    counts = {}
+    for line in bond_lines:
+        operands = line[len("bond "):].split(", ")
+        if len(operands) != 2:
+            fails.append(f"{path.name}: bond line does not have two operands: {line[:60]}")
+            continue
+        chains = []
+        for operand in operands:
+            match = re.match(r"^(structure[12]) and c\. (\S+) and i\. ", operand)
+            if match is None:
+                fails.append(f"{path.name}: bond operand lacks chain selection: {operand[:60]}")
+                chains.append(None)
+            else:
+                chains.append(match.group(2))
+        if None in chains:
+            continue
+        if chains[0] != chains[1]:
+            fails.append(f"{path.name}: cross-chain bond {chains[0]}-{chains[1]}: {line[:60]}")
+        structure = operands[0].split(" ")[0]
+        key = (structure, chains[0])
+        counts[key] = counts.get(key, 0) + 1
+    for structure in ("structure1", "structure2"):
+        for chain in ("C", "D"):
+            got = counts.get((structure, chain), 0)
+            if got != 11:
+                fails.append(f"{path.name}: expected 11 {chain}-{chain} bonds for {structure}, got {got}")
+    return fails
+
+
 def check_lig_chimerax(workdir):
     fails = []
     path = product(workdir, "_all_atm_lig", CHIMERAX_EXT)
@@ -403,6 +441,8 @@ CHIMERAX_MM7 = [MM7 + ["-chimerax"]]
 RASMOL_CHAIN1_C_UF = [["-chain1", "C", "-rasmol"]]
 PYMOL_SPLIT2_TER0_UF = [["-split", "2", "-ter", "0", "-pymol"],
                         ["-split", "2", "-ter", "0", "-o"]]
+PYMOL_SPLIT0_TER0_UF = [["-split", "0", "-ter", "0", "-pymol"],
+                        ["-split", "0", "-ter", "0", "-o"]]
 CHIMERAX_HET1_UF = [["-het", "1", "-chimerax"]]
 
 CASES = [
@@ -416,6 +456,7 @@ CASES = [
     ("chain_rasmol_mm7", CHAIN_PDBS, "mm7", RASMOL_MM7, check_chain_rasmol),
     ("nonchain_rasmol_uf", MULTICHAIN_PDBS, "uf", RASMOL_CHAIN1_C_UF, check_nonchain_rasmol),
     ("ter0_pymol_bond_uf", OVERLAP_PDBS, "uf", PYMOL_SPLIT2_TER0_UF, check_ter0_pymol_bond),
+    ("split0_pymol_bond_uf", OVERLAP_PDBS, "uf", PYMOL_SPLIT0_TER0_UF, check_split0_pymol_bond),
     ("lig_chimerax_uf", LIGAND_PDBS, "uf", CHIMERAX_HET1_UF, check_lig_chimerax),
     ("multichain_pymol_lig_uf", MULTICHAIN_PDBS, "uf", PYMOL_UF, check_multichain_pymol_lig),
 ]
