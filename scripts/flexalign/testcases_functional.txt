@@ -136,3 +136,9 @@ flex_mmcif_names_chimerax      mmcif_names      s1.cif s2.cif -mm 7 -split 0 -te
 flex_inscode_pymol    inscode_sample s1.pdb s2.pdb -mm 7 -split 2 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
 flex_inscode_chimerax inscode_sample s1.pdb s2.pdb -mm 7 -split 2 -ter 0 -outfmt -1 -chimerax out.cxc -threads 1
 flex_inscode_rasmol   inscode_sample s1.pdb s2.pdb -mm 7 -split 2 -ter 0 -outfmt -1 -rasmol out.rasmol -threads 1
+
+# B-11: split 0/1 per-residue chain qualification
+flex_split1_ter0_pymol    multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
+flex_split1_ter2_pymol    multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 2 -outfmt -1 -pymol out.pdb -threads 1
+flex_split1_ter0_chimerax multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 0 -outfmt -1 -chimerax out.cxc -threads 1
+flex_split0_chimerax      multichain_sample s1.pdb s2.pdb -mm 7 -split 0 -ter 0 -outfmt -1 -chimerax out.cxc -threads 1
