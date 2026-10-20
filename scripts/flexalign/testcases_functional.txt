@@ -150,3 +150,7 @@ flex_rasmol_chain2 multichain_sample s1.pdb s2.pdb -mm 7 -chain1 C -chain2 D -ou
 flex_mmcif_nochain_chain1  mmcif_nochain  s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb -chain1 A -chain2 A -threads 1
 # T-020: mmCIF hinge 查键残基字段与 PDB 五列对齐（多 hinge）
 flex_mmcif_hinge_pymol  mmcif_hinge_pair  s1.cif s2.cif -mm 7 -split 2 -outfmt -1 -pymol out.pdb -threads 1
+# T-018: 审查未覆盖 fixture 的链选择器用例（multichar_diff/mixed/names2）
+flex_mmcif_multichar_diff_pymol mmcif_multichar_diff s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
+flex_mmcif_mixed_pymol        mmcif_mixed        s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
+flex_mmcif_names2_pymol       mmcif_names2       s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
