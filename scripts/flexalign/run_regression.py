@@ -98,6 +98,8 @@ EXPECTED_DIFF_CASES = {
 }
 D0_VALUE = re.compile(r'd0=[0-9.]+')
 LONG_DECIMAL = re.compile(r'-?\d+\.\d{10,}')
+# Same warning text, branch-specific CLI spelling for the PyMOL flag (-o vs -pymol).
+BRANCH_CLI_WARNING = re.compile(r'(When -mm is used, )-pymol( is recommended over -rasmol)')
 
 
 def normalize_expected(text: str) -> str:
@@ -112,6 +114,7 @@ def clean_output(text: str) -> str:
     text = clean_slash(text)
     text = strip_cpu_time(text)
     text = strip_version_banner(text)
+    text = BRANCH_CLI_WARNING.sub(r'\1-o\2', text)
     return text
 
 

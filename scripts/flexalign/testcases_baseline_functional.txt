@@ -121,21 +121,21 @@ flex_mmcif_firstline        mmcif_firstline s1.cif s2.cif -outfmt -1
 # 9. Multi-character chain IDs (C-lite) and special-character chain names
 # ==============================================================================
 
-flex_mmcif_multichar_pymol     mmcif_multichar  s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb
+flex_mmcif_multichar_pymol     mmcif_multichar  s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -o out.pdb
 flex_mmcif_multichar_chimerax  mmcif_multichar  s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -chimerax out.cxc
 flex_mmcif_multichar_rasmol    mmcif_multichar  s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -rasmol out.rasmol
-flex_mmcif_multichar_split2    mmcif_multichar  s1.cif s2.cif -mm 7 -split 2 -outfmt -1 -pymol out.pdb
-flex_mmcif_names_pymol         mmcif_names      s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb
+flex_mmcif_multichar_split2    mmcif_multichar  s1.cif s2.cif -mm 7 -split 2 -outfmt -1 -o out.pdb
+flex_mmcif_names_pymol         mmcif_names      s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -o out.pdb
 flex_mmcif_names_chimerax      mmcif_names      s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -chimerax out.cxc
 
 # B-12: insertion codes must be preserved in PyMOL/ChimeraX selectors
-flex_inscode_pymol    inscode_sample s1.pdb s2.pdb -mm 7 -split 2 -ter 0 -outfmt -1 -pymol out.pdb
+flex_inscode_pymol    inscode_sample s1.pdb s2.pdb -mm 7 -split 2 -ter 0 -outfmt -1 -o out.pdb
 flex_inscode_chimerax inscode_sample s1.pdb s2.pdb -mm 7 -split 2 -ter 0 -outfmt -1 -chimerax out.cxc
 flex_inscode_rasmol   inscode_sample s1.pdb s2.pdb -mm 7 -split 2 -ter 0 -outfmt -1 -rasmol out.rasmol
 
 # B-11: split 0/1 per-residue chain qualification
-flex_split1_ter0_pymol    multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 0 -outfmt -1 -pymol out.pdb
-flex_split1_ter2_pymol    multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 2 -outfmt -1 -pymol out.pdb
+flex_split1_ter0_pymol    multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 0 -outfmt -1 -o out.pdb
+flex_split1_ter2_pymol    multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 2 -outfmt -1 -o out.pdb
 flex_split1_ter0_chimerax multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 0 -outfmt -1 -chimerax out.cxc
 flex_split0_chimerax      multichain_sample s1.pdb s2.pdb -mm 7 -split 0 -ter 0 -outfmt -1 -chimerax out.cxc
 
