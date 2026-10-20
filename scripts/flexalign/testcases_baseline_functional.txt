@@ -138,3 +138,6 @@ flex_split1_ter0_pymol    multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 0 
 flex_split1_ter2_pymol    multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 2 -outfmt -1 -pymol out.pdb
 flex_split1_ter0_chimerax multichain_sample s1.pdb s2.pdb -mm 7 -split 1 -ter 0 -outfmt -1 -chimerax out.cxc
 flex_split0_chimerax      multichain_sample s1.pdb s2.pdb -mm 7 -split 0 -ter 0 -outfmt -1 -chimerax out.cxc
+
+# B-14: RasMol structure2 must filter by chain2_sele
+flex_rasmol_chain2 multichain_sample s1.pdb s2.pdb -mm 7 -chain1 C -chain2 D -outfmt -1 -rasmol out.rasmol
