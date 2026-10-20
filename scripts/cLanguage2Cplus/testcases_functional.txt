@@ -33,3 +33,9 @@ mm0_mirror_dir2    smallDB  1mba.pdb -dir2 . list.txt -suffix .pdb -fast -mirror
 mm7_dir            MSTATest  -dir . list.txt -suffix .pdb -fast -mm 7 -outfmt -1 -m - -threads 4
 mm1_hetero_asym    mm1_hetero  1A66.pdb 1AN4.pdb -mm 1 -ter 0 -outfmt -1 -m - -threads 4
 mm0_cif_dataprefix  .  101m.pdb 1AN4.cif -outfmt -1 -m - -threads 4
+
+# byresi 2/3: multi-character chain IDs must behave like single-character equivalents
+mm_cif_multichar_tmscore2   mmcif_multichar  s1.cif s2.cif -TMscore 2 -outfmt -1 -m - -threads 1
+mm_cif_multichar_tmscore3   mmcif_multichar  s1.cif s2.cif -TMscore 3 -outfmt -1 -m - -threads 1
+mm_cif_singlechar_tmscore2  mmcif_singlechar s1.cif s2.cif -TMscore 2 -outfmt -1 -m - -threads 1
+mm_cif_singlechar_tmscore3  mmcif_singlechar s1.cif s2.cif -TMscore 3 -outfmt -1 -m - -threads 1

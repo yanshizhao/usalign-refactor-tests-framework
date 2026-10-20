@@ -120,3 +120,14 @@ flex_mmcif_nomodel_split1   mmcif_nomodel   s1.cif s2.cif -split 1 -ter 0 -outfm
 flex_mmcif_nomodel_split2   mmcif_nomodel   s1.cif s2.cif -split 2 -outfmt -1 -threads 1
 # Test 23: B-13 - first data row is a CA atom (was dropped before fix)
 flex_mmcif_firstline        mmcif_firstline s1.cif s2.cif -outfmt -1 -threads 1
+
+# ==============================================================================
+# 9. Multi-character chain IDs (C-lite) and special-character chain names
+# ==============================================================================
+
+flex_mmcif_multichar_pymol     mmcif_multichar  s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
+flex_mmcif_multichar_chimerax  mmcif_multichar  s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -chimerax out.cxc -threads 1
+flex_mmcif_multichar_rasmol    mmcif_multichar  s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -rasmol out.rasmol -threads 1
+flex_mmcif_multichar_split2    mmcif_multichar  s1.cif s2.cif -mm 7 -split 2 -outfmt -1 -pymol out.pdb -threads 1
+flex_mmcif_names_pymol         mmcif_names      s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
+flex_mmcif_names_chimerax      mmcif_names      s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -chimerax out.cxc -threads 1
