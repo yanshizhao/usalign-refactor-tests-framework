@@ -39,3 +39,4 @@ mm_cif_multichar_tmscore2   mmcif_multichar  s1.cif s2.cif -TMscore 2 -outfmt -1
 mm_cif_multichar_tmscore3   mmcif_multichar  s1.cif s2.cif -TMscore 3 -outfmt -1 -m - -threads 1
 mm_cif_singlechar_tmscore2  mmcif_singlechar s1.cif s2.cif -TMscore 2 -outfmt -1 -m - -threads 1
 mm_cif_singlechar_tmscore3  mmcif_singlechar s1.cif s2.cif -TMscore 3 -outfmt -1 -m - -threads 1
+mm_cif_byresi3_multichar    mmcif_byresi3    s1.cif s2.cif -TMscore 3 -outfmt -1 -m - -threads 1
