@@ -131,3 +131,8 @@ flex_mmcif_multichar_rasmol    mmcif_multichar  s1.cif s2.cif -mm 7 -split 0 -te
 flex_mmcif_multichar_split2    mmcif_multichar  s1.cif s2.cif -mm 7 -split 2 -outfmt -1 -pymol out.pdb -threads 1
 flex_mmcif_names_pymol         mmcif_names      s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
 flex_mmcif_names_chimerax      mmcif_names      s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -chimerax out.cxc -threads 1
+
+# B-12: insertion codes must be preserved in PyMOL/ChimeraX selectors
+flex_inscode_pymol    inscode_sample s1.pdb s2.pdb -mm 7 -split 2 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
+flex_inscode_chimerax inscode_sample s1.pdb s2.pdb -mm 7 -split 2 -ter 0 -outfmt -1 -chimerax out.cxc -threads 1
+flex_inscode_rasmol   inscode_sample s1.pdb s2.pdb -mm 7 -split 2 -ter 0 -outfmt -1 -rasmol out.rasmol -threads 1
