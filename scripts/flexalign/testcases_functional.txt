@@ -154,3 +154,12 @@ flex_mmcif_hinge_pymol  mmcif_hinge_pair  s1.cif s2.cif -mm 7 -split 2 -outfmt -
 flex_mmcif_multichar_diff_pymol mmcif_multichar_diff s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
 flex_mmcif_mixed_pymol        mmcif_mixed        s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
 flex_mmcif_names2_pymol       mmcif_names2       s1.cif s2.cif -mm 7 -split 0 -ter 0 -outfmt -1 -pymol out.pdb -threads 1
+
+# ==============================================================================
+# 12. Real-world mmCIF structures + auth-invalid multi-hinge
+# ==============================================================================
+flex_real_4v6x_multichar_pymol   real_mmcif     4v6x.cif 4v6x.cif -mm 7 -chain1 Cu -chain2 Cv -split 2 -outfmt -1 -pymol out.pdb -threads 1
+flex_real_1d3z_nmr_chimerax      real_mmcif     1d3z.cif 1d3z.cif -mm 7 -chain1 A -chain2 A -ter 1 -split 2 -outfmt -1 -chimerax out.cxc -threads 1
+flex_real_4hhb_tetramer_rasmol   real_mmcif     4hhb.cif 4hhb.cif -mm 7 -chain1 A -chain2 B -split 2 -outfmt -1 -rasmol out.rasmol -threads 1
+flex_real_1bna_dna_chimerax      real_mmcif     1bna.cif 1bna.cif -mm 7 -chain1 A -chain2 B -split 2 -outfmt -1 -chimerax out.cxc -threads 1
+flex_mmcif_nochain_hinge_pymol   mmcif_nochain_hinge s1.cif s2.cif -mm 7 -chain1 A -chain2 A -split 2 -outfmt -1 -pymol out.pdb -threads 1
