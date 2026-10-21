@@ -1,6 +1,6 @@
 #!/usr/bin/env pymol
 cmd.load("sup", "structure1")
-cmd.load("4jhm.pdb1", "structure2")
+cmd.load("sup_structure2.pdb", "structure2")
 hide all
 set all_states, on
 show cartoon, structure1
