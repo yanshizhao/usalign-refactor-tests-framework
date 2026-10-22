@@ -1,0 +1,16 @@
+# qTMclust standalone program test cases (baseline, master branch)
+# master has no -outdir option, so the output path is relative to the case
+# working directory. run_test.py appends "-outdir ." to the same arguments.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers: -split 2 clustering of the chains in one file, the -s TM-score
+# selection modes, the -TMcut threshold, -dir all-against-all clustering over a
+# list file, and the -o cluster file artifact.
+# Generated artifacts compared: cluster.txt.
+
+qtmclust_split     .       -split 2 -ter 1 4iaj.pdb1
+qtmclust_score_s1  .       -split 2 -ter 1 4iaj.pdb1 -s 1
+qtmclust_cut       .       -split 2 -ter 1 4iaj.pdb1 -TMcut 0.6
+qtmclust_out       .       -split 2 -ter 1 4iaj.pdb1 -o cluster.txt
+qtmclust_dir       .       -dir MSTATest/ MSTATest/list.txt -suffix .pdb -o cluster.txt

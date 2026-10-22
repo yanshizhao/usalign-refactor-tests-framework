@@ -1,0 +1,15 @@
+# se standalone program test cases (USalign-beta branch)
+# run_test.py appends "-outdir ." to every case, so generated files stay in the
+# case working directory and are collected as comparison artifacts.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers: extracting a sequence alignment from a pair of superposed structures,
+# with -u/-d/-a score normalisation options, with -i (alignment-guided), and on a
+# real protein pair. se writes only to stdout, so no generated artifacts are
+# compared.
+
+se_basic  help    model.pdb native.pdb
+se_uda    help    model.pdb native.pdb -u 100 -d 5.0 -a T
+se_i      help    model.pdb native.pdb -i align.txt
+se_real   help    ../101m.pdb ../1mba.pdb

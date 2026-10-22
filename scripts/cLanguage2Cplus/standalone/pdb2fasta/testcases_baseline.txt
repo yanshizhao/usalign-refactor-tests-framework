@@ -1,0 +1,15 @@
+# pdb2fasta standalone program test cases (baseline, master branch)
+# master has no -outdir option, so the output path is relative to the case
+# working directory. run_test.py appends "-outdir ." to the same arguments.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers: single-chain FASTA conversion, multi-chain conversion with -split 2,
+# RNA input, -mol prot filtering, and -dir batch conversion over a list file.
+# Output goes to stdout, so no generated artifacts are compared.
+
+pdb2fasta_basic  .       101m.pdb
+pdb2fasta_split  .       4jhm.pdb1 -split 2 -ter 1
+pdb2fasta_rna    .       1evv.pdb
+pdb2fasta_prot   .       4iaj.pdb1 -mol prot -split 2 -ter 1
+pdb2fasta_dir    .       -dir MSTATest/ MSTATest/list.txt -suffix .pdb

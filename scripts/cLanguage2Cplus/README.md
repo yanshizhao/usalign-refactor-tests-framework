@@ -70,7 +70,7 @@ cLanguage2Cplus/                        # ★ 主回归测试框架
 │   │   └── list.txt                    #   文件列表
 │   └── smallDB/                         # 数据库搜索子集 (100 个随机 PDB + list.txt)
 │
-├── standalone/                          # ★ 4 个独立程序子测试框架
+├── standalone/                          # ★ 17 个独立程序子测试框架
 │   ├── tmscore/                         # TMscore: 6 用例 (help目录下的全部示例)
 │   │   ├── testcases.txt               #   用例定义
 │   │   ├── create_baseline.py          #   从 master 提取 TMscore.cpp → 编译 → 生成基线
@@ -83,10 +83,27 @@ cLanguage2Cplus/                        # ★ 主回归测试框架
 │   │   ├── testcases.txt
 │   │   ├── create_baseline.py
 │   │   └── run_test.py
-│   └── pdb2ss/                          # pdb2ss: 2 用例
-│       ├── testcases.txt
-│       ├── create_baseline.py
-│       └── run_test.py
+│   ├── pdb2ss/                          # pdb2ss: 2 用例
+│   │   ├── testcases.txt
+│   │   ├── create_baseline.py
+│   │   └── run_test.py
+│   ├── pdbatomname/                     # pdbAtomName: 5 用例 (9 次比对, 含 out.pdb)
+│   │   ├── testcases_baseline.txt       #   master 用例 (无 -outdir)
+│   │   ├── testcases.txt                #   beta 用例 (run_test.py 追加 -outdir .)
+│   │   ├── create_baseline.py
+│   │   └── run_test.py
+│   ├── addchainid/                      # addChainID: 8 用例 (14 次比对, 含 out.pdb)
+│   ├── xyz_sfetch/                      # xyz_sfetch: 7 用例 (9 次比对, 含 .index)
+│   ├── tmalign/                         # TMalign: 8 用例 (10 次比对, 含 sup.pdb/matrix.txt)
+│   ├── se/                              # se: 4 用例 (仅 stdout)
+│   ├── nwalign/                         # NWalign: 6 用例 (仅 stdout)
+│   ├── qtmclust/                        # qTMclust: 5 用例 (7 次比对, 含 cluster.txt)
+│   ├── pdb2xyz/                         # pdb2xyz: 5 用例 (仅 stdout)
+│   ├── pdb2fasta/                       # pdb2fasta: 5 用例 (仅 stdout)
+│   ├── biounitasym/                     # biounitasym: 4 用例 (仅 stdout)
+│   ├── cif2pdb/                         # cif2pdb: 5 用例 (9 次比对, 含 out*.pdb)
+│   ├── usalign/                         # USalign: 21 用例 (22 次比对, 含 sup.pdb)
+│   └── usflexalign/                     # USFlexalign: 13 用例 (26 次比对, 含 matrix/spt/cxc/sup.pdb)
 │
 ├── docs/superpowers/specs/              # ★ 项目设计文档 (4 份)
 │   ├── 2026-05-12-usalign-cpp-refactor-design.md         # 重构总体方案
@@ -200,11 +217,46 @@ python build_Small_DB.py
 
 ### 4.6 独立程序测试脚本
 
-每个独立程序 (`standalone/<程序名>/`) 下有两个核心脚本：
+`standalone/` 下共 17 个套件，覆盖全部 17 个可执行程序。每个套件含两个核心脚本：
 
 **`create_baseline.py`**：从 `master` 分支提取独立程序的 `.cpp` 源码 → 编译 → 执行用例 → 保存基线输出到 `baseline/`
 
-**`run_test.py`**：切换到 `USalign-beta` → 编译独立程序 → 执行用例 → 逐字节比对基线。比对前通过 `strip_cpu_time()` 过滤 `#Total CPU time` 行（CPU 时间自然波动，不作为回归依据）。
+**`run_test.py`**：切换到 `USalign-beta` → 编译独立程序 → 执行用例 → 逐字节比对基线。
+
+**双用例文件**：11 个较新的套件（`pdbatomname`、`addchainid`、`xyz_sfetch`、`tmalign`、`se`、`nwalign`、`qtmclust`、`pdb2xyz`、`pdb2fasta`、`biounitasym`、`cif2pdb`、`usalign`、`usflexalign`）使用两份用例：
+
+- `testcases_baseline.txt`：给 `create_baseline.py` 用。master 分支没有 `-outdir` 选项，参数按原样传入，因此只能用 master 也接受的写法（例如 master 的 PyMOL 选项是 `-o`，beta 才是 `-pymol`）。
+- `testcases.txt`：给 `run_test.py` 用，会追加 `-outdir .`（已自带 `-outdir` 的用例除外），使输出文件落在用例工作目录内，便于收集比对。
+
+早期 4 个套件（`tmscore`、`hwrmsd`、`mmalign`、`pdb2ss`）只有一份 `testcases.txt`。
+
+**产物比对**：除 stdout/stderr 外，还逐字节比对用例生成的文件：
+
+| 套件 | 比对产物 |
+|------|----------|
+| `pdbatomname` / `addchainid` | `out.pdb` |
+| `xyz_sfetch` | `.index` 索引文件 |
+| `tmalign` | `sup.pdb`、`matrix.txt` |
+| `qtmclust` | `cluster.txt` |
+| `cif2pdb` | `out*.pdb`（`-split 1` 会生成 `out.pdb<chain>.pdb`） |
+| `usalign` | `sup.pdb` |
+| `usflexalign` | `matrix.txt`、`*.spt`、`*.cxc`、`sup.pdb` |
+
+`se`、`nwalign`、`pdb2xyz`、`pdb2fasta`、`biounitasym` 只写 stdout，无比对产物。
+
+**`normalize()` 归一化**：比对前统一处理以下差异，避免把非行为差异误判为回归：
+
+- 可执行文件路径 → `EXE`（master 与 beta 的可执行文件名不同）；
+- 用例工作目录前缀 → 去掉（绝对/相对路径差异）；
+- `#Total CPU time` 行 → 删除（CPU 时间自然波动）；
+- 10 位以上小数 → 四舍五入到 6 位（重构改变了浮点归约顺序，末位差 1 ULP，与 `-O3` 无关）；
+- `-0.000000` → `0.000000`，并把纯数字行（旋转矩阵）的列间距压成单空格（去掉零的负号会使字段变短）；
+- `# Chain pairing summary` 及其 `Protein:`/`RNA:`/`Chainmap:`/`Unpaired:` 续行 → 删除（beta 新增的配对汇总输出）。
+
+**未纳入 `usalign` 套件的模式**：`-mm 4`（MSTA）与 `-chainmap`。beta 为 `-mm 4` 增加了 UPGMA 树、`ccTM-score` 行，且成对比较顺序不同；`-chainmap` 会打印完整链 ID。这两类行为由 `scripts/chainmap_local/` 与 `cLanguage2Cplus/testcases_functional.txt` 覆盖。
+
+**`xyz_sfetch` 的顺序依赖**：`no_index` 必须在 `index` 之前，"建索引" 必须在各 "取子集" 之前；脚本会在每个用例前后清理索引文件，只对比本用例真正产生（新增或内容改变）的产物。
+
 
 ## 5. 测试用例说明
 
@@ -315,7 +367,7 @@ USalign 主程序支持 OpenMP 多线程加速，通过以下方式启用：
 
 支持 `-threads` 的批量模式：`-dir`、`-dir1`、`-dir2`、`-dirpair`
 
-> **注意**：独立程序（TMscore、HwRMSD、MMalign、pdb2ss）**不支持**多线程，编译和运行时均无需 `-fopenmp` 和 `-threads`。
+> **注意**：只有 `USalign` 支持 `-threads N`。`standalone/` 下的 16 个独立程序没有该选项（引擎内部的 `parallel_threads` 被固定为 1），编译时也无需 `-fopenmp`。
 
 ## 8. 关联文档
 
@@ -332,5 +384,5 @@ USalign 主程序支持 OpenMP 多线程加速，通过以下方式启用：
 
 1. Windows 原生编译不支持 `.gz`/`.bz2` 压缩文件（`pstream.h` 依赖 POSIX pipe）
 2. 性能测试可能因系统负载产生自然波动，`20%-50%` 的 WARNING 需人工判定
-3. 独立程序（TMscore/HwRMSD/MMalign/pdb2ss）的测试不在 `run_regression.py` 覆盖范围内，需单独运行 `standalone/<程序>/run_test.py`
+3. 独立程序（TMscore/HwRMSD/MMalign/pdb2ss/pdbAtomName/addChainID/xyz_sfetch/TMalign/se/NWalign/qTMclust/pdb2xyz/pdb2fasta/biounitasym/cif2pdb/USalign/USFlexalign）的测试不在 `run_regression.py` 覆盖范围内，需单独运行 `standalone/<程序>/run_test.py`
 4. 远程仓库断开时，`USalign-beta` 分支可能无法 push（当前已解决，51 commits 已推送到 origin）

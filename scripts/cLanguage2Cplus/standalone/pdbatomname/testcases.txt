@@ -1,0 +1,17 @@
+# pdbAtomName standalone program test cases (USalign-beta branch)
+# run_test.py appends "-outdir ." to every case, so the output file stays in
+# the case working directory and is collected as a comparison artifact.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers: atom-name justification for standard amino acids and nucleotides,
+# old-style "*" -> "'" RNA atom names, MSE selenomethionine, HETATM residues,
+# incomplete lines, stdout mode (no output file), .gz input, real structures.
+# All file-writing cases use the same "out.pdb" so the runner can collect and
+# compare the artifact uniformly.
+
+pdbatomname_messy          pdbatomname  messy.pdb out.pdb
+pdbatomname_messy_stdout   pdbatomname  messy.pdb
+pdbatomname_gz             pdbatomname  messy.pdb.gz out.pdb
+pdbatomname_protein        pdbatomname  ../101m.pdb out.pdb
+pdbatomname_rna            pdbatomname  ../1evv.pdb out.pdb

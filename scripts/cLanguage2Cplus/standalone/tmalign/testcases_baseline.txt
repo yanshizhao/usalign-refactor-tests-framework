@@ -1,0 +1,22 @@
+# TMalign standalone program test cases (baseline, master branch)
+# master has no -outdir option, so the output path is relative to the case
+# working directory. run_test.py appends "-outdir ." to the same arguments.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers: plain TM-align (default), -a average-length normalisation, -u/-d
+# user-defined length and d0, -i (start from alignment) and -I (stick to
+# alignment), -m rotation matrix output, superposition output (-o on master,
+# renamed to -pymol on the beta branch), and a real protein pair.
+# Generated artifacts compared: sup.pdb and matrix.txt (the .pml scripts are not
+# compared: the beta branch additionally writes sup_structure2.pdb and reloads it
+# from the .pml file).
+
+tmalign_basic      help    model.pdb native.pdb -outfmt -1
+tmalign_a          help    model.pdb native.pdb -a T -outfmt -1
+tmalign_ud         help    model.pdb native.pdb -u 100 -d 5.0 -outfmt -1
+tmalign_i          help    model.pdb native.pdb -i align.txt -outfmt -1
+tmalign_I          help    model.pdb native.pdb -I align.txt -outfmt -1
+tmalign_matrix     help    model.pdb native.pdb -m matrix.txt -outfmt -1
+tmalign_real       help    ../101m.pdb ../1mba.pdb -outfmt -1
+tmalign_superpose  help    model.pdb native.pdb -o sup -outfmt -1

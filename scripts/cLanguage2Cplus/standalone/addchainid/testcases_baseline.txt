@@ -1,0 +1,21 @@
+# addChainID standalone program test cases (baseline, master branch)
+# master has no -outdir option, so the output path is relative to the case
+# working directory. run_test.py appends "-outdir ." to the same arguments.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers: chain ID injection into columns 21-22 (overwriting an existing ID),
+# chain ID padding rules (1 char -> " X", >2 chars -> last 2 chars, omitted ->
+# blank), HETATM and alternate-location records, incomplete lines, stdout mode,
+# .gz input, and the too-many-arguments error path.
+# All file-writing cases use the same "out.pdb" so the runner can collect and
+# compare the artifact uniformly.
+
+addchainid_one_char        addchainid  mixed.pdb out.pdb X
+addchainid_two_char        addchainid  mixed.pdb out.pdb AB
+addchainid_truncate        addchainid  mixed.pdb out.pdb ABCD
+addchainid_default_blank   addchainid  mixed.pdb out.pdb
+addchainid_stdout          addchainid  mixed.pdb
+addchainid_gz              addchainid  mixed.pdb.gz out.pdb Q
+addchainid_real            addchainid  ../101m.pdb out.pdb S
+addchainid_extra_arg       addchainid  mixed.pdb out.pdb X Y

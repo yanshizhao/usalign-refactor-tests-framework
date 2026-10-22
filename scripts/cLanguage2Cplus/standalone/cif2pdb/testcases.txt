@@ -1,0 +1,16 @@
+# cif2pdb standalone program test cases (USalign-beta branch)
+# run_test.py appends "-outdir ." to every case, so generated files stay in the
+# case working directory and are collected as comparison artifacts.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers: straight mmCIF to PDB conversion, -chain selection, -mol protein
+# filtering, -het 2 (all HETATM except water), and -split 1 (one PDB per chain).
+# Generated artifacts compared: out*.pdb (the -split 1 case writes
+# out.pdb<chain>.pdb files).
+
+cif2pdb_basic  .       ../1mba.cif out.pdb
+cif2pdb_chain  .       ../1AN4.cif out.pdb -chain A
+cif2pdb_mol    .       ../1mba.cif out.pdb -mol 1
+cif2pdb_het2   .       ../1mba.cif out.pdb -het 2
+cif2pdb_split  .       ../1AN4.cif out.pdb -split 1

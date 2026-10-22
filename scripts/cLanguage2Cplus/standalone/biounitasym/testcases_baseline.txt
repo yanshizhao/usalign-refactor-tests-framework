@@ -1,0 +1,14 @@
+# biounitasym standalone program test cases (baseline, master branch)
+# master has no -outdir option, so the output path is relative to the case
+# working directory. run_test.py appends "-outdir ." to the same arguments.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers: biounit/asymmetric-unit detection on a multi-model structure, on a
+# single-chain structure, on an RNA structure, and in -dir batch mode.
+# Output goes to stdout, so no generated artifacts are compared.
+
+biounitasym_multi   .       4jhm.pdb1
+biounitasym_single  .       101m.pdb
+biounitasym_rna     .       1evv.pdb
+biounitasym_dir     .       -dir MSTATest/ MSTATest/list.txt -suffix .pdb

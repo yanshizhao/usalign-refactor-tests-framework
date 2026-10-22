@@ -1,0 +1,15 @@
+# pdb2xyz standalone program test cases (USalign-beta branch)
+# run_test.py appends "-outdir ." to every case, so generated files stay in the
+# case working directory and are collected as comparison artifacts.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers: single-chain xyz conversion, multi-chain conversion with -split 2,
+# RNA input (C3' atom), -het 1 HETATM inclusion, and -dir batch conversion over a
+# list file. Output goes to stdout, so no generated artifacts are compared.
+
+pdb2xyz_basic  .       101m.pdb
+pdb2xyz_split  .       4iaj.pdb1 -split 2 -ter 1
+pdb2xyz_rna    .       1evv.pdb
+pdb2xyz_het    .       101m.pdb -het 1
+pdb2xyz_dir    .       -dir MSTATest/ MSTATest/list.txt -suffix .pdb

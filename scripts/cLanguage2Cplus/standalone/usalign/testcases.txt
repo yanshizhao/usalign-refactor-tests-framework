@@ -1,0 +1,49 @@
+# USalign standalone program test cases (USalign-beta branch)
+# run_test.py appends "-outdir ." to every case, so generated files stay
+# in the case working directory and are collected as comparison artifacts.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers every alignment mode of the US-align driver: plain TM-align, multi-chain
+# (-ter 1), oligomer (-mm 1), MM-align dock (-mm 2), circular permutation (-mm 3),
+# sequence-order independent (-mm 5), semi-independent (-mm 6), flexible (-mm 7),
+# TM-score guided by residue index / sequence alignment / chain mapping
+# (-TMscore 1/5/6), byresi 3 on multi-character mmCIF chain IDs, mixed
+# protein/RNA oligomers, all-against-all (-dir), database search (-dir2),
+# MMdock over a list (-dir1), -se / -mm 3 / -mirror combined with -dir2, an mmCIF
+# input next to a PDB input, and superposed-structure output.
+# 
+# Accepted differences, normalised before comparison (see normalize()):
+#   * "#Total CPU time" lines              - wall clock fluctuates;
+#   * rotation-matrix digits past 6 dp     - the refactor reassociates floating
+#                                            point operations, shifting the last
+#                                            digits (independent of -O3);
+#   * "# Chain pairing summary" block      - new beta-only summary of aligned /
+#                                            unpaired chains, a beta feature;
+#   * "# Chain pairing summary" sub-lines  - Protein/RNA/Chainmap/Unpaired rows.
+# The -mm 4 (MSTA) and -chainmap cases are NOT included here: beta adds a UPGMA
+# tree, a ccTM-score line and a different pairwise ordering for -mm 4, and prints
+# full chain IDs for -chainmap. Those behaviours are covered by the
+# chainmap_local suite and by cLanguage2Cplus/testcases_functional.txt.
+
+usalign_protein            .                101m.pdb 1mba.pdb -outfmt -1 -m -
+usalign_multichain_ter     .                4iaj.pdb1 4jhm.pdb1 -ter 1 -outfmt -1 -m -
+usalign_oligomer           .                4iaj.pdb1 4jhm.pdb1 -mm 1 -outfmt -1 -m -
+usalign_mm2                mmdock           101m.pdb ../4jhm.pdb1 -mm 2 -outfmt -1 -m -
+usalign_circular_perm      .                1ajk.pdb 2ayh.pdb -mm 3 -outfmt -1 -m -
+usalign_non_seq            .                1eh1.pdb 1evv.pdb -mm 5 -atom "PC4'" -outfmt -1 -m -
+usalign_semi_non_seq       .                1ajk.pdb 2ayh.pdb -mm 6 -outfmt -1 -m -
+usalign_mm7                MSTATest         US735192405.pdb US73519240510.pdb -mm 7 -outfmt -1
+usalign_tmscore1           help             model.pdb native.pdb -TMscore 1 -outfmt -1 -m -
+usalign_tmscore5           help             model.pdb native.pdb -TMscore 5 -outfmt -1 -m -
+usalign_tmscore6           help             modelComplex.pdb nativeComplex.pdb -TMscore 6 -outfmt -1 -m -
+usalign_byresi3_multichar  mmcif_multichar  s1.cif s2.cif -TMscore 3 -outfmt -1 -m -
+usalign_hetero_asym        mm1_hetero       1A66.pdb 1AN4.pdb -mm 1 -ter 0 -outfmt -1 -m -
+usalign_cif_dataprefix     .                101m.pdb 1AN4.cif -outfmt -1 -m -
+usalign_all_vs_all         MSTATest         -dir . list.txt -suffix .pdb -outfmt -1 -m -
+usalign_database_search    .                1mba.pdb -dir2 smallDB smallDB/list.txt -suffix .pdb -fast -outfmt -1 -m -
+usalign_mmdock             mmdock           -dir1 . list.txt -suffix .pdb ../4jhm.pdb1 -ter 1 -mm 2 -outfmt -1 -m -
+usalign_se_dir2            .                1mba.pdb -dir2 smallDB smallDB/list.txt -suffix .pdb -fast -se -outfmt -1 -m -
+usalign_cp_dir2            .                1mba.pdb -dir2 smallDB smallDB/list.txt -suffix .pdb -fast -mm 3 -outfmt -1 -m -
+usalign_mirror_dir2        .                1mba.pdb -dir2 smallDB smallDB/list.txt -suffix .pdb -fast -mirror 1 -het 1 -outfmt -1 -m -
+usalign_superpose          .                101m.pdb 1mba.pdb -pymol sup -outfmt -1

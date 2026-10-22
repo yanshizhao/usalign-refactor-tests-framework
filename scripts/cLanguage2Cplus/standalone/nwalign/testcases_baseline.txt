@@ -1,0 +1,16 @@
+# NWalign standalone program test cases (baseline, master branch)
+# master has no -outdir option, so the output path is relative to the case
+# working directory. run_test.py appends "-outdir ." to the same arguments.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers: all four -glocal modes (0 global, 1 glocal-query, 2 glocal-both,
+# 3 local Smith-Waterman), FASTA input via -infmt1/-infmt2 4, and a real protein
+# pair. NWalign writes only to stdout, so no generated artifacts are compared.
+
+nwalign_basic    nwalign ../help/model.pdb ../help/native.pdb
+nwalign_glocal1  nwalign ../help/model.pdb ../help/native.pdb -glocal 1
+nwalign_glocal2  nwalign ../help/model.pdb ../help/native.pdb -glocal 2
+nwalign_glocal3  nwalign ../help/model.pdb ../help/native.pdb -glocal 3
+nwalign_fasta    nwalign seq1.fasta seq3.fasta -infmt1 4 -infmt2 4 -glocal 3
+nwalign_real     nwalign ../101m.pdb ../1mba.pdb

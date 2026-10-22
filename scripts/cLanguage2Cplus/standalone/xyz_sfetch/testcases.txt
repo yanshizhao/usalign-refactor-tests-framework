@@ -1,0 +1,19 @@
+# xyz_sfetch standalone program test cases (USalign-beta branch)
+# run_test.py appends "-outdir ." to cases that do not already specify one.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Cases run in file order and share state: the index-building case must come
+# before the fetching cases, and the missing-index case must come first.
+#
+# Covers: index building (stdout listing + .index file), fetching one/multiple
+# entries, fetching a name that is not in the index, fetching without an index,
+# and writing/reading the index through a non-default -outdir.
+
+xyz_sfetch_no_index        xyz_sfetch  ca.xyz list_one.txt
+xyz_sfetch_index           xyz_sfetch  ca.xyz
+xyz_sfetch_fetch_one       xyz_sfetch  ca.xyz list_one.txt
+xyz_sfetch_fetch_multi     xyz_sfetch  ca.xyz list_multi.txt
+xyz_sfetch_fetch_missing   xyz_sfetch  ca.xyz list_missing.txt
+xyz_sfetch_index_outdir    xyz_sfetch  other.xyz -outdir outdir_sub
+xyz_sfetch_fetch_outdir    xyz_sfetch  other.xyz list_one.txt -outdir outdir_sub

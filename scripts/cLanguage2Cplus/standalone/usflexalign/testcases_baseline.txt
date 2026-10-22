@@ -1,0 +1,31 @@
+# USFlexalign standalone program test cases (baseline, master branch)
+# master has no -outdir option; run_test.py appends "-outdir ." to the
+# same arguments. Use cases that master itself accepts.
+# Format: <name> <working_dir> <arguments...>
+# <working_dir> is relative to the data/ directory
+#
+# Covers the standalone USFlexalign entry point: plain flexible alignment,
+# rotation-matrix output (-m), hinge limits (-hinge 2), AFP enhancement (-afp)
+# alone and combined with -hinge, -chain1 / -het 1 / -split 2 -ter 0 /
+# -split 0 -ter 0 selector combinations, and all three viewer outputs
+# (-rasmol / -chimerax / -pymol, with -o on master).
+# 
+# Accepted difference, normalised before comparison: "#Total CPU time" lines.
+# Generated artifacts compared: matrix.txt, and the .spt / .cxc / .sup.pdb files
+# written by the viewer options. .pml files are not compared: beta additionally
+# writes sup_structure2.pdb and reloads it from the .pml script.
+
+usflexalign_basic        flexalign/3icyA-3lyxA            3icyA.pdb 3lyxA.pdb -outfmt -1
+usflexalign_matrix       flexalign/3icyA-3lyxA            3icyA.pdb 3lyxA.pdb -m matrix.txt -outfmt -1
+usflexalign_hinge2       flexalign/4i0kA-2x1xR            4i0kA.pdb 2x1xR.pdb -hinge 2 -outfmt -1
+usflexalign_afp          flexalign/4i0kA-2x1xR            4i0kA.pdb 2x1xR.pdb -afp -outfmt -1
+usflexalign_afp_hinge2   flexalign/4i0kA-2x1xR            4i0kA.pdb 2x1xR.pdb -afp -hinge 2 -outfmt -1
+usflexalign_mid          flexalign/1w5fA-6umkA            1w5fA.pdb 6umkA.pdb -outfmt -1
+usflexalign_chain1       flexalign/multichain_sample      s1.pdb s2.pdb -chain1 C -outfmt -1
+usflexalign_het1         flexalign/ligand_sample          s1.pdb s2.pdb -het 1 -outfmt -1
+usflexalign_split2_ter0  flexalign/overlap_resnum_sample  s1.pdb s2.pdb -split 2 -ter 0 -outfmt -1
+usflexalign_split0_ter0  flexalign/overlap_resnum_sample  s1.pdb s2.pdb -split 0 -ter 0 -outfmt -1
+usflexalign_rasmol       flexalign/3icyA-3lyxA            3icyA.pdb 3lyxA.pdb -rasmol sup -outfmt -1
+usflexalign_chimerax     flexalign/3icyA-3lyxA            3icyA.pdb 3lyxA.pdb -chimerax sup -outfmt -1
+usflexalign_superpose    flexalign/3icyA-3lyxA            3icyA.pdb 3lyxA.pdb -pymol sup -outfmt -1
+usflexalign_superpose    flexalign/3icyA-3lyxA            3icyA.pdb 3lyxA.pdb -o sup -outfmt -1
