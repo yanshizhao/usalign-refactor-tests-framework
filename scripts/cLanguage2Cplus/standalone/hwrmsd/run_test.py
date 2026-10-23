@@ -9,8 +9,8 @@ from pathlib import Path
 
 
 def strip_cpu_time(text: str) -> str:
-    """Remove #Total CPU time lines — CPU time naturally fluctuates, so it is not used as a regression criterion"""
-    return re.sub(r'^#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
+    """Remove #Total (?:CPU|elapsed) time lines — CPU time naturally fluctuates, so it is not used as a regression criterion"""
+    return re.sub(r'^#Total (?:CPU|elapsed) time.*\n?', '', text, flags=re.MULTILINE)
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 USALIGN_DIR  = SCRIPT_DIR / ".." / ".." / ".." / ".." / ".." / "USalign"

@@ -20,7 +20,7 @@ ARTIFACTS    = ['matrix.txt', '*.spt', '*.cxc', 'sup.pdb']
 CLEANUP      = ['*.pml', '*_structure2.*']
 
 
-CPU_TIME   = re.compile(r'^#Total CPU time.*\n?', re.M)
+CPU_TIME   = re.compile(r'^#Total (?:CPU|elapsed) time.*\n?', re.M)
 # Rotation matrices printed with %10.10f: the refactor reassociates the floating
 # point reductions, so digits past 6 decimals move by one unit in the last place.
 LONG_DECIMAL = re.compile(r'(?<![\d.])-?\d+\.\d{6,}')

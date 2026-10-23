@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import subprocess, os, sys, re, platform
+import subprocess, os, sys, time, platform
 from pathlib import Path
 
 """
@@ -8,7 +8,7 @@ Features:
   1. Switch to the clean master branch, compile the original (unmodified) US-align executable
   2. Read all performance test cases from testcases_baseline_performance.txt
      (without -threads parameter, for single-thread baseline reference)
-  3. Run each case multiple times (default 5), extracting #Total CPU time from each run
+  3. Run each case multiple times (default 5), measuring monotonic wall time
   4. Calculate the average time (seconds) for each case and save to perf_baseline/baseline.csv
   5. Print command-line debugging info (CWD, CMD), and output warnings and program tail on extraction failure
   6. Automatically handle -dir/-dir2 path conversion to ensure list files can be found correctly
@@ -49,10 +49,6 @@ def compile():
     if subprocess.run(compile_cmd).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
-def extract_time(output: str) -> float:
-    m = re.search(r"#Total CPU time\s+is\s+([\d\.]+)\s+seconds", output)
-    return float(m.group(1)) if m else 0.0
-
 def run_benchmarks():
     if not PERF_DIR.exists(): PERF_DIR.mkdir(parents=True)
     with open(PERF_DIR / "baseline.csv", "w", newline='') as csv:
@@ -71,11 +67,14 @@ def run_benchmarks():
                 print(f"  CMD: {' '.join(cmd)}")
                 total = 0.0
                 for run_idx in range(RUNS):
+                    started = time.perf_counter()
                     proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
-                    t = extract_time(proc.stdout + proc.stderr)
-                    if t == 0.0:
-                        print(f"  Warning: run {run_idx+1} failed to extract time.")
-                    total += t
+                    elapsed = time.perf_counter() - started
+                    if proc.returncode != 0:
+                        print(f"  ERROR: run {run_idx+1} exited with {proc.returncode}.")
+                        print(proc.stderr[-2000:])
+                        sys.exit(1)
+                    total += elapsed
                 avg = round(total / RUNS, 3)
                 csv.write(f"{name},{avg}\n")
     print("Performance baseline saved.")

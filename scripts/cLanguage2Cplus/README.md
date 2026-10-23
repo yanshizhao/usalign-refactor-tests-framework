@@ -2,11 +2,11 @@
 
 ## 1. 概述
 
-本目录是 **USalign** 的回归与性能测试框架。USalign 是一款通用的蛋白质/核酸结构比对工具，采用纯头文件 C++ 代码库设计，主入口为 `../../../USalign/USalign.cpp`（约 3600 行）。
+本目录是 **USalign** 的回归与性能测试框架。USalign 是一款通用的蛋白质/核酸结构比对工具。`master` 基线仍从单文件 `../../../USalign/USalign.cpp` 编译；`USalign-beta` 已拆分为 `../../../USalign/src/` 下的多文件 C++ 工程，主入口为 `src/app/usalign/usalign.cpp`。
 
 > **目录布局要求**：`usalign-refactor-tests-framework/` 必须与 `USalign/` 源码目录放在同一级目录下，所有脚本中的相对路径（`../../../USalign/`）依赖此布局。
 
-本框架的核心目的是验证对 USalign 源码的 C→C++ 风格重构**不引入功能回归和性能退化**。重构涉及 22 类 C 风格 → C++ 风格映射，覆盖全部 27 个源文件（15 `.h` + 12 `.cpp`），共计 51 个 commits。
+本框架的核心目的是验证 `USalign-beta` 相对 `master` 基线的功能兼容性、并行确定性和性能。分支提交数量会持续变化，因此以当前 Git 历史和测试用例文件为准，不在本文固定记录提交数。
 
 ## 2. 目录层级结构
 
@@ -14,11 +14,15 @@
 
 ```
 <workspace>/                        # 工作区根目录
-├── USalign/                        # 源码仓库 (USalign-beta, 30 个源文件)
+├── USalign/                        # 源码仓库（master / USalign-beta）
 └── usalign-refactor-tests-framework/  # 测试框架仓库 (main)
     └── scripts/
         ├── cLanguage2Cplus/        # ★ 本目录 — 主回归测试框架
-        └── mm1/                    # MMalign 独立功能测试
+        ├── mm1/                    # MMalign 独立功能测试
+        ├── upgmatree/              # MSTA / UPGMA 测试
+        ├── chainmap_local/          # -chainmap 局部约束测试
+        ├── flexalign/               # FlexAlign 测试
+        └── usalign_full/            # 统一回归入口
 ```
 
 ### 2.2 本目录详细层级
@@ -31,17 +35,17 @@ cLanguage2Cplus/                        # ★ 主回归测试框架
 │
 ├── 测试脚本 (Python)
 │   ├── create_baseline.py              # 编译 master 原始版 → 生成功能基线 baseline/
-│   ├── run_regression.py               # 编译 USalign-beta 修改版 → 逐字节比对 14 个功能用例
+│   ├── run_regression.py               # 编译 USalign-beta 修改版 → 比对 40 个功能用例
 │   ├── create_perf_baseline.py         # 编译 master 原始版 → 生成性能基线 perf_baseline/
 │   ├── run_perf_test.py                # 编译 USalign-beta 修改版 → 性能测试 (5次取平均)
 │   ├── build_Small_DB.py               # 从 PDB 库随机抽取 100 个结构构建 smallDB
 │   └── find_pdb_length.py              # 辅助工具 — 统计 PDB 文件残基数
 │
 ├── 测试用例定义 (纯文本, 每行一个用例)
-│   ├── testcases_functional.txt        # 14 个功能回归用例 (格式: <name> <workdir> <args...>)
-│   └── testcases_performance.txt       # 4 个性能回归用例
+│   ├── testcases_functional.txt        # 40 个功能回归用例 (格式: <name> <workdir> <args...>)
+│   └── testcases_performance.txt       # 5 个性能回归用例
 │
-├── baseline/                           # 原始版基线 — 14 个 .out + sup.pdb (create_baseline.py 生成)
+├── baseline/                           # 原始版基线 — 40 个 .out + sup.pdb (create_baseline.py 生成)
 ├── current/                            # 修改版当前输出 (run_regression.py 运行时重建，每次清空)
 ├── diffs/                              # unified diff 文件 (run_regression.py 运行时重建)
 ├── perf_baseline/                      # 性能基线 — baseline.csv (create_perf_baseline.py 生成)
@@ -66,7 +70,7 @@ cLanguage2Cplus/                        # ★ 主回归测试框架
 │   │   ├── align.txt                   #   序列比对引导文件 (HwRMSD)
 │   │   ├── PDB1.sup.pdb / complex1.sup.pdb  # 叠合结构模板
 │   ├── MSTATest/                        # RNA 多结构比对测试集
-│   │   ├── US735192405.pdb ~ US73519240510.pdb  # 12 个 RNA 结构
+│   │   ├── US735192405.pdb ~ US73519240510.pdb  # 11 个 RNA 结构
 │   │   └── list.txt                    #   文件列表
 │   └── smallDB/                         # 数据库搜索子集 (100 个随机 PDB + list.txt)
 │
@@ -74,7 +78,7 @@ cLanguage2Cplus/                        # ★ 主回归测试框架
 │   ├── tmscore/                         # TMscore: 6 用例 (help目录下的全部示例)
 │   │   ├── testcases.txt               #   用例定义
 │   │   ├── create_baseline.py          #   从 master 提取 TMscore.cpp → 编译 → 生成基线
-│   │   └── run_test.py                 #   编译 USalign-beta 源码 → 逐字节比对
+│   │   └── run_test.py                 #   编译 USalign-beta 源码 → 归一化后比对
 │   ├── hwrmsd/                          # HwRMSD: 5 用例
 │   │   ├── testcases.txt
 │   │   ├── create_baseline.py
@@ -105,29 +109,31 @@ cLanguage2Cplus/                        # ★ 主回归测试框架
 │   ├── usalign/                         # USalign: 21 用例 (22 次比对, 含 sup.pdb)
 │   └── usflexalign/                     # USFlexalign: 13 用例 (26 次比对, 含 matrix/spt/cxc/sup.pdb)
 │
-├── docs/superpowers/specs/              # ★ 项目设计文档 (4 份)
+├── docs/superpowers/specs/              # ★ 项目设计与分析文档
 │   ├── 2026-05-12-usalign-cpp-refactor-design.md         # 重构总体方案
 │   ├── 2026-05-14-refactor-progress-log.md               # 重构详细进度日志
 │   ├── 2026-05-21-refactor-final-summary.md              # 最终总结
 │   └── 2026-05-21-usalign-l2h-pointer-to-container-design.md  # 二级指针→容器方案
 │
-├── USalign_orig.exe                    # 原始版可执行文件 (预编译, master 分支)
+├── USalign_orig[.exe]                  # 原始版可执行文件（.exe 仅 Windows）
 └── __pycache__/                        # Python 缓存
 ```
 
 ## 3. 快速开始
 
 **前置条件**：
-- GCC (`g++`) 可编译 USalign：需要 `-O3 -ffast-math`
+- C++11 编译器可编译 USalign；当前 beta 回归脚本还固定使用 OpenMP（`-fopenmp`）
 - Python 3.6+
 - 本目录下的 `.py` 脚本**必须在本目录内运行**
+
+macOS 自带的 `/usr/bin/g++` 实际是 Apple Clang。USalign-beta 源码现可用 Apple Clang 执行 `make OPENMP=0` 串行构建，但当前回归脚本固定传入 GCC 风格的 `-fopenmp`。运行这些并行回归脚本时仍建议安装 Homebrew GCC，并确保脚本调用到带版本号的 GNU 编译器；当前验证环境使用 `/opt/homebrew/bin/g++-16`。
 
 ### 3.1 建立基线（修改源码前，仅执行一次）
 
 ```bash
 cd cLanguage2Cplus
 
-# 1. 生成功能基线 — 从 master 编译 USalign，执行 15 个用例（单线程），保存输出到 baseline/
+# 1. 生成功能基线 — 从 master 编译 USalign，执行 40 个用例（单线程），保存输出到 baseline/
 python create_baseline.py
 
 # 2. 生成性能基线 — 从 master 编译 USalign，5 个用例各跑 5 次（单线程），保存到 perf_baseline/baseline.csv
@@ -141,7 +147,7 @@ python create_perf_baseline.py
 ```bash
 cd cLanguage2Cplus
 
-# 1. 运行功能回归 — 从 USalign-beta 编译，逐字节比对 14 个用例
+# 1. 运行功能回归 — 从 USalign-beta 多文件源码编译并比对 40 个用例
 python run_regression.py
 
 # 2. 运行性能回归 — 从 USalign-beta 编译，5 次取平均，对比基线
@@ -163,23 +169,23 @@ python build_Small_DB.py
 |------|------|
 | **用途** | 生成回归测试的黄金标准输出（单线程） |
 | **编译源** | `master` 分支的 `../../../USalign/USalign.cpp` |
-| **产物** | `USalign_orig.exe` + `baseline/` 目录 (15 个 `.out` + `sup.pdb`) |
+| **产物** | `USalign_orig[.exe]` + `baseline/` 目录（40 个 `.out` + `sup.pdb`，`.exe` 仅 Windows） |
 | **输入** | `testcases_baseline_functional.txt`（不含 `-threads` 参数） |
 | **执行时机** | 修改源码前**仅执行一次** |
-| **工作原理** | 自动 checkout → `master`，编译原始版，逐条执行 15 个用例，捕获 stdout+stderr，经 `clean_slash()` 清洗后保存到 `baseline/` |
+| **工作原理** | 自动 checkout → `master`，编译原始单文件版本，逐条执行 40 个用例，捕获 stdout+stderr，经 `clean_slash()` 清洗后保存到 `baseline/` |
 | **与回归的区别** | 基线使用 `testcases_baseline_functional.txt`（单线程），回归使用 `testcases_functional.txt`（多线程 `-threads 2/4`） |
 
 ### 4.2 `run_regression.py` — 功能回归测试
 
 | 项目 | 说明 |
 |------|------|
-| **用途** | 验证修改版输出与基线逐字节一致 |
-| **编译源** | `USalign-beta` 分支的 `../../../USalign/USalign.cpp` |
-| **产物** | `USalign_mod_<pid>.exe`+ `current/` (14 个 `_mod.out`) + `diffs/` (差异文件) |
+| **用途** | 验证修改版输出与基线在既定归一化规则下一致 |
+| **编译源** | `USalign-beta` 分支的 `../../../USalign/src/` 多文件源码 |
+| **产物** | `USalign_mod_<pid>[.exe]` + `current/`（40 个 `_mod.out`）+ `diffs/`（差异文件；`.exe` 仅 Windows） |
 | **输入** | `testcases_functional.txt` + `baseline/` |
 | **执行时机** | 每次修改源码后 |
-| **输出判定** | `PASS` = 逐字节一致 / `CHECK` = 有差异 (生成 `.diff`) / `ERROR` = 基线文件缺失 |
-| **特殊处理** | `superposed_structure` 额外比对 `sup.pdb` 结构文件；自动清理 `.pml` 文件；`clean_slash()` 清洗 `Name of Structure_X:` 行的 `/` 前缀 |
+| **输出判定** | `PASS` = 归一化后完全一致 / `WARNING` = 仅非业务差异 / `FAIL` = 业务输出或串并行检查不一致 / `ERROR` = 文件缺失 |
+| **特殊处理** | 所有带 `-threads` 的用例额外做并行重复运行和串行/并行一致性检查；`superposed_structure` 额外逐字节比对 `sup.pdb`；自动清理 `.pml`；文本输出清理路径斜杠和 CPU 时间 |
 | **注意** | 每次运行前自动清空 `current/` 和 `diffs/` 目录 |
 
 ### 4.3 `create_perf_baseline.py` — 性能基线生成
@@ -188,9 +194,9 @@ python build_Small_DB.py
 |------|------|
 | **用途** | 生成性能参考基线（单线程） |
 | **编译源** | `master` 分支 |
-| **产物** | `USalign_orig.exe` + `perf_baseline/baseline.csv` |
+| **产物** | `USalign_orig[.exe]` + `perf_baseline/baseline.csv`（`.exe` 仅 Windows） |
 | **输入** | `testcases_baseline_performance.txt`（不含 `-threads` 参数） |
-| **参数** | 每个用例运行 **5 次**，取 `#Total CPU time` 平均值 |
+| **参数** | 每个用例运行 **5 次**，使用 Python `time.perf_counter()` 测量单调墙钟时间并取平均值 |
 | **执行时机** | 修改源码前仅执行一次 |
 | **与回归的区别** | 基线使用 `testcases_baseline_performance.txt`（单线程），回归使用 `testcases_performance.txt`（多线程 `-threads 2/4`） |
 
@@ -200,7 +206,7 @@ python build_Small_DB.py
 |------|------|
 | **用途** | 检测修改是否引入性能退化 |
 | **编译源** | `USalign-beta` 分支 |
-| **产物** | `USalign_mod_<pid>.exe` + `perf_current/performance.csv` |
+| **产物** | `USalign_mod_<pid>[.exe]` + `perf_current/performance.csv`（`.exe` 仅 Windows） |
 | **输入** | `testcases_performance.txt` + `perf_baseline/baseline.csv` |
 | **参数** | 每个用例运行 **5 次**，取平均值 |
 | **判定阈值** | `<20%` → PASS / `20%-50%` → WARNING / `>50%` → FAIL |
@@ -221,9 +227,9 @@ python build_Small_DB.py
 
 **`create_baseline.py`**：从 `master` 分支提取独立程序的 `.cpp` 源码 → 编译 → 执行用例 → 保存基线输出到 `baseline/`
 
-**`run_test.py`**：切换到 `USalign-beta` → 编译独立程序 → 执行用例 → 逐字节比对基线。
+**`run_test.py`**：切换到 `USalign-beta` → 编译独立程序 → 执行用例 → 归一化文本后比对基线。
 
-**双用例文件**：11 个较新的套件（`pdbatomname`、`addchainid`、`xyz_sfetch`、`tmalign`、`se`、`nwalign`、`qtmclust`、`pdb2xyz`、`pdb2fasta`、`biounitasym`、`cif2pdb`、`usalign`、`usflexalign`）使用两份用例：
+**双用例文件**：13 个较新的套件（`pdbatomname`、`addchainid`、`xyz_sfetch`、`tmalign`、`se`、`nwalign`、`qtmclust`、`pdb2xyz`、`pdb2fasta`、`biounitasym`、`cif2pdb`、`usalign`、`usflexalign`）使用两份用例：
 
 - `testcases_baseline.txt`：给 `create_baseline.py` 用。master 分支没有 `-outdir` 选项，参数按原样传入，因此只能用 master 也接受的写法（例如 master 的 PyMOL 选项是 `-o`，beta 才是 `-pymol`）。
 - `testcases.txt`：给 `run_test.py` 用，会追加 `-outdir .`（已自带 `-outdir` 的用例除外），使输出文件落在用例工作目录内，便于收集比对。
@@ -248,7 +254,7 @@ python build_Small_DB.py
 
 - 可执行文件路径 → `EXE`（master 与 beta 的可执行文件名不同）；
 - 用例工作目录前缀 → 去掉（绝对/相对路径差异）；
-- `#Total CPU time` 行 → 删除（CPU 时间自然波动）；
+- `#Total CPU time` 或 `#Total elapsed time` 行 → 删除（计时结果自然波动）；
 - 10 位以上小数 → 四舍五入到 6 位（重构改变了浮点归约顺序，末位差 1 ULP，与 `-O3` 无关）；
 - `-0.000000` → `0.000000`，并把纯数字行（旋转矩阵）的列间距压成单空格（去掉零的负号会使字段变短）；
 - `# Chain pairing summary` 及其 `Protein:`/`RNA:`/`Chainmap:`/`Unpaired:` 续行 → 删除（beta 新增的配对汇总输出）。
@@ -270,35 +276,30 @@ python build_Small_DB.py
 - 以 `#` 开头的行是注释
 - 脚本执行 USalign 前会将 `cwd` 设为 `data/<工作目录>`
 
-### 5.2 功能测试用例 (14 个)
+### 5.2 功能测试用例（40 个）
 
-| # | 用例名 | 工作目录 | 参数 | 测试场景 |
-|---|--------|---------|------|---------|
-| 1 | `standard_protein` | `.` | `101m.pdb 1mba.pdb -outfmt -1 -m -` | 标准蛋白单体比对 + 旋转矩阵 |
-| 2 | `multichain_split` | `.` | `4iaj.pdb1 4jhm.pdb1 -ter 1 -outfmt -1 -m -` | 多链拆分 (TER 记录分割) |
-| 3 | `oligomer` | `.` | `4iaj.pdb1 4jhm.pdb1 -mm 1 -outfmt -1 -m -` | 寡聚体比对 (`-mm 1`) |
-| 4 | `circular_permutation` | `.` | `1ajk.pdb 2ayh.pdb -mm 3 -outfmt -1 -m -` | 循环置换比对 (`-mm 3`) |
-| 5 | `fully_non_seq` | `.` | `1eh1.pdb 1evv.pdb -mm 5 -atom PC4' -outfmt -1 -m -` | 完全非顺序 RNA 比对 (`-mm 5`) |
-| 6 | `semi_non_seq` | `.` | `1ajk.pdb 2ayh.pdb -mm 6 -outfmt -1 -m -` | 半非顺序比对 (`-mm 6`) |
-| 7 | `superposed_structure` | `.` | `101m.pdb 1mba.pdb -pymol sup` | 叠合结构输出 (生成 sup.pdb) |
-| 8 | `tmscore_resid` | `help` | `model.pdb native.pdb -TMscore 1 -outfmt -1 -m -` | TM-score 残基引导 |
-| 9 | `tmscore_seqalign` | `help` | `model.pdb native.pdb -TMscore 5 -outfmt -1 -m -` | TM-score 序列比对引导 |
-| 10 | `complex_chainid` | `help` | `modelComplex.pdb nativeComplex.pdb -TMscore 2 -outfmt -1 -m -` | 复合物链 ID 引导 |
-| 11 | `complex_chainmap` | `help` | `modelComplex.pdb nativeComplex.pdb -TMscore 6 -outfmt -1 -m -` | 复合物链映射引导 |
-| 12 | `msta_rna` | `MSTATest` | `-dir .\ list.txt -suffix .pdb -mm 4 -mol RNA -outfmt -1 -m -` | RNA 多结构比对 (MSTA) |
-| 13 | `all_vs_all` | `MSTATest` | `-dir .\ list.txt -suffix .pdb -outfmt -1 -m -` | 全对全比对 |
-| 14 | `database_search` | `.` | `1mba.pdb -dir2 smallDB smallDB\list.txt -suffix .pdb -fast -outfmt -1 -m -` | 数据库搜索 (快速模式) |
+完整命令以 `testcases_functional.txt` 为唯一事实来源。当前 40 个用例按覆盖范围分组如下：
 
-> **说明**：`-outfmt -1` 表示完整输出（不含版本信息），使输出具有确定性。`-m -` 将旋转矩阵输出到 stdout。
+| 分组 | 用例 | 主要覆盖 |
+|------|------|----------|
+| 基础与主模式（15） | `standard_protein`、`multichain_split`、`oligomer`、`circular_permutation`、`circular_permutation_restore`、`fully_non_seq`、`semi_non_seq`、`superposed_structure`、`tmscore_resid`、`tmscore_seqalign`、`complex_chainid`、`complex_chainmap`、`msta_rna`、`all_vs_all`、`database_search` | 单体、多链、循环置换、非顺序、TM-score、MSTA、数据库搜索及结构文件输出 |
+| MMdock / `-mm 2`（3） | `mmdock`、`mm2_trim_serial`、`mm2_trim_parallel` | 多链 docking、短链裁剪、批量并行一致性 |
+| `-mm 1` 与 chainmap（7） | `chainmap_full`、`dimer_mm1`、`mm1_with_o`、`mm1_with_se`、`mm1_with_se_lowscore`、`mm1_symwrite_guard`、`mm1_hetero_asym` | 完整链映射、二聚体、结构输出、低分保护、异质复合物 |
+| 目录批量与非顺序模式（7） | `mm0_se_dir2`、`mm0_cp_dir2`、`mm5_dir2`、`mm6_dir2`、`mm5_dir`、`mm0_mirror_dir2`、`mm7_dir` | `-dir`/`-dir2`、`-se`、CP、镜像、`-mm 5/6/7` |
+| 输出格式（2） | `mm1_se_outfmt1`、`mm1_se_outfmt2` | `-mm 1 -se` 的 FASTA/表格输出 |
+| mmCIF 与完整链 ID（6） | `mm0_cif_dataprefix`、`mm_cif_multichar_tmscore2`、`mm_cif_multichar_tmscore3`、`mm_cif_singlechar_tmscore2`、`mm_cif_singlechar_tmscore3`、`mm_cif_byresi3_multichar` | data_ 前缀、多字符/单字符链 ID、`-TMscore 2/3` |
 
-### 5.3 性能测试用例 (4 个)
+> **说明**：`-outfmt -1` 表示完整输出（不含版本横幅）；`-m -` 将旋转矩阵输出到 stdout。回归用例通过 `-threads 4` 覆盖并行路径，脚本还会自动执行重复并行和单线程交叉检查。
 
-| # | 用例名 | 参数 | 测试场景 |
-|---|--------|------|---------|
-| 1 | `perf_fast1` | `6bq1A.pdb 6b3rA.pdb -fast` | 快速蛋白比对 |
-| 2 | `perf_fast2` | `7o7lA.pdb 7o7mA.pdb -fast` | 快速蛋白比对 |
-| 3 | `perf_msta_rna` | `-dir .\ list.txt -suffix .pdb -mm 4 -mol RNA` | RNA 多结构比对 |
-| 4 | `perf_database_search` | `-dir . list.txt -suffix .pdb -fast` | 数据库搜索 |
+### 5.3 性能测试用例（5 个）
+
+| # | 用例名 | 工作目录 | 测试场景 |
+|---|--------|----------|----------|
+| 1 | `perf_fast1` | `.` | 快速蛋白比对 |
+| 2 | `perf_fast2` | `.` | 快速蛋白比对 |
+| 3 | `perf_msta_rna` | `MSTATest` | RNA 多结构比对 |
+| 4 | `perf_database_search` | `smallDB` | 批量数据库搜索 |
+| 5 | `perf_mmdock` | `mmdock` | `-mm 2` 批量 docking |
 
 ### 5.4 独立程序测试用例
 
@@ -324,22 +325,25 @@ python build_Small_DB.py
   baseline/               current/
   (黄金标准)               (修改版)
        │                       │
-       └─────── 逐字节比对 ─────┘
+       └────── 按既定规则比较 ─────┘
                     │
-            PASS / CHECK (diff)
+       PASS / WARNING / FAIL (diff)
 ```
 
-两个可执行文件都从 `../../../USalign/USalign.cpp` 编译，区别在于使用的 Git 分支不同：
-- **原始版** = `master` 分支编译（重构前的干净代码）
-- **修改版** = `USalign-beta` 分支编译（包含全部 C→C++ 重构的代码）
+两个可执行文件来自同一仓库的不同分支，但源码布局不同：
+- **原始版** = `master` 分支的单文件 `USalign.cpp`
+- **修改版** = `USalign-beta` 分支的 `src/` 多文件源码
 
 ### 6.2 输出比对逻辑
 
-`run_regression.py` 进行**逐字节比对**：
+`run_regression.py` 对文本输出进行归一化后的精确比对，并对结构文件逐字节比对：
 
-1. 捕获 USalign 的 `stdout + stderr`，调用 `clean_slash()` 移除 `Name of Structure_X:` 行多余的 `/` 前缀（USalign 输出的已知瑕疵）
-2. 使用 `bdata == cdata` 逐字节比较基线输出和当前输出
-3. 不一致时在 `diffs/<用例名>.diff` 中生成 unified diff
+1. 捕获 USalign 的 `stdout + stderr`，调用 `clean_slash()` 统一已知路径前缀，并移除自然波动的 `#Total CPU time` 或 `#Total elapsed time` 行。
+2. 精确比较归一化后的基线文本和当前文本；不一致时生成 `diffs/<用例名>.diff`。
+3. 对每个含 `-threads` 的功能用例重复运行一次并行命令，再运行 `-threads 1`，检查并行确定性和串并行一致性。
+4. `superposed_structure` 生成的 `sup.pdb` 使用逐字节比较。
+
+主回归脚本有意保持严格：除路径斜杠和 CPU 时间外，浮点末位、`-0.0`、新增摘要等变化仍会形成 diff 并报告 `FAIL`，需要结合差异内容判断是否属于预期行为。`standalone/` 套件采用更宽松的 `normalize()` 规则。
 
 ### 6.3 关键约定
 
@@ -353,29 +357,29 @@ python build_Small_DB.py
 
 | 项目 | 说明 |
 |------|------|
-| 编译器 | `g++`，需要 `-O3 -ffast-math -lm`（Windows 可能需要 `-static`） |
+| 编译器 | GNU `g++`，需要 `-O3 -ffast-math -fopenmp`；Windows 追加静态运行库选项 |
 | Python | 3.6+，仅使用标准库 (`subprocess`, `difflib`, `csv`, `pathlib`, `shutil`, `re`) |
-| USalign 源码 | `../../../USalign/USalign.cpp`（主入口）及全部 `.h` 头文件 |
-| Git 分支 | `master`（原始基线）+ `USalign-beta`（修改版，51 commits 领先 master） |
+| USalign 源码 | master：`../../../USalign/USalign.cpp`；beta：`../../../USalign/src/` 多文件源码 |
+| Git 分支 | `master`（原始基线）+ `USalign-beta`（修改版） |
 
 ### 7.1 多线程支持说明
 
 USalign 主程序支持 OpenMP 多线程加速，通过以下方式启用：
 
-- **编译时**：添加 `-fopenmp` 编译标志（`make` 命令自动包含）
+- **编译时**：使用 `OPENMP=auto` 时，Makefile 仅在目标编译器通过探测后添加 `-fopenmp`；也可用 `OPENMP=0` 主动关闭
 - **运行时**：通过 `-threads N` 参数指定线程数，如 `-threads 4`
 
 支持 `-threads` 的批量模式：`-dir`、`-dir1`、`-dir2`、`-dirpair`
 
-> **注意**：只有 `USalign` 支持 `-threads N`。`standalone/` 下的 16 个独立程序没有该选项（引擎内部的 `parallel_threads` 被固定为 1），编译时也无需 `-fopenmp`。
+> **注意**：只有 `USalign` 支持 `-threads N`。`standalone/` 下的 17 个套件编译各自的独立程序，不使用该命令行选项，编译时也无需 `-fopenmp`。
 
 ## 8. 关联文档
 
 | 文档 | 路径 | 内容 |
 |------|------|------|
 | Claude Code 指导 | `CLAUDE.md` | 快速参考：常用命令、架构说明、约定 |
-| 重构总体方案 | `docs/superpowers/specs/2026-05-12-usalign-cpp-refactor-design.md` | 22 类 C→C++ 映射、4 层文件拆分、独立里程碑、风险控制 |
-| 重构进度日志 | `docs/superpowers/specs/2026-05-14-refactor-progress-log.md` | 逐日逐步记录、24 个问题发现与修复、51 commit 链路 |
+| 重构总体方案 | `docs/superpowers/specs/2026-05-12-usalign-cpp-refactor-design.md` | C→C++ 映射、文件拆分、里程碑与风险控制 |
+| 重构进度日志 | `docs/superpowers/specs/2026-05-14-refactor-progress-log.md` | 重构过程、问题发现与修复记录 |
 | 最终总结 | `docs/superpowers/specs/2026-05-21-refactor-final-summary.md` | 完成状态、剩余工作、已验证测试结果（含终态目录图） |
 | L2-h 二级指针方案 | `docs/superpowers/specs/2026-05-21-usalign-l2h-pointer-to-container-design.md` | ~347 处二级指针 → C++ 容器，~38 步详细方案 |
 | USalign 源码架构 | `../../../USalign/` 和 `../mm1/CLAUDE.md` | 源码结构、算法流程、文件清单、命令行选项 |
@@ -385,4 +389,4 @@ USalign 主程序支持 OpenMP 多线程加速，通过以下方式启用：
 1. Windows 原生编译不支持 `.gz`/`.bz2` 压缩文件（`pstream.h` 依赖 POSIX pipe）
 2. 性能测试可能因系统负载产生自然波动，`20%-50%` 的 WARNING 需人工判定
 3. 独立程序（TMscore/HwRMSD/MMalign/pdb2ss/pdbAtomName/addChainID/xyz_sfetch/TMalign/se/NWalign/qTMclust/pdb2xyz/pdb2fasta/biounitasym/cif2pdb/USalign/USFlexalign）的测试不在 `run_regression.py` 覆盖范围内，需单独运行 `standalone/<程序>/run_test.py`
-4. 远程仓库断开时，`USalign-beta` 分支可能无法 push（当前已解决，51 commits 已推送到 origin）
+4. Apple Clang 可用 `make OPENMP=0` 构建 USalign-beta，但当前并行回归脚本仍要求 OpenMP；运行这些脚本时应使用 Homebrew GCC，或自行配置 Clang + libomp

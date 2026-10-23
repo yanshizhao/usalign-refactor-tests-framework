@@ -148,7 +148,7 @@ python build_Small_DB.py
 | **Output** | `USalign_mod_<pid>.exe` + `current/` (14 `_mod.out`) + `diffs/` (diff files) |
 | **Input** | `testcases_functional.txt` + `baseline/` |
 | **When to run** | After each source modification |
-| **Result classification** | `PASS` = identical / `WARNING` = CPU time only / `FAIL` = business data mismatch (generates `.diff`) |
+| **Result classification** | `PASS` = identical after normalization / `WARNING` = timing only / `FAIL` = business data mismatch (generates `.diff`) |
 | **Special handling** | `superposed_structure` additionally compares `sup.pdb`; auto-cleans `.pml` files; `clean_slash()` cleans `/` prefix in `Name of Structure_X:` lines |
 | **Note** | Clears `current/` and `diffs/` before each run |
 
@@ -160,7 +160,7 @@ python build_Small_DB.py
 | **Compile source** | `master` branch |
 | **Output** | `USalign_orig.exe` + `perf_baseline/baseline.csv` |
 | **Input** | `testcases_baseline_performance.txt` (without `-threads` parameter) |
-| **Parameters** | Each case run **5 times**, average of `#Total CPU time` |
+| **Parameters** | Each case runs **5 times**; monotonic wall time is measured with Python `time.perf_counter()` and averaged |
 | **When to run** | Once before modifying source code |
 | **vs Regression** | Baseline uses `testcases_baseline_performance.txt` (single-thread); regression uses `testcases_performance.txt` (multi-thread `-threads 2/4`) |
 
@@ -191,7 +191,7 @@ Each standalone program (`standalone/<program>/`) has two core scripts:
 
 **`create_baseline.py`**: Extract standalone `.cpp` source from `master` branch → compile → run cases → save baseline output to `baseline/`
 
-**`run_test.py`**: Switch to `USalign-beta` → compile standalone program → run cases → byte-level comparison against baseline. Filters `#Total CPU time` lines via `strip_cpu_time()` before comparison (CPU time fluctuation is not a regression criterion).
+**`run_test.py`**: Switch to `USalign-beta` → compile standalone program → run cases → compare against baseline. Filters legacy `#Total CPU time` and current `#Total elapsed time` lines via `strip_cpu_time()` before comparison.
 
 ## 5. Test Cases
 
@@ -273,8 +273,8 @@ Both executables are compiled from `../../../USalign/USalign.cpp`; the differenc
 `run_regression.py` performs **byte-level comparison**:
 
 1. Capture USalign `stdout + stderr`, apply `clean_slash()` to remove redundant `/` prefix in `Name of Structure_X:` lines (a known quirk of USalign output)
-2. Strip `#Total CPU time` lines via `strip_cpu_time()`
-3. Compare stripped output: identical → PASS; CPU time only diffs → WARNING; business data diffs → FAIL
+2. Strip `#Total CPU time` and `#Total elapsed time` lines via `strip_cpu_time()`
+3. Compare normalized output: identical → PASS; timing-only differences → WARNING; business data differences → FAIL
 4. When inconsistent, generates unified diff in `diffs/<case_name>.diff`
 
 ### 6.3 Key Conventions
@@ -298,7 +298,7 @@ Both executables are compiled from `../../../USalign/USalign.cpp`; the differenc
 
 The main USalign program supports OpenMP parallel acceleration:
 
-- **Compile time**: Add `-fopenmp` flag (automatically included by `make`)
+- **Compile time**: With `OPENMP=auto`, the Makefile adds `-fopenmp` only after the target compiler passes a compile-and-link probe; use `OPENMP=0` to disable it explicitly
 - **Runtime**: Use `-threads N` to specify thread count, e.g., `-threads 4`
 
 Batch modes supporting `-threads`: `-dir`, `-dir1`, `-dir2`, `-dirpair`

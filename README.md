@@ -21,7 +21,7 @@ usalign-refactor-tests-framework/
 
 ### cLanguage2Cplus
 
-验证 USalign **全部功能**的回归和性能，覆盖 14 个功能用例、4 个性能用例以及 4 个独立程序（TMscore、HwRMSD、MMalign、pdb2ss）的子测试。
+验证 USalign 主程序的回归和性能，当前覆盖 40 个功能用例、5 个性能用例，并在 `standalone/` 下提供 17 个独立程序测试套件。用例数量以对应的 `testcases_*.txt` 为准。
 
 - **测试类型**：功能回归 + 性能回归
 - **详细文档**：[scripts/cLanguage2Cplus/README.md](scripts/cLanguage2Cplus/README.md)
@@ -81,7 +81,7 @@ USalign_full 回归测试的统一入口脚本目录。包含三个子流程入�
 ```
 USalign 源码
   ├── master 分支编译 → 原始版 → baseline/（黄金标准）
-  └── 目标分支编译   → 修改版 → current/ → 逐字节/逐行比对
+  └── 目标分支编译   → 修改版 → current/ → 按各套件规则比较
 ```
 
 其中 chainmap_local 在回归比对之外，另以关键行断言方式验证局部约束新行为（映射锁定、防御警告、未配对归因等，见 `testcases_feature.txt`）。详细说明见各子测试流程的 README。

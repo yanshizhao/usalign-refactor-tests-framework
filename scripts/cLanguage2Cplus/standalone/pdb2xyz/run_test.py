@@ -52,8 +52,8 @@ def compile_mod(exe_path: str):
 
 
 def strip_cpu_time(text: str) -> str:
-    """Remove #Total CPU time lines (they fluctuate naturally)"""
-    return re.sub(r'^#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
+    """Remove #Total (?:CPU|elapsed) time lines (they fluctuate naturally)"""
+    return re.sub(r'^#Total (?:CPU|elapsed) time.*\n?', '', text, flags=re.MULTILINE)
 
 
 def normalize(text: str, exe_path: str) -> str:

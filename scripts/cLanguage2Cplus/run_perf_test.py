@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import subprocess, os, sys, re, csv, platform, argparse
+import subprocess, os, sys, time, csv, platform, argparse
 from pathlib import Path
 
 """
@@ -7,7 +7,7 @@ Performance regression test script (Performance Regression Runner)
 Features:
   1. Switch to the USalign-beta branch, compile US-align with the required modifications
   2. Read all performance test cases from testcases_performance.txt
-  3. Run each case multiple times (default 5), extract average CPU time
+  3. Run each case multiple times (default 5), measure average monotonic wall time
   4. Save results to performance.csv in perf_current/ directory
   5. Read baseline data from perf_baseline/baseline.csv and compare with current results
   6. Calculate the percentage change in time for each case, classify by threshold:
@@ -68,10 +68,6 @@ def compile():
     if subprocess.run(compile_cmd).returncode != 0:
         print("Compilation failed!"); sys.exit(1)
 
-def extract_time(output: str) -> float:
-    m = re.search(r"#Total CPU time\s+is\s+([\d\.]+)\s+seconds", output)
-    return float(m.group(1)) if m else 0.0
-
 def run_benchmarks():
     if not CURRENT_DIR.exists(): CURRENT_DIR.mkdir(parents=True)
     with open(CURRENT_CSV, "w", newline='') as csv_out:
@@ -88,9 +84,15 @@ def run_benchmarks():
                 print(f"  CWD: {workdir}")
                 print(f"  CMD: {' '.join(cmd)}")
                 total = 0.0
-                for _ in range(RUNS):
+                for run_idx in range(RUNS):
+                    started = time.perf_counter()
                     proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(workdir))
-                    total += extract_time(proc.stdout + proc.stderr)
+                    elapsed = time.perf_counter() - started
+                    if proc.returncode != 0:
+                        print(f"  ERROR: run {run_idx+1} exited with {proc.returncode}.")
+                        print(proc.stderr[-2000:])
+                        sys.exit(1)
+                    total += elapsed
                 avg = round(total / RUNS, 3)
                 csv_out.write(f"{name},{avg}\n")
 

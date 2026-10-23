@@ -24,8 +24,8 @@ def clean_slash(text: str) -> str:
 
 
 def strip_cpu_time(text: str) -> str:
-    """Remove #Total CPU time lines -- CPU time naturally fluctuates and is not used for regression decisions"""
-    return re.sub(r'^\s*#Total CPU time.*\n?', '', text, flags=re.MULTILINE)
+    """Remove volatile legacy CPU-time and current elapsed-time lines."""
+    return re.sub(r'^\s*#Total (?:CPU|elapsed) time.*\n?', '', text, flags=re.MULTILINE)
 
 
 def is_non_business_line(line: str) -> bool:
@@ -33,7 +33,7 @@ def is_non_business_line(line: str) -> bool:
     stripped = line.strip()
     if not stripped:
         return True
-    if "#Total CPU time is" in stripped:
+    if re.search(r"#Total (?:CPU|elapsed) time is", stripped):
         return True
     return False
 
